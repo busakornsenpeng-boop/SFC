@@ -1,0 +1,110 @@
+// routes/notify.js
+// ─────────────────────────────────────────────────────────────
+// Helper ส่งข้อความ LINE Messaging API + จัดการ line_user_id
+// ─────────────────────────────────────────────────────────────
+const axios = require('axios');
+
+const LINE_API = 'https://api.line.me/v2/bot/message/push';
+
+/**
+ * ส่งข้อความ LINE ไปหา userId
+ */
+async function sendLineMessage(lineUserId, message) {
+  if (!lineUserId || !message) return;
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token) {
+    console.warn('[LINE Notify] LINE_CHANNEL_ACCESS_TOKEN ยังไม่ได้ตั้งค่า');
+    return;
+  }
+  try {
+    await axios.post(
+      LINE_API,
+      { to: lineUserId, messages: [{ type: 'text', text: message }] },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+        },
+      }
+    );
+    console.log(`[LINE Notify] ส่งสำเร็จ → ${lineUserId}`);
+  } catch (err) {
+    console.error('[LINE Notify] ส่งไม่สำเร็จ:', err.response?.data || err.message);
+  }
+}
+
+/**
+ * ค้นหา lineUserId จาก Users sheet ตามชื่อ (fullname) หรือ username
+ */
+async function getLineUserIdByName(sheets, spreadsheetId, nameOrUsername) {
+  if (!nameOrUsername) return null;
+  try {
+    const res  = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Users!A2:J1000',
+    });
+    const rows  = res.data.values || [];
+    // col A=username, col D=fullname, col J=line_user_id
+    const found = rows.find(r =>
+      (r[0] || '').toLowerCase() === nameOrUsername.toLowerCase() ||
+      (r[3] || '').toLowerCase() === nameOrUsername.toLowerCase()
+    );
+    return found ? (found[9] || null) : null;
+  } catch (err) {
+    console.error('[LINE Notify] getLineUserIdByName error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * บันทึก line_user_id ลงคอลัมน์ J ของ Users sheet
+ */
+async function saveLineUserId(username, lineUserId) {
+  const { sheets, SPREADSHEET_ID } = require('../db/connection');
+  try {
+    const res      = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Users!A2:J1000',
+    });
+    const rows     = res.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === username);
+    if (rowIndex === -1) throw new Error(`ไม่พบ user: ${username}`);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `Users!J${rowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[lineUserId]] },
+    });
+    console.log(`[LINE] บันทึก line_user_id สำเร็จ → ${username}`);
+  } catch (err) {
+    console.error('[LINE] saveLineUserId error:', err.message);
+    throw err;
+  }
+}
+
+/**
+ * ค้นหา username จาก line_user_id (คอลัมน์ J)
+ */
+async function findUsernameByLineId(lineUserId) {
+  const { sheets, SPREADSHEET_ID } = require('../db/connection');
+  try {
+    const res   = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Users!A2:J1000',
+    });
+    const rows  = res.data.values || [];
+    const found = rows.find(r => r[9] === lineUserId);
+    return found ? found[0] : null;
+  } catch (err) {
+    console.error('[LINE] findUsernameByLineId error:', err.message);
+    return null;
+  }
+}
+
+module.exports = {
+  sendLineMessage,
+  getLineUserIdByName,
+  saveLineUserId,
+  findUsernameByLineId,
+};

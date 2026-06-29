@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>SFC SMART REPAIR & PM ONLINE</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles-base.css">
+<link rel="stylesheet" href="styles-panels.css">
+</head>
+<body>
+
+  <!-- ── Toast Container ── -->
+  <div id="toast-container"></div>
+
+  <!-- ── Loading Overlay ── -->
+  <div id="loading-overlay" style="display:none;opacity:0;pointer-events:none">
+    <div class="spinner"></div>
+    <div style="margin-top:16px;font-weight:600;color:var(--text2)" id="loading-txt">กำลังโหลดข้อมูล...</div>
+  </div>
+  <div class="container">
+    <!-- ════════════════════════════ LOGIN PAGE ════════════════════════════ -->
+    <section id="login-page">
+      <div class="login-card">
+       <img id="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
+        <h1 class="login-title" style="margin-bottom:4px">SFC SMART REPAIR</h1>
+        <p class="login-desc" style="margin-bottom:18px">ระบบแจ้งซ่อมและกำหนดตารางแผนบำรุงรักษา PM</p>
+        <div class="login-error" id="login-err-msg">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!
+        </div>
+
+      <form id="login-form" onsubmit="handleLoginSubmit(event)">
+  <input type="hidden" id="username" value="">
+
+  <div class="form-group-login">
+    <label for="username-display">ชื่อผู้ใช้งาน</label>
+    <input type="text" id="username-display" class="login-input" placeholder="กรอก username"
+      oninput="syncUsername(this.value)">
+  </div>
+
+  <div class="form-group-login">
+    <label for="password">รหัสผ่าน</label>
+    <input type="password" id="password" class="login-input" placeholder="••••" required>
+  </div>
+  <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
+  <div style="display:flex;align-items:center;gap:10px;margin:14px 0 0">
+  <div style="flex:1;height:1px;background:var(--border)"></div>
+  <span style="font-size:12px;color:var(--text3)">หรือ</span>
+  <div style="flex:1;height:1px;background:var(--border)"></div>
+</div>
+<button type="button" onclick="loginWithLINE()"
+  style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;
+         background:#06C755;color:#fff;font-size:14px;font-weight:700;
+         cursor:pointer;font-family:inherit;display:flex;align-items:center;
+         justify-content:center;gap:8px">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+    <path d="M12 2C6.48 2 2 6.02 2 11c0 3.54 2.29 6.53 5.47 8.11L6.5 22l3.27-1.7C10.5 20.43 11.24 20.5 12 20.5c5.52 0 10-4.02 10-9S17.52 2 12 2z"/>
+  </svg>
+  เข้าสู่ระบบด้วย LINE
+</button>
+</form>
+
+        <!-- Register Link -->
+        <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <span style="font-size:13px;color:var(--text2)">ยังไม่มีบัญชี? </span>
+          <button type="button" onclick="openRegisterModal()"
+            style="border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">
+            สมัครใช้งาน
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════ DASHBOARD PAGE ════════════════════════════ -->
+    <section id="dashboard-page">
+
+      <!-- Header -->
+      <header class="main-header">
+        <div class="brand-section">
+          <img id="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
+          <div>
+            <h2 class="brand-title">SFC SMART REPAIR</h2>
+            <div class="brand-subtitle">บูรณาการการแจ้งซ่อมและแผนบำรุงรักษา (PM) ออนไลน์</div>
+          </div>
+        </div>
+        <div class="user-profile">
+          <div class="profile-info">
+            <div class="profile-name" id="user-display-name">Username</div>
+            <div class="profile-role" id="user-display-role">ROLE</div>
+          </div>
+          <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Tab Navigation -->
+      <nav class="tab-navigation" id="main-nav-tabs"></nav>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: แจ้งซ่อม
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-report-repair" class="view-panel">
+        <div class="card">
+          <div class="card-title"><i class="bi bi-plus-circle"></i> แบบฟอร์มแจ้งซ่อมเครื่องจักร</div>
+          <form id="repair-request-form" onsubmit="submitRepairForm(event)">
+            <div class="form-grid-3">
+              <div class="form-field">
+                <label>ชื่อผู้แจ้งซ่อม<span class="req">*</span></label>
+                  <input type="text" id="rep-requester" class="input-ctrl" readonly>        
+            </div>
+              <div class="form-field">
+                <label>แผนกที่แจ้งซ่อม<span class="req">*</span></label>
+                <select id="rep-dept" class="select-ctrl" required>
+                  <option value="">กำลังโหลด...</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>เครื่องจักร/อุปกรณ์<span class="req">*</span></label>
+               <select id="rep-machine" class="select-ctrl" required>
+                  <option value="">กำลังโหลด...</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-field">
+                <label>ด้านปัญหา<span class="req">*</span></label>
+                <select id="rep-side" class="select-ctrl" required>
+                  <option value="">เลือกด้านปัญหา</option>
+                  <option>ระบบไฟฟ้า (Electrical)</option>
+                  <option>ระบบเครื่องกล (Mechanical)</option>
+                  <option>ระบบลม (Pneumatic)</option>
+                  <option>ระบบไฮดรอลิก (Hydraulic)</option>
+                  <option>โครงสร้าง/สาธารณูปโภค (Utility)</option>
+                  <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)<option> 
+                </select>
+              </div>
+              <div class="form-field">
+                <label>ประเภทงานซ่อม<span class="req">*</span></label>
+                <select id="rep-type" class="select-ctrl" required>
+                  <option value="">เลือกประเภท</option>
+                  <option>ซ่อมฉุกเฉิน (Break Down)</option>
+                  <option>ซ่อมตามอาการ (Corrective)</option>
+                  <option>ปรับปรุงประสิทธิภาพ (Modify)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field" style="margin-bottom:16px">
+              <label>รายละเอียดอาการชำรุด<span class="req">*</span></label>
+              <textarea id="rep-detail" class="textarea-ctrl" placeholder="กรุณาระบุรายละเอียดเพิ่มเติม..." required></textarea>
+            </div>
+            <div class="form-field" style="margin-bottom:20px">
+              <label>แนบรูปภาพ (ถ้ามี)</label>
+              <div class="dropzone" onclick="triggerFileInput('rep-file-input')">
+                <i class="bi bi-cloud-arrow-up"></i>
+                <span style="font-size:13px;color:var(--text2)">คลิกเพื่อเลือกรูปภาพ</span>
+              </div>
+              <input type="file" id="rep-file-input" accept="image/*" multiple style="display:none"
+              onchange="previewUploadedFile(this,'rep-thumb-grid')">
+              <div class="thumb-grid" id="rep-thumb-grid"></div>
+            </div>
+            <div class="actions-panel" style="margin-top:0;padding-top:0;border:none">
+              <button type="submit" class="btn btn-accent"><i class="bi bi-send"></i> ส่งใบแจ้งซ่อม</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: ติดตามงานซ่อม
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-track-repairs" class="view-panel">
+        <div class="card">
+          <div class="card-title"><i class="bi bi-clock-history"></i> ติดตามสถานะงานซ่อมบำรุง</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+            <input type="text" id="track-search" class="input-ctrl"
+              style="flex:1;min-width:160px;font-size:13px"
+              placeholder="🔍 ค้นหา JobID / เครื่องจักร..."
+              oninput="renderRepairsTable()">
+            <select id="track-filter-status" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
+              <option value="">ทุกสถานะ</option>
+              <option>รอซ่อม</option><option>กำลังซ่อม</option>
+              <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+            </select>
+            <select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
+              <option value="">ทุกแผนก</option>
+              <option>ฝ่ายผลิต</option><option>ฝ่ายวิศวกรรม</option><option>ฝ่ายคลังสินค้า</option>
+            </select>
+            <select id="track-filter-side" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
+              <option value="">ทุกอาการเสีย</option>
+              <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบลม</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>JobID</th><th>วันที่แจ้ง</th><th>เครื่องจักร</th>
+                  <th>ด้านปัญหา</th><th>รายละเอียด</th><th>ช่างรับงาน</th>
+                  <th>สถานะ</th><th>ดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="track-repairs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: ตาราง PM
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-pm-table" class="view-panel">
+        <div class="stats-grid">
+          <div class="stat-card yellow"><div class="stat-label">ทั้งหมด</div><div class="stat-value" id="pm-stat-total">0</div></div>
+          <div class="stat-card blue"><div class="stat-label">รอดำเนินการ</div><div class="stat-value" id="pm-stat-pend">0</div></div>
+          <div class="stat-card green"><div class="stat-label">เสร็จแล้ว</div><div class="stat-value" id="pm-stat-done">0</div></div>
+          <div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value" id="pm-stat-over">0</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div class="card-title" style="margin-bottom:0"><i class="bi bi-list-stars"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
+            <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openModal('pm-event-modal')">
+              <i class="bi bi-plus-lg"></i> เพิ่มแผน PM
+            </button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+            <input type="text" id="pm-search" class="input-ctrl"
+              style="flex:1;min-width:160px;font-size:13px"
+              placeholder="🔍 ค้นหาเครื่องจักร / ชื่องาน..."
+              oninput="renderPMTable()">
+            <select id="pm-filter-status" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderPMTable()">
+              <option value="">ทุกสถานะ</option>
+              <option>รอดำเนินการ</option><option>กำลังดำเนินการ</option>
+              <option>เสร็จแล้ว</option><option>เกินกำหนด</option>
+            </select>
+            <select id="pm-filter-freq" class="select-ctrl" style="width:110px;font-size:12px" onchange="renderPMTable()">
+              <option value="">ทุกความถี่</option>
+              <option>รายวัน</option><option>รายเดือน</option>
+            </select>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th><th>เครื่องจักร</th><th>ชื่องาน PM</th>
+                  <th>ความถี่</th><th>วันที่กำหนด</th><th>สถานะ</th><th>ดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="pm-list-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: ปฏิทิน PM
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-pm-calendar" class="view-panel">
+        <div class="legend-box">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>เกินกำหนด</div>
+        </div>
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <div style="display:flex;gap:6px">
+              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(-1)"><i class="bi bi-chevron-left"></i></button>
+              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(1)"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <span class="calendar-title" id="calendar-title-txt">—</span>
+            <button class="btn btn-sec" style="padding:6px 12px;font-size:12px" onclick="focusCalendarToday()">วันนี้</button>
+          </div>
+          <div class="calendar-grid">
+            <div class="calendar-dow">อา</div><div class="calendar-dow">จ</div>
+            <div class="calendar-dow">อ</div><div class="calendar-dow">พ</div>
+            <div class="calendar-dow">พฤ</div><div class="calendar-dow">ศ</div>
+            <div class="calendar-dow">ส</div>
+          </div>
+          <div class="calendar-grid" id="calendar-body-days"></div>
+        </div>
+        <div class="day-nav-wrapper" id="cal-day-navigator" style="display:none">
+          <button class="day-nav-btn" onclick="shiftSelectedDay(-1)"><i class="bi bi-chevron-left"></i></button>
+          <div class="day-nav-label"><i class="bi bi-calendar3"></i><span id="cal-selected-day-lbl">—</span></div>
+          <button class="day-nav-btn" onclick="shiftSelectedDay(1)"><i class="bi bi-chevron-right"></i></button>
+          <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="clearSelectedDayNav()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+        <div id="cal-day-detail-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--teal)"
+            id="cal-detail-title-txt"></div>
+          <div id="cal-day-detail-list"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: PM Checklist
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-pm-checklist" class="view-panel">
+        <div class="card">
+          <div class="card-title"><i class="bi bi-clipboard-check"></i> แบบฟอร์มตรวจสอบเครื่องจักรและบำรุงรักษาเชิงป้องกัน (PM)</div>
+          <div class="form-grid-3">
+            <div class="form-field"><label>รหัสงาน PM</label><input type="text" id="chk-pm-code" class="input-ctrl" readonly></div>
+            <div class="form-field"><label>เครื่องจักร</label><input type="text" id="chk-pm-equip" class="input-ctrl" readonly></div>
+            <div class="form-field"><label>วันที่ตรวจ<span class="req">*</span></label><input type="date" id="chk-pm-date" class="input-ctrl" required></div>
+            <div class="form-field">
+              <label>รอบกะ</label>
+              <select id="chk-pm-shift" class="select-ctrl">
+                <option value="">เลือกกะ</option>
+                <option>กะเช้า (08:30–20:30)</option>
+                <option>กะดึก (20:30–08:30)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>ไลน์ผลิต</label>
+              <select id="chk-pm-line" class="select-ctrl">
+                <option value="">เลือกไลน์ผลิต</option>
+                <option>ไลน์ A</option><option>ไลน์ B</option>
+                <option>ไลน์ C</option><option>ไลน์ D</option>
+              </select>
+            </div>
+            <div class="form-field"><label>ช่างผู้ตรวจ</label><input type="text" id="chk-pm-tech" class="input-ctrl" readonly></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="bi bi-list-check"></i> รายการตรวจสอบ (Checklist)</div>
+          <table class="checklist-table">
+            <thead class="checklist-hdr">
+              <tr>
+                <th style="text-align:left">รายการตรวจ</th>
+                <th style="width:180px;text-align:center">ผลการตรวจ</th>
+                <th style="width:180px;text-align:right">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="checklist-tbody-items"></tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="card-title"><i class="bi bi-clipboard-data"></i> รายงานผลการซ่อมบำรุงและสภาพรวม</div>
+          <div class="form-grid-3">
+            <div class="form-field"><label>ชั่วโมงการทำงาน</label><input type="number" id="chk-running-hr" class="input-ctrl" placeholder="เช่น 4250"></div>
+            <div class="form-field"><label>อะไหล่ที่เปลี่ยน (ถ้ามี)</label><input type="text" id="chk-parts-replaced" class="input-ctrl" placeholder="ชื่อชิ้นส่วน หรือ '-'"></div>
+            <div class="form-field">
+              <label>สรุปสภาพเครื่องจักรโดยรวม<span class="req">*</span></label>
+              <select id="chk-overall-result" class="select-ctrl" required>
+                <option value="">— เลือกการประเมิน —</option>
+                <option value="pass">ปกติ — พร้อมทำงานได้ 100%</option>
+                <option value="warn">ต้องติดตาม — พบปัญหาเล็กน้อย</option>
+                <option value="fail">ชำรุด/ต้องซ่อม — ใช้งานไม่ได้</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:14px"><label>งานที่ดำเนินการซ่อมแซม</label><textarea id="chk-work-done" class="textarea-ctrl" placeholder="ทำความสะอาดคราบฝุ่น, เติมสารหล่อลื่น..."></textarea></div>
+          <div class="form-field" style="margin-bottom:14px"><label>ข้อสังเกตและงานติดตาม</label><textarea id="chk-remarks" class="textarea-ctrl" placeholder="ตรวจพบอาการสั่นเบาบาง..."></textarea></div>
+          <div class="form-field" style="max-width:240px"><label>วันที่เสนอแผน PM ครั้งถัดไป</label><input type="date" id="chk-next-pm" class="input-ctrl"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="bi bi-shield-check"></i> ระบบยืนยันการตรวจสอบ</div>
+          <div class="form-grid-2">
+            <div class="form-field"><label>ช่างผู้ตรวจ<span class="req">*</span></label><input type="text" id="chk-sign-tech-input" class="input-ctrl" placeholder="ชื่อ-นามสกุล" oninput="updateSignatureBox('tech')"></div>
+            <div class="form-field"><label>ผู้อนุมัติ<span class="req">*</span></label><input type="text" id="chk-sign-appr-input" class="input-ctrl" placeholder="ชื่อ-นามสกุล" oninput="updateSignatureBox('appr')"></div>
+          </div>
+          <div class="sign-section">
+            <div class="sign-box">
+              <div class="sign-title">ลายเซ็น (ช่างเทคนิค)</div>
+              <div class="sign-display" id="chk-sign-tech-disp">ยังไม่ได้ลงนาม</div>
+              <div class="sign-date-txt" id="chk-sign-tech-date">วันที่ —/—/——</div>
+            </div>
+            <div class="sign-box">
+              <div class="sign-title">ลายเซ็นอนุมัติ (หัวหน้างาน)</div>
+              <div class="sign-display" id="chk-sign-appr-disp">ยังไม่ได้ลงนาม</div>
+              <div class="sign-date-txt" id="chk-sign-appr-date">วันที่ —/—/——</div>
+            </div>
+          </div>
+        </div>
+        <div class="actions-panel">
+          <button class="btn btn-sec" onclick="resetPMForm()">ล้างแบบฟอร์ม</button>
+          <button class="btn btn-accent" onclick="submitPMForm()"><i class="bi bi-cloud-arrow-up"></i> ส่งบันทึกเช็กชีต PM</button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: ประวัติ PM
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-pm-history" class="view-panel">
+        <div class="card">
+          <div class="card-title"><i class="bi bi-journal-check"></i> ประวัติรายงานการตรวจ PM</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th><th>รหัส PM / เครื่องจักร</th>
+                  <th>วันที่ตรวจเช็ก</th><th>ผู้ตรวจ</th><th>สภาพโดยรวม</th>
+                  <th>งานที่ปฏิบัติ</th><th>หมายเหตุ</th><th style="width:70px">เอกสาร</th>
+                </tr>
+              </thead>
+              <tbody id="pm-history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: Engineer Main
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-eng-main" class="view-panel">
+        <div class="eng-wrap">
+          <!-- KPI Summary -->
+          <div class="eng-summary">
+            <div class="eng-kpi ek-red"><span class="eng-kpi-icon">🔍</span><div class="eng-kpi-val" id="eng-kpi-qc">0</div><div class="eng-kpi-lbl">รอ QC</div></div>
+            <div class="eng-kpi ek-yellow"><span class="eng-kpi-icon">⏳</span><div class="eng-kpi-val" id="eng-kpi-pmpend">0</div><div class="eng-kpi-lbl">PM รอดำเนินการ</div></div>
+            <div class="eng-kpi ek-green"><span class="eng-kpi-icon">✅</span><div class="eng-kpi-val" id="eng-kpi-pmdone">0</div><div class="eng-kpi-lbl">PM เสร็จแล้ว</div></div>
+            <div class="eng-kpi ek-teal"><span class="eng-kpi-icon">📋</span><div class="eng-kpi-val" id="eng-kpi-pmtotal">0</div><div class="eng-kpi-lbl">PM ทั้งหมด</div></div>
+            <div class="eng-kpi ek-blue"><span class="eng-kpi-icon">🔧</span><div class="eng-kpi-val" id="eng-kpi-repairs">0</div><div class="eng-kpi-lbl">งานแจ้งซ่อม</div></div>
+            <div class="eng-kpi ek-purple"><span class="eng-kpi-icon">📊</span><div class="eng-kpi-val" id="eng-kpi-sla">—%</div><div class="eng-kpi-lbl">SLA เฉลี่ย</div></div>
+          </div>
+          <!-- Sub-tabs -->
+          <div class="eng-tabs">
+            <button class="eng-tab active" id="et-qc"   onclick="swEng('qc',this)">🔍 งาน QC <span class="eng-tab-badge alert" id="eng-badge-qc">0</span></button>
+            <button class="eng-tab"        id="et-dash" onclick="swEng('dash',this)">📊 ภาพรวม</button>
+            <button class="eng-tab"        id="et-pm"   onclick="swEng('pm',this)">📋 กำหนด PM <span class="eng-tab-badge" id="eng-badge-pm">0</span></button>
+            <button class="eng-tab"        id="et-cal"  onclick="swEng('cal',this)">📅 ปฏิทิน PM</button>
+            <button class="eng-tab"        id="et-hist" onclick="swEng('hist',this)">📜 ประวัติ PM</button>
+            <button class="eng-tab"        id="et-rep"  onclick="swEng('rep',this)">🔧 งานแจ้งซ่อม</button>
+            <button class="eng-tab"        id="et-daily" onclick="swEng('daily',this)">📋 Daily PM <span class="eng-tab-badge" id="eng-badge-daily">0</span></button>
+          </div>
+
+          <!-- QC Tab -->
+          <div class="eng-panel active" id="ep-qc">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px" id="ep-qc-subtitle">งานซ่อมที่รอตรวจสอบคุณภาพ</div>
+            <div class="qc-grid" id="ep-qc-grid"></div>
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px" id="ep-qc-done-subtitle">งานที่ตรวจ QC แล้ว</div>
+              <div class="qc-grid" id="ep-qc-done-grid"></div>
+            </div>
+          </div>
+
+          <!-- Dashboard Tab -->
+          <div class="eng-panel" id="ep-dash">
+            <div class="eng-dash-grid">
+              <div class="eng-chart-card"><div class="eng-chart-title"><span>📈</span> แนวโน้ม PM รายเดือน</div><div class="trend-list" id="ep-trend-list"></div></div>
+              <div class="eng-chart-card"><div class="eng-chart-title"><span>🕐</span> กิจกรรมล่าสุด</div><div class="recent-list" id="ep-recent-list"></div></div>
+              <div class="eng-chart-card"><div class="eng-chart-title"><span>⚡</span> สัดส่วน PM ตามสถานะ</div><div id="ep-pm-bars" style="display:flex;flex-direction:column;gap:10px"></div></div>
+            </div>
+          </div>
+
+          <!-- PM Table Tab -->
+          <div class="eng-panel" id="ep-pm">
+            <div class="pm-toolbar">
+              <input class="pm-search-eng" id="ep-pm-search" placeholder="🔍 ค้นหาเครื่องจักร..." oninput="engRenderPMTable()">
+              <select class="pm-sel-eng" id="ep-pm-status" onchange="engRenderPMTable()">
+                <option value="">สถานะทั้งหมด</option><option>รอดำเนินการ</option>
+                <option>กำลังดำเนินการ</option><option>เสร็จแล้ว</option><option>เกินกำหนด</option>
+              </select>
+              <select class="pm-sel-eng" id="ep-pm-freq" onchange="engRenderPMTable()">
+                <option value="">ความถี่ทั้งหมด</option><option>รายวัน</option><option>รายเดือน</option>
+              </select>
+              <button class="pm-add-btn-eng d-none" id="ep-pm-add-btn" onclick="openModal('pm-event-modal')">➕ เพิ่มแผน PM</button>
+            </div>
+            <div class="pm-table-wrap">
+              <table class="pm-table">
+                <thead><tr><th>#</th><th>เครื่องจักร</th><th>ประเภทงาน</th><th>ความถี่</th><th>กำหนดวัน</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead>
+                <tbody id="ep-pm-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Calendar Tab -->
+          <div class="eng-panel" id="ep-cal">
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:11px">
+              <div style="display:flex;align-items:center;gap:5px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div>รอดำเนินการ</div>
+              <div style="display:flex;align-items:center;gap:5px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></div>กำลังดำเนินการ</div>
+              <div style="display:flex;align-items:center;gap:5px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>เสร็จแล้ว</div>
+              <div style="display:flex;align-items:center;gap:5px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div>เกินกำหนด</div>
+            </div>
+            <div class="cal-mini-wrap">
+              <div class="cal-mini-hdr">
+                <div style="display:flex;gap:5px">
+                  <button class="cal-mini-nav" onclick="engCalShift(-1)">‹</button>
+                  <button class="cal-mini-nav" onclick="engCalShift(1)">›</button>
+                </div>
+                <span class="cal-mini-title" id="eng-cal-title">—</span>
+                <button class="btn btn-sec" style="padding:5px 10px;font-size:11px" onclick="engCalToday()">วันนี้</button>
+              </div>
+              <div class="cal-dow-row">
+                <div class="cal-dow">อา</div><div class="cal-dow">จ</div><div class="cal-dow">อ</div>
+                <div class="cal-dow">พ</div><div class="cal-dow">พฤ</div><div class="cal-dow">ศ</div><div class="cal-dow">ส</div>
+              </div>
+              <div class="cal-days-grid" id="eng-cal-days"></div>
+            </div>
+            <div id="eng-cal-detail" style="display:none">
+              <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px">
+                <button class="day-nav-btn" onclick="engCalShiftDay(-1)"><i class="bi bi-chevron-left"></i></button>
+                <div style="flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--text)" id="eng-cal-day-lbl">—</div>
+                <button class="day-nav-btn" onclick="engCalShiftDay(1)"><i class="bi bi-chevron-right"></i></button>
+                <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="engCalClear()"><i class="bi bi-x"></i></button>
+              </div>
+              <div class="day-detail-card" id="eng-cal-detail-inner"></div>
+            </div>
+          </div>
+
+          <!-- History Tab -->
+          <div class="eng-panel" id="ep-hist">
+            <div class="pm-toolbar">
+              <input class="pm-search-eng" id="hist-search" placeholder="🔍 ค้นหาเครื่องจักร / รหัส PM..." oninput="engRenderHist()">
+              <select class="pm-sel-eng" id="hist-cond" onchange="engRenderHist()">
+                <option value="">สภาพรวมทั้งหมด</option>
+                <option value="pass">ปกติ</option>
+                <option value="warn">เฝ้าระวัง</option>
+                <option value="fail">ผิดปกติ</option>
+              </select>
+              <div class="freq-toggle">
+                <button class="freq-btn active" onclick="engSetFreq('all',this)">ทั้งหมด</button>
+                <button class="freq-btn" onclick="engSetFreq('monthly',this)">🗓 รายเดือน</button>
+              </div>
+            </div>
+            <div id="hist-count" style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px"></div>
+            <div class="hist-table-wrap">
+              <table class="hist-table">
+                <thead><tr><th>#</th><th>รหัส PM / เครื่องจักร</th><th>ความถี่</th><th>วันที่ตรวจ</th><th>ผู้ตรวจ</th><th>สภาพรวม</th><th>งานที่ปฏิบัติ</th><th>เอกสาร</th></tr></thead>
+                <tbody id="hist-tbody"></tbody>
+              </table>
+              <div id="hist-empty" class="hist-empty" style="display:none">📭 ไม่พบรายการที่ตรงกัน</div>
+            </div>
+          </div>
+
+          <!-- Repair Tab -->
+          <div class="eng-panel" id="ep-rep">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+              <input class="pm-search-eng" id="ep-rep-search" placeholder="🔍 ค้นหาเครื่องจักร / เลขงาน..." oninput="engRenderRepairs()">
+              <select class="pm-sel-eng" id="ep-rep-status" onchange="engRenderRepairs()">
+                <option value="">ทุกสถานะ</option><option>รอซ่อม</option>
+                <option>กำลังซ่อม</option><option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+              </select>
+              <select class="pm-sel-eng" id="ep-rep-side" onchange="engRenderRepairs()">
+                <option value="">ทุกอาการเสีย</option>
+                <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบลม</option>
+              </select>
+            </div>
+            <div class="rep-table-wrap">
+              <table class="rep-table">
+                <thead><tr><th>เลขที่งาน</th><th>วันที่แจ้ง</th><th>เครื่องจักร</th><th>ด้านปัญหา</th><th>ช่างรับงาน</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead>
+                <tbody id="ep-rep-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Daily PM Tab -->
+          <div class="eng-panel" id="ep-daily">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">
+              ผลการตรวจ PM รายวัน — รอการรับทราบจากวิศวกร
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+              <input class="pm-search-eng" id="ep-daily-search" placeholder="🔍 ค้นหาเครื่องจักร / ผู้ตรวจ..." oninput="engRenderDailyPM()">
+              <select class="pm-sel-eng" id="ep-daily-status" onchange="engRenderDailyPM()">
+                <option value="">ทั้งหมด</option>
+                <option value="pending">รอรับทราบ</option>
+                <option value="acked">รับทราบแล้ว</option>
+              </select>
+            </div>
+            <div id="ep-daily-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
+          </div>
+
+        </div><!-- /eng-wrap -->
+      </div><!-- /panel-eng-main -->
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: Admin Dashboard
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-admin-dashboard" class="view-panel">
+        <!-- KPI Bar v2 -->
+        <div class="adm-kpi-bar-v2">
+          <div class="adm-kpi-v2 kv-blue">
+            <div class="kv-icon"><i class="bi bi-clipboard-list-fill"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-total">0</div><div class="kv-lbl">แจ้งซ่อมทั้งหมด</div><div class="kv-trend" id="adm-trend-total">—</div></div>
+          </div>
+          <div class="adm-kpi-v2 kv-amber">
+            <div class="kv-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-wait">0</div><div class="kv-lbl">รอซ่อม</div><div class="kv-trend" id="adm-trend-wait">—</div></div>
+          </div>
+          <div class="adm-kpi-v2 kv-orange">
+            <div class="kv-icon"><i class="bi bi-wrench-adjustable"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-work">0</div><div class="kv-lbl">กำลังซ่อม</div><div class="kv-trend" id="adm-trend-work">—</div></div>
+          </div>
+          <div class="adm-kpi-v2 kv-green">
+            <div class="kv-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-closed">0</div><div class="kv-lbl">ปิดงานเสร็จ</div><div class="kv-trend" id="adm-trend-closed">—</div></div>
+          </div>
+          <div class="adm-kpi-v2 kv-purple">
+            <div class="kv-icon"><i class="bi bi-bar-chart-fill"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-pm">0</div><div class="kv-lbl">PM ทั้งหมด</div><div class="kv-trend" id="adm-trend-pm">—</div></div>
+          </div>
+          <div class="adm-kpi-v2 kv-teal">
+            <div class="kv-icon"><i class="bi bi-star-fill"></i></div>
+            <div class="kv-body"><div class="kv-val" id="adm-stat-sla">—%</div><div class="kv-lbl">SLA เฉลี่ย</div><div class="kv-trend" id="adm-trend-sla">—</div></div>
+          </div>
+        </div>
+
+        <!-- Filter Row -->
+        <div class="adm-filter-row-v2">
+          <div class="adm-filter-title"><i class="bi bi-graph-up-arrow"></i> วิเคราะห์ภาพรวม</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="adm-export-btn" onclick="exportAdminPDF()"><i class="bi bi-file-earmark-pdf"></i> ส่งออก PDF</button>
+            <div class="adm-flt-group">
+              <button class="adm-flt active" onclick="changeAdminTimeFilter('all');setFltBtn(this)">ทั้งหมด</button>
+              <button class="adm-flt" onclick="changeAdminTimeFilter('daily');setFltBtn(this)">วันนี้</button>
+              <button class="adm-flt" onclick="changeAdminTimeFilter('monthly');setFltBtn(this)">เดือนนี้</button>
+              <button class="adm-flt" onclick="changeAdminTimeFilter('3months');setFltBtn(this)">3 เดือน</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="adm-charts-row-v2">
+          <div class="adm-chart-card-v2">
+            <div class="adm-chart-title-v2"><i class="bi bi-pie-chart-fill"></i> สัดส่วนด้านปัญหา</div>
+            <div style="position:relative;height:200px"><canvas id="chart-side"></canvas></div>
+          </div>
+          <div class="adm-chart-card-v2">
+            <div class="adm-chart-title-v2"><i class="bi bi-building"></i> แจ้งซ่อมแยกตามแผนก</div>
+            <div style="position:relative;height:200px"><canvas id="chart-dept"></canvas></div>
+          </div>
+          <div class="adm-chart-card-v2" style="grid-column:span 2">
+            <div class="adm-chart-title-v2"><i class="bi bi-graph-up"></i> แนวโน้มการแจ้งซ่อมรายเดือน</div>
+            <div style="position:relative;height:200px"><canvas id="chart-monthly"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="adm-leader-v2">
+          <div class="adm-leader-hdr-v2"><i class="bi bi-trophy-fill" style="color:#f59e0b"></i> ประสิทธิภาพช่างซ่อม (Leaderboard)</div>
+          <div style="overflow-x:auto">
+            <table class="adm-leader-table">
+              <thead>
+                <tr>
+                  <th style="width:44px">#</th><th>ช่างเทคนิค</th>
+                  <th>รับงาน</th><th>เสร็จ</th><th>ปิดงาน</th><th>ตีกลับ</th>
+                  <th>SLA เฉลี่ย</th><th style="min-width:160px">คะแนนรวม</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /panel-admin-dashboard -->
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: Admin Repairs
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-admin-repairs" class="view-panel">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div class="card-title" style="margin-bottom:0"><i class="bi bi-sliders"></i> จัดการใบแจ้งซ่อมทั้งหมด</div>
+            <button class="btn btn-sec" style="font-size:12px" onclick="refreshData('กำลังโหลดข้อมูล...')">
+              <i class="bi bi-arrow-clockwise"></i> รีเฟรช
+            </button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center">
+            <div style="position:relative;flex:1;min-width:180px">
+              <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"></i>
+              <input type="text" id="admin-search-rep" class="input-ctrl"
+                style="padding-left:32px;font-size:13px"
+                placeholder="ค้นหา JobID / ชื่อ / เครื่องจักร..."
+                oninput="renderAdminRepairsTable()">
+            </div>
+            <select id="admin-filter-status-rep" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderAdminRepairsTable()">
+              <option value="">ทุกสถานะ</option>
+              <option>รอซ่อม</option><option>กำลังซ่อม</option>
+              <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+              <option>แก้ไข (ตีกลับ)</option>
+            </select>
+            <select id="admin-filter-dept-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
+              <option value="">ทุกแผนก</option>
+              <option>ฝ่ายผลิต</option><option>ฝ่ายวิศวกรรม</option>
+              <option>ฝ่ายคลังสินค้า</option><option>ออฟฟิศ</option>
+            </select>
+            <select id="admin-filter-tech-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
+              <option value="">ทุกช่าง</option>
+              <option>สมชาย มั่นคง</option><option>วิชัย ใจดี</option><option>ประยุทธ์ ขยัน</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px" id="admin-rep-summary"></div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>JobID</th><th>วันที่แจ้ง</th><th>ผู้แจ้ง</th>
+                  <th>เครื่องจักร</th><th>ช่างซ่อม</th><th>สถานะ</th>
+                  <th>QC</th><th>ดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="admin-rep-list-tbody"></tbody>
+            </table>
+          </div>
+          <div id="admin-rep-pagination" style="display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap"></div>
+        </div>
+      </div><!-- /panel-admin-repairs -->
+
+      <!-- ══════════════════════════════════════════════════════
+           PANEL: Inspector Daily PM
+      ══════════════════════════════════════════════════════ -->
+      <div id="panel-ins-daily-pm" class="view-panel">
+        <div class="card pm-daily-wrap">
+          <div class="card-title"><i class="bi bi-clipboard-check"></i> ฟอร์มตรวจสอบ PM รายวัน</div>
+          <div class="pm-meta-grid">
+            <div class="form-field"><label>รหัสงาน PM</label><input type="text" id="ins-pm-code" class="input-ctrl" readonly placeholder="สร้างอัตโนมัติ"></div>
+            <div class="form-field"><label>วันที่ตรวจ<span class="pm-req">*</span></label><input type="date" id="ins-pm-date" class="input-ctrl"></div>
+            <div class="form-field">
+              <label>กะการตรวจ</label>
+              <select id="ins-pm-shift" class="select-ctrl">
+                <option value="">เลือกกะ</option>
+                <option>กะเช้า (08:30–20:30)</option><option>กะดึก (20:30–08:30)</option>
+              </select>
+            </div>
+            <div class="form-field"><label>ชื่อผู้ตรวจ<span class="pm-req">*</span></label><input type="text" id="ins-pm-inspector" class="input-ctrl" placeholder="ระบุชื่อผู้ตรวจ"></div>
+            <div class="form-field">
+              <label>ไลน์ผลิต<span class="pm-req">*</span></label>
+              <select id="ins-pm-line" class="select-ctrl">
+                <option value="">เลือกไลน์ผลิต</option>
+                <option>ไลน์ 1</option><option>ไลน์ 2</option><option>ไลน์ 3</option><option>ไลน์ 4</option>
+                <option>ไลน์ 5</option><option>ไลน์ 6</option><option>ไลน์ 7</option><option>ไลน์ 8</option>
+                <option>ไลน์ 9</option><option>ไลน์ 10</option><option>ไลน์ 11</option><option>ไลน์12 </option>
+                <option>ไลน์ 13</option><option>ไลน์ 14</option><option>ไลน์ 15</option><option>ไลน์ 16</option>
+                <option>ไลน์ 17</option><option>ไลน์ 18</option><option>ไลน์ 19</option><option>ไลน์ 20</option>
+                <option>ไลน์ 21</option><option>ไลน์ 22</option><option>ไลน์ 23</option><option>ไลน์ 24</option>
+                </option><option>ไลน์ 25</option><option>ไลน์ 26</option>
+
+              </select>
+            </div>
+            <div class="form-field">
+              <label>เครื่องจักร<span class="pm-req">*</span></label>
+            <select id="ins-pm-machine" class="select-ctrl">
+                <option value="">กำลังโหลด...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="ins-checklist-container"></div>
+        <div class="card pm-daily-wrap">
+          <div class="card-title"><i class="bi bi-clipboard-data"></i> สรุปผลและรายงาน</div>
+          <div class="form-grid-2" style="margin-bottom:12px">
+            <div class="form-field">
+              <label>สภาพโดยรวม<span class="pm-req">*</span></label>
+              <select id="ins-pm-overall" class="select-ctrl">
+                <option value="">เลือกผลการประเมิน</option>
+                <option value="pass">ปกติ — พร้อมทำงาน 100%</option>
+                <option value="warn">ต้องติดตาม — พบปัญหาเล็กน้อย</option>
+                <option value="fail">ชำรุด — ต้องซ่อมก่อนใช้งาน</option>
+              </select>
+            </div>
+            <div class="form-field"><label>อะไหล่ที่เปลี่ยน (ถ้ามี)</label><input type="text" id="ins-pm-parts" class="input-ctrl" placeholder="ระบุชื่อชิ้นส่วน หรือ '-'"></div>
+          </div>
+          <div class="form-field" style="margin-bottom:12px"><label>งานที่ดำเนินการ</label><textarea id="ins-pm-work" class="textarea-ctrl" placeholder="ทำความสะอาด, เติมสารหล่อลื่น..."></textarea></div>
+          <div class="form-field"><label>ข้อสังเกตและงานติดตาม</label><textarea id="ins-pm-remark" class="textarea-ctrl" placeholder="ตรวจพบอาการสั่นเบาบาง..."></textarea></div>
+        </div>
+        <div class="actions-panel">
+          <button class="btn btn-sec" onclick="insResetForm()"><i class="bi bi-arrow-counterclockwise"></i> ล้างแบบฟอร์ม</button>
+          <button class="btn btn-accent" onclick="insSubmitForm()"><i class="bi bi-cloud-arrow-up"></i> บันทึกผล PM รายวัน</button>
+        </div>
+        <div class="card pm-daily-wrap" style="margin-top:8px;padding:0;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg2);border-bottom:1px solid var(--border)">
+            <div class="card-title" style="margin-bottom:0"><i class="bi bi-history"></i> ประวัติการตรวจ PM รายวัน</div>
+            <span id="ins-hist-count" style="font-size:12px;color:var(--text2)">0 รายการ</span>
+          </div>
+          <div id="ins-hist-body">
+            <div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">
+              <i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ
+            </div>
+          </div>
+        </div>
+      </div><!-- /panel-ins-daily-pm -->
+<div id="panel-admin-users" class="view-panel"></div>
+    </section>
+    <!-- PANEL: QC พนักงาน -->
+<div id="panel-qc-panel" class="view-panel">
+  <div class="card">
+    <div class="card-title">
+      <i class="bi bi-patch-check"></i> ตรวจรับงานซ่อม (QC)
+    </div>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
+      งานที่ช่างซ่อมเสร็จแล้ว รอการตรวจรับจากผู้แจ้งซ่อม
+    </p>
+    <div class="qc-grid" id="user-qc-grid"></div>
+  </div>
+</div>
+
+<!-- ════════ TE PANEL (Technician + Engineer) ════════ -->
+<section id="te-panel-page" style="display:none;position:relative;z-index:1;padding:20px 0 40px">
+  <div class="tp-wrap">
+
+    <div class="tp-topbar">
+      <div class="tp-tb-left">
+        <div class="tp-tb-icon">⚙️</div>
+        <div>
+          <div class="tp-tb-title">TECHNICIAN & ENGINEER</div>
+          <div class="tp-tb-sub">SFC SMART REPAIR</div>
+        </div>
+      </div>
+      <div class="tp-logout" onclick="handleLogout()">⏻</div>
+    </div>
+
+    <div class="tp-profile">
+      <div class="tp-avatar" id="te-avatar-initials">--</div>
+      <div>
+        <div class="tp-pname" id="te-display-name">—</div>
+        <div class="tp-prole">TECH & ENGINEER · SFC</div>
+      </div>
+    </div>
+
+    <div class="tp-stats">
+      <div class="tp-sbox y"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอซ่อม</div></div>
+      <div class="tp-sbox b"><div class="tp-snum b" id="te-stat-mine">0</div><div class="tp-slbl">งานของฉัน</div></div>
+      <div class="tp-sbox g"><div class="tp-snum g" id="te-stat-qc">0</div><div class="tp-slbl">รอ QC</div></div>
+    </div>
+
+    <div class="tp-tabs">
+      <button class="tp-tab te-tab active" id="te-t-queue" onclick="teSw('queue',this)">📥 คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
+      <button class="tp-tab te-tab"        id="te-t-mine"  onclick="teSw('mine',this)">🔧 งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
+      <button class="tp-tab te-tab"        id="te-t-pm"    onclick="teSw('pm',this)">📋 PM <span class="tp-tbadge teal" id="te-badge-pm">0</span></button>
+      <button class="tp-tab te-tab"        id="te-t-cal"   onclick="teSw('cal',this)">📅 ปฏิทิน</button>
+      <button class="tp-tab te-tab"        id="te-t-hist"  onclick="teSw('hist',this)">📜 ประวัติ</button>
+      <button class="tp-tab te-tab"        id="te-t-daily" onclick="teSw('daily',this)">📋 Daily PM</button>
+    </div>
+
+    <!-- Sections -->
+    <div class="tp-sec te-sec" id="te-v-queue"></div>
+    <div class="tp-sec te-sec" id="te-v-mine"  style="display:none"></div>
+    <div class="tp-sec te-sec" id="te-v-pm"    style="display:none"></div>
+    <div class="tp-sec te-sec" id="te-v-hist"  style="display:none"></div>
+    <div class="tp-sec te-sec" id="te-v-daily" style="display:none"></div>
+
+    <!-- Calendar (ต้องการ HTML พิเศษ) -->
+    <div class="te-sec" id="te-v-cal" style="display:none">
+      <div class="tp-cal-legend">
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:#f59e0b"></div>รอดำเนินการ</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:#3b82f6"></div>กำลังดำเนินการ</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:#10b981"></div>เสร็จแล้ว</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:#ef4444"></div>เกินกำหนด</div>
+      </div>
+      <div class="tp-cal-hdr">
+        <div style="display:flex;gap:5px">
+          <button class="tp-cal-nav" onclick="teShiftMonth(-1)">‹</button>
+          <button class="tp-cal-nav" onclick="teShiftMonth(1)">›</button>
+        </div>
+        <span class="tp-cal-title-txt" id="te-cal-title">—</span>
+        <button class="tp-btn-today" onclick="teCalToday()">วันนี้</button>
+      </div>
+      <div class="tp-cal-dow-row">
+        <div class="tp-cal-dow">อา</div><div class="tp-cal-dow">จ</div><div class="tp-cal-dow">อ</div>
+        <div class="tp-cal-dow">พ</div><div class="tp-cal-dow">พฤ</div><div class="tp-cal-dow">ศ</div><div class="tp-cal-dow">ส</div>
+      </div>
+      <div class="tp-cal-days" id="te-cal-days"></div>
+      <div class="tp-day-nav-bar" id="te-day-nav" style="display:none">
+        <button class="tp-dnav-btn" onclick="teShiftDay(-1)">‹</button>
+        <div class="tp-dnav-lbl" id="te-day-nav-lbl">—</div>
+        <button class="tp-dnav-btn" onclick="teShiftDay(1)">›</button>
+        <button class="tp-dnav-close" onclick="teCalClear()">✕</button>
+      </div>
+      <div class="tp-cal-wrap" id="te-day-detail" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Modal ใช้ร่วมกับ Tech Panel เดิม -->
+  <div class="tp-modal-overlay" id="tp-modal-overlay" onclick="tpCloseModalOutside(event)">
+    <div class="tp-modal" id="tp-modal">
+      <div class="tp-modal-hdr">
+        <span class="tp-modal-title" id="tp-modal-title">รายละเอียด</span>
+        <button class="tp-modal-close" onclick="tpCloseModal()">✕</button>
+      </div>
+      <div class="tp-modal-body" id="tp-modal-body"></div>
+      <div class="tp-modal-actions" id="tp-modal-actions"></div>
+    </div>
+  </div>
+</section>
+  </div><!-- /container -->
+
+  <!-- ════════════════════════════ SHARED MODALS ════════════════════════════ -->
+
+<!-- ══ REGISTER MODAL ══ -->
+<div id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="background:var(--surface,#fff);border-radius:16px;margin:24px auto;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#f97316,#ef4444);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="color:#fff;font-size:16px;font-weight:700;"><i class="bi bi-person-plus-fill"></i> ลงทะเบียนใช้งาน</div>
+        <div style="color:rgba(255,255,255,.8);font-size:12px;margin-top:2px;">สร้างบัญชีสำหรับ SFC Smart Repair</div>
+      </div>
+      <button onclick="closeRegisterModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="padding:20px 24px;">
+
+      <!-- Avatar Upload -->
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:8px;">
+          รูปโปรไฟล์ <span style="color:var(--text3,#94a3b8);font-weight:400;">(ไม่บังคับ)</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <!-- วงกลม preview -->
+          <div id="reg-avatar-preview"
+            onclick="document.getElementById('reg-avatar-file').click()"
+            style="width:72px;height:72px;border-radius:50%;border:2px dashed #cbd5e1;background:var(--bg2,#f1f5f9);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer;transition:.2s;">
+            <i class="bi bi-person-fill" id="reg-avatar-icon" style="font-size:32px;color:#cbd5e1;pointer-events:none;"></i>
+            <img id="reg-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+          </div>
+          <!-- ข้อความ + ปุ่ม -->
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.5;">
+              JPG, PNG ขนาดไม่เกิน 2MB
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button"
+                onclick="document.getElementById('reg-avatar-file').click()"
+                style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-size:12px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap;">
+                <i class="bi bi-camera"></i> เลือกรูป
+              </button>
+              <button type="button" id="reg-avatar-clear-btn"
+                onclick="clearRegAvatar()"
+                style="display:none;padding:6px 10px;border-radius:8px;border:1.5px solid #fee2e2;background:transparent;color:#ef4444;font-size:12px;font-family:inherit;cursor:pointer;">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+            <div id="reg-avatar-filename" style="font-size:10px;color:#94a3b8;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;"></div>
+          </div>
+        </div>
+        <input type="file" id="reg-avatar-file" accept="image/*" style="display:none;" onchange="previewRegAvatar(this)">
+      </div>
+
+      <!-- Fields -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">ชื่อ-นามสกุล <span style="color:#ef4444">*</span></label>
+          <input id="reg-fullname" type="text" placeholder="เช่น สมชาย ใจดี"
+            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">แผนก / ตำแหน่ง <span style="color:#ef4444">*</span></label>
+          <input id="reg-dept" type="text" placeholder="เช่น ฝ่ายผลิต / ออเปอเรเตอร์"
+            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">เบอร์โทร / LINE ID <span style="color:#ef4444">*</span></label>
+          <input id="reg-contact" type="text" placeholder="เช่น 081-234-5678"
+            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">Username <span style="color:#ef4444">*</span></label>
+          <input id="reg-username" type="text" placeholder="ตั้ง username สำหรับ login"
+            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">รหัสผ่าน <span style="color:#ef4444">*</span></label>
+            <input id="reg-password" type="password" placeholder="อย่างน้อย 4 ตัว"
+              class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">ยืนยันรหัสผ่าน <span style="color:#ef4444">*</span></label>
+            <input id="reg-password2" type="password" placeholder="พิมพ์อีกครั้ง"
+              class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="reg-error" style="display:none;margin-top:12px;padding:10px 14px;background:#fee2e2;border-radius:8px;color:#dc2626;font-size:12px;border-left:3px solid #ef4444;"></div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="button" onclick="closeRegisterModal()"
+          style="flex:1;padding:12px;border:1.5px solid var(--border,#e2e8f0);border-radius:10px;background:transparent;color:var(--text2,#64748b);font-size:13px;cursor:pointer;font-family:inherit;">
+          ยกเลิก
+        </button>
+        <button type="button" id="reg-submit-btn" onclick="submitRegister()"
+          style="flex:2;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          <i class="bi bi-person-check-fill"></i> ลงทะเบียน
+        </button>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3,#94a3b8);">
+        มีบัญชีแล้ว?
+        <button type="button" onclick="closeRegisterModal()" style="border:none;background:none;color:var(--accent,#f97316);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">เข้าสู่ระบบ</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+  <!-- Job Detail Modal -->
+  <div class="modal" id="job-detail-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="jdm-title">รายละเอียดใบแจ้งซ่อม</span>
+        <button class="modal-close" onclick="closeModal('job-detail-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="spec-list" id="jdm-spec-body"></div>
+        <div class="detail-img-box" id="jdm-image-body"></div>
+        <!-- Tech: Accept -->
+        <div id="tech-action-accept" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <button class="btn btn-accent" style="width:100%" onclick="techAcceptSelectedJob()">
+            <i class="bi bi-check2-square"></i> กดรับใบแจ้งซ่อมชิ้นนี้
+          </button>
+        </div>
+        <!-- Tech: Update -->
+        <div id="tech-action-update" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">อัปเดตความคืบหน้า</h4>
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label>สถานะการทำงาน</label>
+              <select id="tup-status" class="select-ctrl" onchange="toggleDoneInputFields(this.value)">
+                <option value="กำลังซ่อม">กำลังดำเนินการแก้ไข</option>
+                <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว (ส่งตรวจสอบ QC)</option>
+                <option value="รออะไหล่">รอสั่งซื้อชิ้นส่วนอะไหล่</option>
+              </select>
+            </div>
+            <div class="form-field"><label>ETA (คาดว่าจะเสร็จประมาณ)</label><input type="date" id="tup-eta" class="input-ctrl"></div>
+          </div>
+          <div class="form-grid-2 d-none" id="tech-done-date-field">
+            <div class="form-field"><label>วันที่ซ่อมเสร็จจริง</label><input type="date" id="tup-done-date" class="input-ctrl"></div>
+          </div>
+          <div class="form-field" style="margin-top:12px"><label>หมายเหตุการซ่อม</label><input type="text" id="tup-note" class="input-ctrl" placeholder="รายละเอียดเพิ่มเติม..."></div>
+          <button class="btn btn-accent" style="width:100%;margin-top:16px" onclick="techSubmitUpdate()">
+            <i class="bi bi-cloud-arrow-up"></i> บันทึกความคืบหน้า
+          </button>
+        </div>
+        <!-- Engineer: QC -->
+        <div id="eng-action-qc" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">บันทึกการตรวจสอบคุณภาพ (QC)</h4>
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label>ผลการตรวจสอบ</label>
+              <select id="eqc-result" class="select-ctrl">
+                <option value="ผ่าน QC">ผ่าน QC (ปิดงานถาวร)</option>
+                <option value="ตีกลับ">ตีกลับ (ส่งแก้ไขให้ช่างทำใหม่)</option>
+              </select>
+            </div>
+            <div class="form-field"><label>ผู้ตรวจสอบ QC</label><input type="text" id="eqc-by" class="input-ctrl" readonly></div>
+          </div>
+          <div class="form-field" style="margin:12px 0 16px"><label>ข้อสังเกต / เหตุผล</label><textarea id="eqc-note" class="textarea-ctrl" placeholder="ระบุเหตุผล..."></textarea></div>
+          <button class="btn btn-accent" style="width:100%" onclick="engSubmitQC()">
+            <i class="bi bi-patch-check-fill"></i> บันทึกใบรับรอง QC
+          </button>
+        </div>
+        <!-- Admin: Edit -->
+        <div id="admin-action-edit" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+          <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">แผงแก้ไขสถานะ (Admin)</h4>
+          <div class="form-grid-3">
+            <div class="form-field">
+              <label>สถานะ</label>
+              <select id="adm-job-status" class="select-ctrl">
+                <option>รอซ่อม</option><option>กำลังซ่อม</option>
+                <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>ช่างผู้รับซ่อม</label>
+              <select id="adm-job-tech" class="select-ctrl">
+                <option value="">เลือกช่าง</option>
+                <option>สมชาย มั่นคง</option><option>วิชัย ใจดี</option><option>ประยุทธ์ ขยัน</option>
+              </select>
+            </div>
+            <div class="form-field"><label>แนบไฟล์รูป</label><input type="file" id="adm-job-file" class="input-ctrl" accept="image/*"></div>
+          </div>
+          <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
+          <div style="display:flex;justify-content:space-between;gap:10px">
+            <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="bi bi-trash"></i> ลบ</button>
+            <button class="btn btn-accent" onclick="adminSubmitUpdateJob()"><i class="bi bi-check-lg"></i> อัปเดต</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PM Event Modal -->
+  <div class="modal" id="pm-event-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">เพิ่มกำหนดการ PM</span>
+        <button class="modal-close" onclick="closeModal('pm-event-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="pm-event-form" onsubmit="submitPMEventForm(event)">
+          <input type="hidden" id="pmem-id">
+          <div class="form-grid-2">
+            <div class="form-field"><label>วันที่ PM<span class="req">*</span></label><input type="date" id="pmem-date" class="input-ctrl" required></div>
+            <div class="form-field"><label>ชื่องาน PM<span class="req">*</span></label><input type="text" id="pmem-title-input" class="input-ctrl" required></div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-field">
+              <label>เครื่องจักร<span class="req">*</span></label>
+             <select id="pmem-machine" class="select-ctrl" required>
+                <option value="">กำลังโหลด...</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>ประเภท</label>
+              <select id="pmem-type" class="select-ctrl"><option>รายวัน</option><option>รายเดือน</option></select>
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:20px">
+            <label>สถานะ</label>
+            <select id="pmem-status" class="select-ctrl">
+              <option>รอดำเนินการ</option><option>กำลังดำเนินการ</option>
+              <option>เสร็จแล้ว</option><option>เกินกำหนด</option>
+            </select>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px">
+            <button type="button" class="btn btn-sec" onclick="closeModal('pm-event-modal')">ยกเลิก</button>
+            <button type="submit" class="btn btn-accent"><i class="bi bi-floppy"></i> บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PM View Doc Modal -->
+  <div class="modal" id="pm-view-doc-modal">
+    <div class="modal-content" style="max-width:750px">
+      <div class="modal-header">
+        <span class="modal-title">รายงานการตรวจ PM</span>
+        <button class="modal-close" onclick="closeModal('pm-view-doc-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body" id="pm-view-doc-body"></div>
+    </div>
+  </div>
+
+  <!-- Inspector PM Detail Modal -->
+  <div class="modal" id="ins-pm-detail-modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <span class="modal-title" id="ins-modal-title">รายละเอียด PM รายวัน</span>
+        <button class="modal-close" onclick="closeModal('ins-pm-detail-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body" id="ins-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Daily PM Detail Modal -->
+  <div class="modal" id="daily-pm-detail-modal">
+    <div class="modal-content" style="max-width:680px">
+      <div class="modal-header">
+        <span class="modal-title" id="daily-pm-modal-title">รายละเอียด Daily PM</span>
+        <button class="modal-close" onclick="closeModal('daily-pm-detail-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body" id="daily-pm-modal-body"></div>
+      <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-sec" onclick="closeModal('daily-pm-detail-modal')">ปิด</button>
+        <button class="btn btn-accent" id="daily-pm-ack-btn" onclick="engAckDailyPM()">
+          <i class="bi bi-check-circle"></i> รับทราบ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal" id="success-modal">
+    <div class="modal-content" style="max-width:450px;text-align:center;padding:30px;border:1px solid var(--border2)">
+      <div style="font-size:55px;color:var(--green);margin-bottom:15px"><i class="bi bi-check-circle-fill"></i></div>
+      <h3 style="font-size:22px;font-weight:700;margin-bottom:8px">แจ้งซ่อมสำเร็จเรียบร้อย!</h3>
+      <p style="color:var(--text2);font-size:13.5px;margin-bottom:22px">กรุณาแจ้งรหัสงานซ่อมนี้ให้กับทีมช่างเทคนิค</p>
+      <div style="background:rgba(239,68,68,0.06);border:1.5px dashed var(--accent);padding:18px;border-radius:var(--r);margin-bottom:25px">
+        <span style="display:block;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:600">รหัสใบแจ้งซ่อม (Job ID)</span>
+        <span id="success-job-id" style="font-family:var(--font-mono);font-size:26px;font-weight:700">REP-XXXXXXXX-XXX</span>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-sec" onclick="copyJobIdToClipboard()"><i class="bi bi-copy"></i> คัดลอก</button>
+        <button class="btn btn-accent" onclick="closeModal('success-modal')">ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+<script src="scripts.js"></script>
+</body>
+</html>
