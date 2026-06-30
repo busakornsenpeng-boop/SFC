@@ -28,8 +28,8 @@ async function getAllUsers() {
     range: 'Users!A2:J1000',
   });
   const rows = res.data.values || [];
-  return rows.map(row => ({
-    username:     row[0] || '',
+ return rows.map(row => ({
+  username:     String(row[0] || ''),
     password:     row[1] || '',
     role:         row[2] || '',
     fullname:     row[3] || '',
@@ -284,7 +284,7 @@ router.post('/line/link', async (req, res) => {
       range: 'Users!A2:J1000',
     });
     const rows     = result.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === username);
+   const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบ user ใน Sheets' });
 
     await sheets.spreadsheets.values.update({
@@ -327,7 +327,7 @@ router.post('/:username/link-line', async (req, res) => {
       range: 'Users!A2:J1000',
     });
     const rows     = result.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === username);
+    const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบ user' });
 
     await sheets.spreadsheets.values.update({
@@ -358,7 +358,7 @@ router.post('/:username/status', async (req, res) => {
       range: 'Users!A2:J1000',
     });
     const rows     = result.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === username);
+    const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบ user' });
 
     await sheets.spreadsheets.values.update({
@@ -388,7 +388,7 @@ router.delete('/:username', async (req, res) => {
       range: 'Users!A2:J1000',
     });
     const rows     = result.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === username);
+   const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบ user' });
 
     const sheetRow = rowIndex + 2;
