@@ -13,6 +13,34 @@ cloudinary.config({
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
 
+// ── สร้าง JobID format: PDF-001-300626 ──
+async function generateJobId(dept) {
+  const now  = new Date();
+  const dd   = String(now.getDate()).padStart(2, '0');
+  const mm   = String(now.getMonth() + 1).padStart(2, '0');
+  const yy   = String(now.getFullYear()).slice(-2);
+  const dateStr    = `${dd}${mm}${yy}`;   // 300626
+  const deptPrefix = (dept || 'GEN').replace(/\s+/g, '').slice(0, 3).toUpperCase();
+
+  // นับ job ที่มีอยู่แล้วในเดือน+ปีนี้ ของแผนกนี้
+  const res  = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Repairs!A2:A5000',
+  });
+  const rows = res.data.values || [];
+  const count = rows.filter(r => {
+    const parts = (r[0] || '').split('-');
+    if (parts.length < 3) return false;
+    const datePart = parts[parts.length - 1]; // DDMMYY
+    return parts[0] === deptPrefix &&
+           datePart.slice(2, 4) === mm &&
+           datePart.slice(4, 6) === yy;
+  }).length;
+
+  const running = String(count + 1).padStart(3, '0');
+  return `${deptPrefix}-${running}-${dateStr}`; // PDF-001-300626
+}
+
 async function uploadBase64Image(base64String, filename = 'repair') {
   const result = await cloudinary.uploader.upload(base64String, {
     folder:    'sfc-repair',
@@ -72,7 +100,6 @@ async function broadcastToTechs(message) {
       range: 'Users!A2:J1000',
     });
     const rows = res.data.values || [];
-    // col C = role, col J = line_user_id
     const targets = rows.filter(r =>
       ['technician', 'engineer', 'tech'].includes((r[2] || '').toLowerCase()) && r[9]
     );
@@ -120,10 +147,9 @@ router.post('/', async (req, res) => {
     else if (typeof img === 'string') {
       try { imgArr = JSON.parse(img); } catch { imgArr = [img]; }
     }
-    const now     = new Date();
-    const jobId   = 'REP-' + now.toISOString().slice(0, 10).replace(/-/g, '') + '-' +
-                    String(Math.floor(Math.random() * 900 + 100));
-    const dateStr = now.toLocaleString('th-TH');
+
+    const jobId   = await generateJobId(dept);          // ✅ PDF-001-300626
+    const dateStr = new Date().toLocaleString('th-TH'); // ✅ บรรทัดเดียว
     const imgUrls = await processImages(imgArr, `${jobId}_before`);
     const imgStr  = JSON.stringify(imgUrls);
     const resolvedJobType = job_type || 'ซ่อมปกติ';
@@ -142,7 +168,6 @@ router.post('/', async (req, res) => {
       },
     });
 
-    // ── แจ้งเตือน LINE: ส่งหาผู้แจ้งซ่อม ──
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requester);
     if (requesterLineId) {
       await sendLineMessage(requesterLineId,
@@ -154,10 +179,7 @@ router.post('/', async (req, res) => {
       );
     }
 
-    // ── แจ้งเตือน LINE: broadcast หาช่าง/วิศวกรทุกคน ──
-    const shortDetail = (detail || '').length > 60
-      ? detail.slice(0, 60) + '...'
-      : (detail || '');
+    const shortDetail = (detail || '').length > 60 ? detail.slice(0, 60) + '...' : (detail || '');
     await broadcastToTechs(
       `🔔 มีใบแจ้งซ่อมใหม่!\n` +
       `📋 รหัสงาน: ${jobId}\n` +
@@ -202,7 +224,6 @@ router.post('/:id/accept', async (req, res) => {
       ]},
     });
 
-    // ── แจ้งเตือน LINE: ส่งหาผู้แจ้งซ่อม ──
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
     if (requesterLineId) {
       await sendLineMessage(requesterLineId,
@@ -265,17 +286,15 @@ router.post('/:id/update', async (req, res) => {
       requestBody: { valueInputOption: 'USER_ENTERED', data: updateData },
     });
 
-    // ── แจ้งเตือน LINE ตามสถานะ ──
     const statusLabel = {
       'กำลังซ่อม':     '🔧 กำลังดำเนินการซ่อม',
       'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจรับ',
       'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจรับ',
-      'รออะไหล่':     '⏳ รอจัดหาอะไหล่',
+      'รออะไหล่':      '⏳ รอจัดหาอะไหล่',
       'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อซ่อม',
       'Workaround':    '🛠 แก้ไขชั่วคราว (Workaround)',
     }[status] || `📌 ${status}`;
 
-    // แจ้งผู้แจ้งซ่อม
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
     if (requesterLineId) {
       await sendLineMessage(requesterLineId,
@@ -287,7 +306,6 @@ router.post('/:id/update', async (req, res) => {
       );
     }
 
-    // แจ้งช่าง (กรณีซ่อมเสร็จ → รอ QC)
     if (status === 'ซ่อมเสร็จแล้ว' || status === 'ซ่อมเสร็จ') {
       const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
       if (techLineId) {
@@ -341,9 +359,7 @@ router.post('/:id/qc', async (req, res) => {
       requestBody: { valueInputOption: 'USER_ENTERED', data: updateData }
     });
 
-    // ── แจ้งเตือน LINE ──
     if (result === 'ผ่าน QC') {
-      // แจ้งผู้แจ้งซ่อม
       const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
       if (requesterLineId) {
         await sendLineMessage(requesterLineId,
@@ -353,7 +369,6 @@ router.post('/:id/qc', async (req, res) => {
           `✅ ตรวจสอบโดย: ${by}`
         );
       }
-      // แจ้งช่าง
       const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
       if (techLineId) {
         await sendLineMessage(techLineId,
@@ -364,7 +379,6 @@ router.post('/:id/qc', async (req, res) => {
         );
       }
     } else {
-      // ตีกลับ — แจ้งช่าง
       const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
       if (techLineId) {
         await sendLineMessage(techLineId,
@@ -446,7 +460,6 @@ router.post('/:id/reject', async (req, res) => {
       ]},
     });
 
-    // ── แจ้งเตือน LINE: ส่งหาผู้แจ้งซ่อม ──
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
     if (requesterLineId) {
       await sendLineMessage(requesterLineId,
