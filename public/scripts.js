@@ -170,98 +170,6 @@ function handleServerResponse(res) {
 }
 
 // ============================================================
-// REGISTER
-// ============================================================
-let regSelectedRole = 'user';
-
-function openRegisterModal() {
-  // sync role กับ login tab ที่กดอยู่
-  const activeTab = document.querySelector('.role-tab.active');
-  if (activeTab) {
-    const role = activeTab.getAttribute('onclick').match(/'([^']+)'/)?.[1] || 'user';
-    const btn = document.querySelector(`.reg-role-btn[data-role="${role}"]`);
-    if (btn) regSelectRole(btn, role);
-  }
-  document.getElementById('register-modal').style.display = 'block';
-  document.body.style.overflow = 'hidden';
-}
-
-function closeRegisterModal() {
-  document.getElementById('register-modal').style.display = 'none';
-  document.body.style.overflow = '';
-  ['reg-fullname','reg-dept','reg-contact','reg-username','reg-password','reg-password2']
-    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-  document.getElementById('reg-error').style.display = 'none';
-  clearRegAvatar(); 
-}
-
-function regSelectRole(el, role) {
-  regSelectedRole = role;
-  document.querySelectorAll('.reg-role-btn').forEach(b => {
-    b.style.background = 'transparent';
-    b.style.color = 'var(--text2,#64748b)';
-    b.style.fontWeight = '500';
-  });
-  if (el) {
-    el.style.background = '#f97316';
-    el.style.color = '#fff';
-    el.style.fontWeight = '700';
-  }
-}
-
-function showRegError(msg) {
-  const el = document.getElementById('reg-error');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-function submitRegister() {
-  const fullname  = document.getElementById('reg-fullname')?.value.trim();
-  const dept      = document.getElementById('reg-dept')?.value.trim();
-  const contact   = document.getElementById('reg-contact')?.value.trim();
-  const username  = document.getElementById('reg-username')?.value.trim();
-  const password  = document.getElementById('reg-password')?.value;
-  const password2 = document.getElementById('reg-password2')?.value;
-
-  if (!fullname || !dept || !contact || !username || !password) {
-    showRegError('กรุณากรอกข้อมูลให้ครบทุกช่อง'); return;
-  }
-  if (password !== password2) {
-    showRegError('รหัสผ่านไม่ตรงกัน'); return;
-  }
-  if (password.length < 4) {
-    showRegError('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร'); return;
-  }
-
-  const payload = { fullname, dept, contact, username, password, avatar: regAvatarBase64 || '' };
-
-  const btn = document.getElementById('reg-submit-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; }
-
-  fetch(`${API_URL}/users/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, role: 'user' }) // user เท่านั้น ไม่ให้ self-assign role อื่น
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-person-check-fill"></i> ลงทะเบียน'; }
-    if (res && res.success) {
-      showToast(`ลงทะเบียนสำเร็จ! username: ${username}`, 'success');
-      closeRegisterModal();
-      const ud = document.getElementById('username-display');
-      if (ud) { ud.value = username; syncUsername(username); }
-    } else {
-      showRegError((res && res.message) || 'เกิดข้อผิดพลาด');
-    }
-  })
-  .catch(() => {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-person-check-fill"></i> ลงทะเบียน'; }
-    showRegError('เชื่อมต่อ server ไม่ได้');
-  });
-}
-
-// ============================================================
 // LOGIN
 // ============================================================
 function selectLoginRole(role, btn) {
@@ -403,6 +311,8 @@ function setupDashboard() {
     switchViewPanel(myTabs[0].panel, nav.children[0]);
     const er = document.getElementById('rep-requester');
     if (er && currentUser) er.value = currentUser.name;
+    const ed = document.getElementById('rep-dept');
+   if (ed && currentUser) ed.value = currentUser.dept || ''; 
   }
 }
 
@@ -2397,21 +2307,21 @@ function tpAcceptJob(id) {
   tpUpdateStats(); tpRenderQueue(); tpRenderMine();
 }
 function populateDeptDropdown(departments) {
-  const selectors = ['#rep-dept', '#reg-dept'];
-  selectors.forEach(sel => {
-    const el = document.querySelector(sel);
-    if (!el) return;
-    el.innerHTML = '<option value="">เลือกแผนก</option>';
+  // reg-dept เป็น <select> ให้เลือกตอนสมัครสมาชิก
+  const regEl = document.querySelector('#reg-dept');
+  if (regEl) {
+    regEl.innerHTML = '<option value="">เลือกแผนก</option>';
     (departments || []).forEach(dept => {
       const opt = document.createElement('option');
       opt.value = dept;
       opt.textContent = dept;
-      el.appendChild(opt);
+      regEl.appendChild(opt);
     });
-  if (currentUser && currentUser.dept) {
-      el.value = currentUser.dept;
-    }
-  });
+  }
+
+  // rep-dept เป็น <input readonly> ใส่ค่าจาก currentUser ตรงๆ ไม่ต้องสร้าง option
+  const repEl = document.getElementById('rep-dept');
+  if (repEl && currentUser) repEl.value = currentUser.dept || '';
 }
 
 function populateMachineDropdown(machines) {
