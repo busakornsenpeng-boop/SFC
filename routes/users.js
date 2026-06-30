@@ -18,7 +18,7 @@ const ADMIN_ACCOUNT = {
 
 function resolveRole(role, dept, username) {
   if (username === ADMIN_ACCOUNT.username) return 'admin';
-  if (role === 'engineer' && PRIVILEGED_DEPTS.includes(dept)) return 'engineer';
+  if (PRIVILEGED_DEPTS.includes(dept)) return 'engineer';
   return 'user';
 }
 
