@@ -309,7 +309,8 @@ function handleLoginSubmit(event) {
         name:    res.name,
         role:    res.role,
         avatar:  res.avatar,
-        isChief: res.isChief
+        isChief: res.isChief,
+        dept :    res.dept,
       };
       setupDashboard();
     } else {
@@ -2407,6 +2408,9 @@ function populateDeptDropdown(departments) {
       opt.textContent = dept;
       el.appendChild(opt);
     });
+  if (currentUser && currentUser.dept) {
+      el.value = currentUser.dept;
+    }
   });
 }
 
