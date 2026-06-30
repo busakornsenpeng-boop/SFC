@@ -45,7 +45,7 @@
     <input type="password" id="password" class="login-input" placeholder="••••" required>
   </div>
   <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
-  
+
 </form>
 
         <!-- Register Link -->
@@ -923,10 +923,11 @@
             class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
         </div>
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">แผนก / ตำแหน่ง <span style="color:#ef4444">*</span></label>
-          <input id="reg-dept" type="text" placeholder="เช่น ฝ่ายผลิต / ออเปอเรเตอร์"
-            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
-        </div>
+  <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">แผนก / ตำแหน่ง <span style="color:#ef4444">*</span></label>
+  <select id="reg-dept" class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+    <option value="">กำลังโหลด...</option>
+  </select>
+</div>
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">เบอร์โทร / LINE ID <span style="color:#ef4444">*</span></label>
           <input id="reg-contact" type="text" placeholder="เช่น 081-234-5678"

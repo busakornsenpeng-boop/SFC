@@ -2397,7 +2397,7 @@ function tpAcceptJob(id) {
   tpUpdateStats(); tpRenderQueue(); tpRenderMine();
 }
 function populateDeptDropdown(departments) {
-  const selectors = ['#rep-dept'];
+  const selectors = ['#rep-dept', '#reg-dept'];
   selectors.forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
