@@ -3,7 +3,7 @@
 // GLOBAL STATE
 // ============================================================
 let isLocalMode = false;
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 let currentAdminTimeFilter = 'all';
 let currentUser = null;
 let localRepairs = [];
@@ -2427,7 +2427,7 @@ function populateMachineDropdown(machines) {
 // เป็นแบบนี้
 function loginWithLINE() {
   const clientId  = '2010534462';
-  const redirectUri = encodeURIComponent('https://yoursite.com/auth/line/callback'); // ← ใส่ domain จริง
+  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
   window.location.href =
     `https://access.line.me/oauth2/v2.1/authorize` +
     `?response_type=code&client_id=${clientId}` +
@@ -2437,7 +2437,7 @@ function loginWithLINE() {
 function connectLINE() {
   if (!currentUser) { showToast('กรุณา login ก่อน', 'warning'); return; }
   const clientId    = '2010534462';
-  const redirectUri = encodeURIComponent('https://yoursite.com/auth/line/callback');
+  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
   const state       = encodeURIComponent('connect_' + currentUser.name);
   window.location.href =
     `https://access.line.me/oauth2/v2.1/authorize` +
