@@ -14,6 +14,8 @@ const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
 
 // ── สร้าง JobID format: PDF-001-300626 ──
+// เลขรัน (001, 002, 003...) นับรวมทุกแผนกในเดือน+ปีเดียวกัน
+// เมื่อขึ้นเดือนใหม่ เลขจะรีเซ็ตกลับมาเริ่มที่ 001 อัตโนมัติ
 async function generateJobId(dept) {
   const now  = new Date();
   const dd   = String(now.getDate()).padStart(2, '0');
@@ -22,7 +24,7 @@ async function generateJobId(dept) {
   const dateStr    = `${dd}${mm}${yy}`;   // 300626
   const deptPrefix = (dept || 'GEN').replace(/\s+/g, '').slice(0, 3).toUpperCase();
 
-  // นับ job ที่มีอยู่แล้วในเดือน+ปีนี้ ของแผนกนี้
+  // นับ job ทั้งหมด (รวมทุกแผนก) ที่อยู่ในเดือน+ปีนี้
   const res  = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: 'Repairs!A2:A5000',
@@ -32,8 +34,7 @@ async function generateJobId(dept) {
     const parts = (r[0] || '').split('-');
     if (parts.length < 3) return false;
     const datePart = parts[parts.length - 1]; // DDMMYY
-    return parts[0] === deptPrefix &&
-           datePart.slice(2, 4) === mm &&
+    return datePart.slice(2, 4) === mm &&
            datePart.slice(4, 6) === yy;
   }).length;
 
