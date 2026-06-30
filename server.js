@@ -13,19 +13,21 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static('public'));
 
-const repairRoutes     = require('./routes/repairs');
-const userRoutes       = require('./routes/users');
-const pmRoutes         = require('./routes/pm');
-const masterDataRoutes = require('./routes/masterdata');
-const dailyPMRoutes    = require('./routes/dailypm');
-const adminRoutes      = require('./routes/admin');
+const repairRoutes      = require('./routes/repairs');
+const userRoutes        = require('./routes/users');
+const pmRoutes          = require('./routes/pm');
+const masterDataRoutes  = require('./routes/masterdata');
+const dailyPMRoutes     = require('./routes/dailypm');
+const adminRoutes       = require('./routes/admin');
+const lineWebhookRoutes = require('./routes/linewebhook'); // ✅ เพิ่ม
 
-app.use('/api/repairs',    repairRoutes);
-app.use('/api/users',      userRoutes);
-app.use('/api/pm',         pmRoutes);
-app.use('/api/masterdata', masterDataRoutes);
-app.use('/api/daily-pm',   dailyPMRoutes);
-app.use('/api/admin',      adminRoutes);
+app.use('/api/repairs',      repairRoutes);
+app.use('/api/users',        userRoutes);
+app.use('/api/pm',           pmRoutes);
+app.use('/api/masterdata',   masterDataRoutes);
+app.use('/api/daily-pm',     dailyPMRoutes);
+app.use('/api/admin',        adminRoutes);
+app.use('/api/line/webhook', lineWebhookRoutes); // ✅ เพิ่ม
 
 // ── LINE Callback ──
 const {

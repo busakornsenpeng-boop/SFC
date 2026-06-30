@@ -4,45 +4,213 @@
 // ─────────────────────────────────────────────────────────────
 const axios = require('axios');
 
-const LINE_API = 'https://api.line.me/v2/bot/message/push';
+const LINE_PUSH_API  = 'https://api.line.me/v2/bot/message/push';
+const LINE_REPLY_API = 'https://api.line.me/v2/bot/message/reply';
 
-/**
- * ส่งข้อความ LINE ไปหา userId
- */
+// ── รายชื่อ Admin LINE User ID (เพิ่มได้หลายคน) ──
+const ADMIN_LINE_IDS = (process.env.ADMIN_LINE_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+
+// ── สีและ icon ตาม status ──
+const STATUS_CONFIG = {
+  'รอซ่อม':       { color: '#E53935', title: '🚨 มีใบแจ้งซ่อมใหม่!',      icon: '🔴' },
+  'กำลังซ่อม':    { color: '#FB8C00', title: '🔨 ช่างรับงานแล้ว!',          icon: '🟠' },
+  'รออะไหล่':     { color: '#8E24AA', title: '⏳ รออะไหล่',                 icon: '🟣' },
+  'ขอหยุดเครื่อง':{ color: '#1E88E5', title: '🛑 ขอหยุดเครื่องเพื่อซ่อม!', icon: '🔵' },
+  'ซ่อมเสร็จ':    { color: '#43A047', title: '✅ ซ่อมเสร็จสิ้น!',           icon: '🟢' },
+  'ซ่อมเสร็จแล้ว':{ color: '#43A047', title: '✅ ซ่อมเสร็จสิ้น!',           icon: '🟢' },
+  'รอ QC':        { color: '#00ACC1', title: '🔍 รอตรวจสอบ QC',             icon: '🔵' },
+  'ปิดงาน':       { color: '#43A047', title: '🎉 ปิดงานเรียบร้อย!',          icon: '✅' },
+  'ตีกลับ':       { color: '#E53935', title: '⚠️ ใบแจ้งซ่อมถูกตีกลับ',     icon: '🔴' },
+  'Workaround':   { color: '#F4511E', title: '🛠 แก้ไขชั่วคราว',            icon: '🟡' },
+};
+
+// ────────────────────────────────────────────
+// buildFlexMessage — สร้าง Flex bubble
+// ────────────────────────────────────────────
+function buildFlexMessage(style, jobId, reporter, machine, detail, status, note = '') {
+  const bodyContents = [
+    {
+      type: 'box', layout: 'horizontal', spacing: 'sm',
+      contents: [
+        { type: 'text', text: '🆔 รหัสงาน', size: 'sm', color: '#888888', flex: 3 },
+        { type: 'text', text: String(jobId), size: 'sm', weight: 'bold', flex: 5 },
+      ],
+    },
+    {
+      type: 'box', layout: 'horizontal', spacing: 'sm',
+      contents: [
+        { type: 'text', text: '👤 ผู้แจ้ง', size: 'sm', color: '#888888', flex: 3 },
+        { type: 'text', text: String(reporter || '-'), size: 'sm', flex: 5 },
+      ],
+    },
+    {
+      type: 'box', layout: 'horizontal', spacing: 'sm',
+      contents: [
+        { type: 'text', text: '🤖 เครื่องจักร', size: 'sm', color: '#888888', flex: 3 },
+        { type: 'text', text: String(machine || '-'), size: 'sm', weight: 'bold', flex: 5 },
+      ],
+    },
+    {
+      type: 'box', layout: 'vertical', spacing: 'sm', margin: 'sm',
+      contents: [
+        { type: 'text', text: '📝 อาการ/รายละเอียด', size: 'sm', color: '#888888' },
+        { type: 'text', text: String(detail || '-'), size: 'sm', wrap: true, margin: 'xs' },
+      ],
+    },
+    { type: 'separator', margin: 'md' },
+    {
+      type: 'text',
+      text: `สถานะ: ${style.icon} ${status}`,
+      color: style.color,
+      weight: 'bold',
+      size: 'sm',
+      margin: 'md',
+    },
+  ];
+
+  if (note) {
+    bodyContents.push({
+      type: 'text',
+      text: `📌 หมายเหตุ: ${note}`,
+      size: 'xs',
+      color: '#666666',
+      wrap: true,
+      margin: 'xs',
+    });
+  }
+
+  return {
+    type: 'bubble',
+    header: {
+      type: 'box',
+      layout: 'vertical',
+      backgroundColor: style.color,
+      paddingAll: 'md',
+      contents: [
+        { type: 'text', text: style.title, color: '#FFFFFF', weight: 'bold', size: 'md' },
+      ],
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      paddingAll: 'md',
+      contents: bodyContents,
+    },
+  };
+}
+
+// ────────────────────────────────────────────
+// getLineToken
+// ────────────────────────────────────────────
+function getLineToken() {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if (!token) console.warn('[LINE Notify] LINE_CHANNEL_ACCESS_TOKEN ยังไม่ได้ตั้งค่า');
+  return token;
+}
+
+// ────────────────────────────────────────────
+// sendLineMessage — ส่ง text ธรรมดา
+// ────────────────────────────────────────────
 async function sendLineMessage(lineUserId, message) {
   if (!lineUserId || !message) return;
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  if (!token) {
-    console.warn('[LINE Notify] LINE_CHANNEL_ACCESS_TOKEN ยังไม่ได้ตั้งค่า');
-    return;
-  }
+  const token = getLineToken();
+  if (!token) return;
   try {
     await axios.post(
-      LINE_API,
+      LINE_PUSH_API,
       { to: lineUserId, messages: [{ type: 'text', text: message }] },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:  `Bearer ${token}`,
-        },
-      }
+      { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
     );
-    console.log(`[LINE Notify] ส่งสำเร็จ → ${lineUserId}`);
+    console.log(`[LINE] text → ${lineUserId}`);
   } catch (err) {
-    console.error('[LINE Notify] ส่งไม่สำเร็จ:', err.response?.data || err.message);
+    console.error('[LINE] sendLineMessage error:', err.response?.data || err.message);
   }
 }
 
-/**
- * ค้นหา lineUserId จาก Users sheet ตามชื่อ (fullname) หรือ username
- */
+// ────────────────────────────────────────────
+// sendFlexMessage — ส่ง Flex bubble
+// ────────────────────────────────────────────
+async function sendFlexMessage(lineUserId, jobId, reporter, machine, detail, status, note = '') {
+  if (!lineUserId) return;
+  const token = getLineToken();
+  if (!token) return;
+
+  const style   = STATUS_CONFIG[status] || { color: '#607D8B', title: '🔧 อัปเดตงานซ่อม', icon: 'ℹ️' };
+  const flex    = buildFlexMessage(style, jobId, reporter, machine, detail, status, note);
+
+  try {
+    await axios.post(
+      LINE_PUSH_API,
+      { to: lineUserId, messages: [{ type: 'flex', altText: style.title, contents: flex }] },
+      { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+    );
+    console.log(`[LINE] flex → ${lineUserId} (${status})`);
+  } catch (err) {
+    console.error('[LINE] sendFlexMessage error:', err.response?.data || err.message);
+  }
+}
+
+// ────────────────────────────────────────────
+// sendFlexReply — ตอบกลับด้วย Flex (ใช้ replyToken)
+// ────────────────────────────────────────────
+async function sendFlexReply(replyToken, jobId, reporter, machine, detail, status) {
+  const token = getLineToken();
+  if (!token) return;
+
+  const style = STATUS_CONFIG[status] || { color: '#607D8B', title: '📊 สถานะงานซ่อม', icon: '🔍' };
+  const flex  = buildFlexMessage(style, jobId, reporter, machine, detail, status);
+
+  try {
+    await axios.post(
+      LINE_REPLY_API,
+      { replyToken, messages: [{ type: 'flex', altText: 'สถานะการซ่อม', contents: flex }] },
+      { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+    );
+  } catch (err) {
+    console.error('[LINE] sendFlexReply error:', err.response?.data || err.message);
+  }
+}
+
+// ────────────────────────────────────────────
+// sendTextReply — ตอบกลับด้วย text (ใช้ replyToken)
+// ────────────────────────────────────────────
+async function sendTextReply(replyToken, message) {
+  const token = getLineToken();
+  if (!token) return;
+  try {
+    await axios.post(
+      LINE_REPLY_API,
+      { replyToken, messages: [{ type: 'text', text: message }] },
+      { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+    );
+  } catch (err) {
+    console.error('[LINE] sendTextReply error:', err.response?.data || err.message);
+  }
+}
+
+// ────────────────────────────────────────────
+// broadcastToAdmins — ส่ง Flex ให้ admin ทุกคน
+// ────────────────────────────────────────────
+async function broadcastToAdmins(jobId, reporter, machine, detail, status, note = '') {
+  if (!ADMIN_LINE_IDS.length) {
+    console.warn('[LINE] ADMIN_LINE_IDS ว่างเปล่า — ตั้งค่าใน .env');
+    return;
+  }
+  await Promise.all(
+    ADMIN_LINE_IDS.map(adminId =>
+      sendFlexMessage(adminId, jobId, reporter, machine, detail, status, note)
+    )
+  );
+}
+
+// ────────────────────────────────────────────
+// getLineUserIdByName — ค้นหา lineUserId จาก username / fullname
+// ────────────────────────────────────────────
 async function getLineUserIdByName(sheets, spreadsheetId, nameOrUsername) {
   if (!nameOrUsername) return null;
   try {
-    const res  = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'Users!A2:J1000',
-    });
+    const res   = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Users!A2:J1000' });
     const rows  = res.data.values || [];
     // col A=username, col D=fullname, col J=line_user_id
     const found = rows.find(r =>
@@ -51,25 +219,21 @@ async function getLineUserIdByName(sheets, spreadsheetId, nameOrUsername) {
     );
     return found ? (found[9] || null) : null;
   } catch (err) {
-    console.error('[LINE Notify] getLineUserIdByName error:', err.message);
+    console.error('[LINE] getLineUserIdByName error:', err.message);
     return null;
   }
 }
 
-/**
- * บันทึก line_user_id ลงคอลัมน์ J ของ Users sheet
- */
+// ────────────────────────────────────────────
+// saveLineUserId — บันทึก line_user_id ลงคอลัมน์ J
+// ────────────────────────────────────────────
 async function saveLineUserId(username, lineUserId) {
   const { sheets, SPREADSHEET_ID } = require('../db/connection');
   try {
-    const res      = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'Users!A2:J1000',
-    });
+    const res      = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
     const rows     = res.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === username);
     if (rowIndex === -1) throw new Error(`ไม่พบ user: ${username}`);
-
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
       range: `Users!J${rowIndex + 2}`,
@@ -83,16 +247,13 @@ async function saveLineUserId(username, lineUserId) {
   }
 }
 
-/**
- * ค้นหา username จาก line_user_id (คอลัมน์ J)
- */
+// ────────────────────────────────────────────
+// findUsernameByLineId — ค้นหา username จาก line_user_id
+// ────────────────────────────────────────────
 async function findUsernameByLineId(lineUserId) {
   const { sheets, SPREADSHEET_ID } = require('../db/connection');
   try {
-    const res   = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'Users!A2:J1000',
-    });
+    const res   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
     const rows  = res.data.values || [];
     const found = rows.find(r => r[9] === lineUserId);
     return found ? found[0] : null;
@@ -102,9 +263,37 @@ async function findUsernameByLineId(lineUserId) {
   }
 }
 
+// ────────────────────────────────────────────
+// findJobById — ค้นหางานซ่อมจาก ID (ใช้ใน webhook)
+// ────────────────────────────────────────────
+async function findJobById(jobId) {
+  const { sheets, SPREADSHEET_ID } = require('../db/connection');
+  try {
+    const res   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const rows  = res.data.values || [];
+    const found = rows.find(r => (r[0] || '').trim().toLowerCase() === jobId.trim().toLowerCase());
+    if (!found) return null;
+    return {
+      id:       found[0],
+      reporter: found[1],
+      machine:  found[3],
+      detail:   found[6],
+      status:   found[9] || 'รอซ่อม',
+    };
+  } catch (err) {
+    console.error('[LINE] findJobById error:', err.message);
+    return null;
+  }
+}
+
 module.exports = {
   sendLineMessage,
+  sendFlexMessage,
+  sendFlexReply,
+  sendTextReply,
+  broadcastToAdmins,
   getLineUserIdByName,
   saveLineUserId,
   findUsernameByLineId,
+  findJobById,
 };
