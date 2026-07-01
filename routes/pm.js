@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
+const { sendLineMessage, getLineUserIdByName, broadcastToAdmins } = require('./notify');
 
 async function getAllPM() {
   const res = await sheets.spreadsheets.values.get({
@@ -82,6 +83,9 @@ router.post('/', async (req, res) => {
 router.post('/checklist', async (req, res) => {
   try {
     const { pmCode, equip, productionLine, date, tech, shift, runningHr, parts, result, workDone, remarks, checklist } = req.body;
+    console.log(`[PM Checklist] Submitting PM: ${pmCode}, Equipment: ${equip}, Tech: ${tech}`);
+    
+    // บันทึกลงใน PM_History
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'PM_History!A:K',
@@ -90,23 +94,47 @@ router.post('/checklist', async (req, res) => {
         values: [[pmCode, equip, date, tech, result, workDone, remarks || '', parts || '-', checklist || '{}', shift || '', productionLine || '']],
       },
     });
+    console.log(`[PM Checklist] PM_History บันทึกสำเร็จ: ${pmCode}`);
+
+    // อัปเดตสถานะใน PM_Calendar
     const pmRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: 'PM_Calendar!A2:G1000',
     });
     const rows = pmRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === pmCode);
+    
     if (rowIndex !== -1) {
+      console.log(`[PM Checklist] Found PM at row ${rowIndex + 2}, updating status to "เสร็จแล้ว"`);
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `PM_Calendar!G${rowIndex + 2}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [['เสร็จแล้ว']] },
       });
+      console.log(`[PM Checklist] สถานะ PM อัปเดตสำเร็จ: ${pmCode}`);
+
+      // แจ้งเตือน LINE
+      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, tech);
+      if (techLineId) {
+        await sendLineMessage(techLineId,
+          `✅ งาน PM บันทึกเสร็จสิ้น\n` +
+          `📋 รหัส: ${pmCode}\n` +
+          `🔧 เครื่องจักร: ${equip}\n` +
+          `📊 ผลการตรวจ: ${result}\n` +
+          `👤 ผู้ตรวจ: ${tech}`
+        );
+      }
+      
+      // แจ้ง admin
+      await broadcastToAdmins(pmCode, tech, equip, workDone, 'PM เสร็จแล้ว');
+    } else {
+      console.warn(`[PM Checklist] ไม่พบ PM ID: ${pmCode}`);
     }
+
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error('[PM Checklist] Error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });

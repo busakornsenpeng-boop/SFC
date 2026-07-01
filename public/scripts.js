@@ -1309,10 +1309,32 @@ function submitPMForm(){
     .then(res => {
       hideLoading();
       if(res.success){
+        // อัปเดต local cache
         localPMHistory.unshift({no:1, pmCode, equip, date, shift, tech, runningHr, parts, result, workDone, note:remarks, checklist:JSON.stringify(chkObj)});
         const idx = localPMCalendar.findIndex(x => x.id===pmCode);
         if(idx>-1) localPMCalendar[idx].status='เสร็จแล้ว';
-        resetPMForm(); showToast('บันทึกใบตรวจเช็ก PM สำเร็จ!','success');
+        
+        // Reload PM data จาก server พร้อมกัน
+        Promise.all([
+          fetch(`${API_URL}/pm`).then(r=>r.json()),
+          fetch(`${API_URL}/pm/history`).then(r=>r.json())
+        ]).then(([pmRes, histRes]) => {
+          if(pmRes.data) cachedPM = pmRes.data;
+          if(histRes.data) cachedPMHistory = histRes.data;
+          
+          // Refresh UI หลังจาก reload เสร็จ
+          renderPMTable(); 
+          renderPMHistoryTable();
+          
+          if(currentUser?.role === 'engineer' || currentUser?.role === 'admin') {
+            engRenderPMTable(); 
+            engRenderHist(); 
+            engRenderDash();
+          }
+        });
+        
+        resetPMForm(); 
+        showToast('บันทึกใบตรวจเช็ก PM สำเร็จ!','success');
       } else {
         showToast('เกิดข้อผิดพลาด: '+(res.message||''),'error');
       }
