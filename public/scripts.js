@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function loadAllData() {
   showLoading('กำลังโหลดข้อมูลหลัก...');
-  Promise.all([
+  return Promise.all([
     fetch(`${API_URL}/repairs`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => ({ data: [] })),
@@ -1357,6 +1357,7 @@ function techSubmitUpdate(){
   const status = document.getElementById('tup-status')?.value;
   const note   = document.getElementById('tup-note')?.value;
   const eta    = document.getElementById('tup-eta')?.value;
+  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, eta});
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
@@ -1365,20 +1366,28 @@ function techSubmitUpdate(){
     })
     .then(r => r.json())
     .then(res => {
+      console.log('techSubmitUpdate response:', res);
       hideLoading();
       if(res.success){ 
         if(status) j.status=status; 
         if(note) j.note=note; 
         if(eta) j.eta=eta; 
+        console.log('Updated local job:', j);
         closeModal('job-detail-modal');
-        tpUpdateStats(); 
-        tpRenderMine(); 
-        tpRenderQueue();
-        showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success'); 
+        loadAllData().then(() => {
+          tpUpdateStats(); 
+          tpRenderMine(); 
+          tpRenderQueue();
+          showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success');
+        });
       }
       else showToast('เกิดข้อผิดพลาด: '+(res.message||''),'error');
     })
-    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
+    .catch(err => { 
+      console.error('techSubmitUpdate error:', err);
+      hideLoading(); 
+      showToast('เชื่อมต่อ server ไม่ได้','error'); 
+    });
     return;
   }
   if(status)j.status=status; if(note)j.note=note; if(eta)j.eta=eta;
