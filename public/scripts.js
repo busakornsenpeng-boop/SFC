@@ -131,42 +131,7 @@ function loadAllData() {
       populateDeptDropdown(masterRes.departments);
     }
     populateTechDropdown();
-    function populateTechDropdown() {
-  if (isLocalMode) return;
-  fetch(`${API_URL}/users`)
-    .then(r => r.json())
-    .then(data => {
-      const users = data.users || data || [];
-      const techs = users.filter(u =>
-        u.role === 'engineer' && u.status === 'active'
-      );
-
-      // admin-filter-tech-rep (filter หน้า admin repairs)
-      const filterEl = document.getElementById('admin-filter-tech-rep');
-      if (filterEl) {
-        filterEl.innerHTML = '<option value="">ทุกช่าง</option>';
-        techs.forEach(u => {
-          const opt = document.createElement('option');
-          opt.value = u.fullname;
-          opt.textContent = u.fullname;
-          filterEl.appendChild(opt);
-        });
-      }
-
-      // adm-job-tech (dropdown ใน modal แก้ไขงาน)
-      const modalEl = document.getElementById('adm-job-tech');
-      if (modalEl) {
-        modalEl.innerHTML = '<option value="">เลือกช่าง</option>';
-        techs.forEach(u => {
-          const opt = document.createElement('option');
-          opt.value = u.fullname;
-          opt.textContent = u.fullname;
-          modalEl.appendChild(opt);
-        });
-      }
-    })
-    .catch(() => {}); // ไม่ต้องแจ้ง error เพราะเป็น background populate
-}
+    
     hideLoading();
     if(currentUser) setupDashboard();
   })
@@ -227,7 +192,7 @@ function selectLoginRole(role, btn) {
   } else if(role==='technician') {
     document.getElementById('grp-username-tech').style.display='block';
     syncUsername(document.getElementById('username-tech').value);
-} else if(role==='engineer') {
+  } else if(role==='engineer') {
     document.getElementById('grp-username-eng').style.display='block';
     syncUsername(document.getElementById('username-eng').value);
   }
@@ -2707,14 +2672,4 @@ async function submitRegister() {
 // ── openRegisterModal ──
 function openRegisterModal() {
   document.getElementById('register-modal').style.display = 'block';
-}
-const adminDeptEl = document.getElementById('admin-filter-dept-rep');
-if (adminDeptEl) {
-  adminDeptEl.innerHTML = '<option value="">ทุกแผนก</option>';
-  (departments || []).forEach(dept => {
-    const opt = document.createElement('option');
-    opt.value = dept;
-    opt.textContent = dept;
-    adminDeptEl.appendChild(opt);
-  });
 }

@@ -2,7 +2,7 @@ const express    = require('express');
 const router     = express.Router();
 const cloudinary = require('cloudinary').v2;
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
-const { sendLineMessage, getLineUserIdByName } = require('./notify');
+const { sendLineMessage, getLineUserIdByName, broadcastToAdmins, sendFlexMessage } = require('./notify');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -190,6 +190,9 @@ router.post('/', async (req, res) => {
       `📅 ${dateStr}`
     );
 
+    // แจ้ง admin ผ่าน LINE
+    await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
+
     res.json({ success: true, jobId });
   } catch (err) {
     console.error(err);
@@ -317,6 +320,8 @@ router.post('/:id/update', async (req, res) => {
           `📌 รอวิศวกรตรวจสอบ QC`
         );
       }
+      // แจ้ง admin ผ่าน LINE
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ซ่อมเสร็จ รอ QC');
     }
 
     res.json({ success: true });
@@ -379,6 +384,8 @@ router.post('/:id/qc', async (req, res) => {
           `✅ ปิดงานเรียบร้อย`
         );
       }
+      // แจ้ง admin ผ่าน LINE
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่าน QC - ${by}`);
     } else {
       const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
       if (techLineId) {
