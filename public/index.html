@@ -168,7 +168,6 @@
               <option>รอซ่อม</option><option>กำลังซ่อม</option>
               <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
             </select>
-            <select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
             <option value="">ทุกแผนก</option>
             </select>
             <select id="track-filter-side" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
@@ -649,21 +648,19 @@
                 placeholder="ค้นหา JobID / ชื่อ / เครื่องจักร..."
                 oninput="renderAdminRepairsTable()">
             </div>
-            <select id="admin-filter-status-rep" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderAdminRepairsTable()">
-              <option value="">ทุกสถานะ</option>
-              <option>รอซ่อม</option><option>กำลังซ่อม</option>
-              <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
-              <option>แก้ไข (ตีกลับ)</option>
-            </select>
-            <select id="admin-filter-dept-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
-              <option value="">ทุกแผนก</option>
-              <option>ฝ่ายผลิต</option><option>ฝ่ายวิศวกรรม</option>
-              <option>ฝ่ายคลังสินค้า</option><option>ออฟฟิศ</option>
-            </select>
-            <select id="admin-filter-tech-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
-              <option value="">ทุกช่าง</option>
-              <option>สมชาย มั่นคง</option><option>วิชัย ใจดี</option><option>ประยุทธ์ ขยัน</option>
-            </select>
+          <select id="admin-filter-status-rep" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderAdminRepairsTable()">
+  <option value="">ทุกสถานะ</option>
+  <option>รอซ่อม</option><option>กำลังซ่อม</option>
+  <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+  <option>แก้ไข (ตีกลับ)</option>
+</select>
+<select id="admin-filter-dept-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
+ <select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
+  <option value="">ทุกแผนก</option>
+</select>
+<select id="admin-filter-tech-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
+  <option value="">ทุกช่าง</option>
+</select>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px" id="admin-rep-summary"></div>
           <div class="table-container">
@@ -1056,12 +1053,11 @@
               </select>
             </div>
             <div class="form-field">
-              <label>ช่างผู้รับซ่อม</label>
-              <select id="adm-job-tech" class="select-ctrl">
-                <option value="">เลือกช่าง</option>
-                <option>สมชาย มั่นคง</option><option>วิชัย ใจดี</option><option>ประยุทธ์ ขยัน</option>
-              </select>
-            </div>
+  <label>ช่างผู้รับซ่อม</label>
+  <select id="adm-job-tech" class="select-ctrl">
+    <option value="">เลือกช่าง</option>
+  </select>
+</div>
             <div class="form-field"><label>แนบไฟล์รูป</label><input type="file" id="adm-job-file" class="input-ctrl" accept="image/*"></div>
           </div>
           <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
