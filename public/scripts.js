@@ -2319,7 +2319,19 @@ function populateDeptDropdown(departments) {
     });
   }
 
-  // rep-dept เป็น <input readonly> ใส่ค่าจาก currentUser ตรงๆ ไม่ต้องสร้าง option
+  // track-filter-dept ดึงรายชื่อแผนกจริงจาก sheet
+  const filterEl = document.getElementById('track-filter-dept');
+  if (filterEl) {
+    filterEl.innerHTML = '<option value="">ทุกแผนก</option>';
+    (departments || []).forEach(dept => {
+      const opt = document.createElement('option');
+      opt.value = dept;
+      opt.textContent = dept;
+      filterEl.appendChild(opt);
+    });
+  }
+
+  // rep-dept เป็น <input readonly> ใส่ค่าจาก currentUser ตรงๆ
   const repEl = document.getElementById('rep-dept');
   if (repEl && currentUser) repEl.value = currentUser.dept || '';
 }
