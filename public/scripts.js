@@ -121,8 +121,9 @@ function loadAllData() {
     fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/masterdata`).then(r => r.json()).catch(() => ({ success: false })),
+    fetch(`${API_URL}/users/technicians`).then(r => r.json()).catch(() => ({ data: [] })),
   ])
-  .then(([repairsRes, pmRes, pmHistRes, masterRes]) => {
+  .then(([repairsRes, pmRes, pmHistRes, masterRes, techRes]) => {
     cachedJobs      = repairsRes.data  || [];
     cachedPM        = pmRes.data       || [];
     cachedPMHistory = pmHistRes.data   || [];
@@ -130,7 +131,9 @@ function loadAllData() {
       populateMachineDropdown(masterRes.machines);
       populateDeptDropdown(masterRes.departments);
     }
-    populateTechDropdown();
+    if (techRes.data) {
+      populateTechDropdown(techRes.data);
+    }
     
     hideLoading();
     if(currentUser) setupDashboard();
@@ -2383,6 +2386,22 @@ function populateMachineDropdown(machines) {
     });
   });
 }
+
+function populateTechDropdown(technicians) {
+  const selectors = ['#adm-job-tech', '#chk-pm-tech'];
+  selectors.forEach(sel => {
+    const el = document.getElementById(sel);
+    if (!el) return;
+    el.innerHTML = '<option value="">เลือกช่าง</option>';
+    (technicians || []).forEach(tech => {
+      const opt = document.createElement('option');
+      opt.value = tech;
+      opt.textContent = tech;
+      el.appendChild(opt);
+    });
+  });
+}
+
 // เป็นแบบนี้
 function loginWithLINE() {
   const clientId  = '2010534462';

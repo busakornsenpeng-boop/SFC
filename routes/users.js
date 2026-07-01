@@ -414,4 +414,18 @@ router.delete('/:username', async (req, res) => {
   }
 });
 
+// GET /api/users/technicians — ดึงรายชื่อช่างทั้งหมด
+router.get('/technicians', async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    const technicians = users
+      .filter(u => ['technician', 'engineer', 'tech'].includes((u.role || '').toLowerCase()))
+      .map(u => u.fullname || u.username);
+    res.json({ success: true, data: technicians });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
