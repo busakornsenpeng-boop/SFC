@@ -1357,23 +1357,32 @@ function adminSubmitUpdateJob(){
   const j = getRepairJobsData().find(x => x.id===selectedJobForAction); if(!j) return;
   const status = document.getElementById('adm-job-status')?.value;
   const tech   = document.getElementById('adm-job-tech')?.value;
+  const eta    = document.getElementById('adm-job-eta')?.value;
   const note   = document.getElementById('adm-job-note')?.value;
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, technician: tech, note })
+      body: JSON.stringify({ status, technician: tech, eta, note })
     })
     .then(r => r.json())
     .then(res => {
       hideLoading();
-      if(res.success){ if(status)j.status=status; if(tech)j.technician=tech; if(note)j.note=note; closeModal('job-detail-modal'); renderAdminRepairsTable(); showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success'); }
+      if(res.success){ 
+        if(status) j.status=status; 
+        if(tech) j.technician=tech; 
+        if(eta) j.eta=eta;
+        if(note) j.note=note; 
+        closeModal('job-detail-modal'); 
+        renderAdminRepairsTable(); 
+        showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success'); 
+      }
       else showToast('เกิดข้อผิดพลาด: '+(res.message||''),'error');
     })
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
     return;
   }
-  if(status)j.status=status; if(tech)j.technician=tech; if(note)j.note=note;
+  if(status)j.status=status; if(tech)j.technician=tech; if(eta)j.eta=eta; if(note)j.note=note;
   closeModal('job-detail-modal'); showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success'); renderAdminRepairsTable();
 }
 

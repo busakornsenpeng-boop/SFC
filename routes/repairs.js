@@ -487,10 +487,11 @@ router.post('/:id/reject', async (req, res) => {
 });
 
 // POST /api/repairs/:id/status — admin update
+// POST /api/repairs/:id/status — admin update
 router.post('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, imgAfter } = req.body;
+    const { status, note, eta, technician, imgAfter } = req.body;
 
     const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
     const rows     = getRes.data.values || [];
@@ -509,10 +510,15 @@ router.post('/:id/status', async (req, res) => {
     const imgAfterUrls = await processImages(imgAfterArr, `${id}_after`);
     const imgAfterStr  = JSON.stringify(imgAfterUrls);
 
+    const requesterName = rows[rowIndex][1] || '';
+    const machine       = rows[rowIndex][3] || '';
+    const oldTech       = rows[rowIndex][10] || '';
+
     const sheetRow   = rowIndex + 2;
     const updateData = [
       { range: `Repairs!I${sheetRow}`, values: [[imgAfterStr]]  },
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
+      { range: `Repairs!K${sheetRow}`, values: [[technician || oldTech]] },
       { range: `Repairs!M${sheetRow}`, values: [[eta    || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
@@ -523,6 +529,45 @@ router.post('/:id/status', async (req, res) => {
       spreadsheetId: SPREADSHEET_ID,
       requestBody: { valueInputOption: 'USER_ENTERED', data: updateData }
     });
+
+    // แจ้งเตือน LINE
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId && status) {
+      const statusMsg = {
+        'รอซ่อม':       '📋 ระบบได้บันทึกการแจ้งซ่อมของคุณแล้ว',
+        'กำลังซ่อม':     '🔧 ช่างกำลังดำเนินการซ่อมอยู่',
+        'รออะไหล่':      '⏳ ระบบรอจัดหาอะไหล่เข้า',
+        'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อดำเนินการซ่อม',
+        'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
+        'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
+        'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
+        'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
+      }[status] || `📌 สถานะ: ${status}`;
+      
+      await sendLineMessage(requesterLineId,
+        `📢 อัปเดตสถานะงานซ่อม\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `${statusMsg}\n` +
+        (note ? `📝 หมายเหตุ: ${note}` : '')
+      );
+    }
+
+    // แจ้ง LINE ให้ช่างถ้ามีการเปลี่ยน
+    if (technician && technician !== oldTech) {
+      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, technician);
+      if (techLineId) {
+        await sendLineMessage(techLineId,
+          `🔔 มีงานซ่อมใหม่ที่ได้รับมอบหมาย\n` +
+          `📋 รหัสงาน: ${id}\n` +
+          `🔧 เครื่องจักร: ${machine}\n` +
+          `👤 ผู้แจ้ง: ${requesterName}`
+        );
+      }
+    }
+
+    // แจ้ง admin
+    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', status || 'ไม่ระบุ');
 
     res.json({ success: true });
   } catch (err) {

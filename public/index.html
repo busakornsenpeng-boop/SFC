@@ -1049,16 +1049,20 @@
               <label>สถานะ</label>
               <select id="adm-job-status" class="select-ctrl">
                 <option>รอซ่อม</option><option>กำลังซ่อม</option>
-                <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+                <option>ซ่อมเสร็จแล้ว</option><option>รออะไหล่</option>
+                <option>ขอหยุดเครื่อง</option><option>ปิดงาน</option>
               </select>
             </div>
             <div class="form-field">
-  <label>ช่างผู้รับซ่อม</label>
-  <select id="adm-job-tech" class="select-ctrl">
-    <option value="">เลือกช่าง</option>
-  </select>
-</div>
-            <div class="form-field"><label>แนบไฟล์รูป</label><input type="file" id="adm-job-file" class="input-ctrl" accept="image/*"></div>
+              <label>ช่างผู้รับซ่อม</label>
+              <select id="adm-job-tech" class="select-ctrl">
+                <option value="">เลือกช่าง</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>ETA (วันที่คาดเดาเสร็จ)</label>
+              <input type="date" id="adm-job-eta" class="input-ctrl">
+            </div>
           </div>
           <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
           <div style="display:flex;justify-content:space-between;gap:10px">
