@@ -1366,14 +1366,27 @@ function techSubmitUpdate(){
     .then(r => r.json())
     .then(res => {
       hideLoading();
-      if(res.success){ if(status)j.status=status; if(note)j.note=note; if(eta)j.eta=eta; closeModal('job-detail-modal'); showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success'); }
+      if(res.success){ 
+        if(status) j.status=status; 
+        if(note) j.note=note; 
+        if(eta) j.eta=eta; 
+        closeModal('job-detail-modal');
+        tpUpdateStats(); 
+        tpRenderMine(); 
+        tpRenderQueue();
+        showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success'); 
+      }
       else showToast('เกิดข้อผิดพลาด: '+(res.message||''),'error');
     })
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
     return;
   }
   if(status)j.status=status; if(note)j.note=note; if(eta)j.eta=eta;
-  closeModal('job-detail-modal'); showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success');
+  closeModal('job-detail-modal'); 
+  tpUpdateStats(); 
+  tpRenderMine(); 
+  tpRenderQueue();
+  showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success');
 }
 
 // adminSubmitUpdateJob
