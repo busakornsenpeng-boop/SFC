@@ -118,7 +118,7 @@
                   <option>ระบบลม (Pneumatic)</option>
                   <option>ระบบไฮดรอลิก (Hydraulic)</option>
                   <option>โครงสร้าง/สาธารณูปโภค (Utility)</option>
-                  <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)<option> 
+                  <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)</option>
                 </select>
               </div>
               <div class="form-field">
@@ -159,21 +159,22 @@
         <div class="card">
           <div class="card-title"><i class="bi bi-clock-history"></i> ติดตามสถานะงานซ่อมบำรุง</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-            <input type="text" id="track-search" class="input-ctrl"
-              style="flex:1;min-width:160px;font-size:13px"
-              placeholder="🔍 ค้นหา JobID / เครื่องจักร..."
-              oninput="renderRepairsTable()">
-            <select id="track-filter-status" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
-              <option value="">ทุกสถานะ</option>
-              <option>รอซ่อม</option><option>กำลังซ่อม</option>
-              <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
-            </select>
-            <option value="">ทุกแผนก</option>
-            </select>
-            <select id="track-filter-side" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
-              <option value="">ทุกอาการเสีย</option>
-              <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบลม</option>
-            </select>
+           <input type="text" id="track-search" class="input-ctrl"
+  style="flex:1;min-width:160px;font-size:13px"
+  placeholder="🔍 ค้นหา JobID / เครื่องจักร..."
+  oninput="renderRepairsTable()">
+<select id="track-filter-status" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
+  <option value="">ทุกสถานะ</option>
+  <option>รอซ่อม</option><option>กำลังซ่อม</option>
+  <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+</select>
+<select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
+  <option value="">ทุกแผนก</option>
+</select>
+<select id="track-filter-side" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderRepairsTable()">
+  <option value="">ทุกอาการเสีย</option>
+  <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบลม</option>
+</select>
           </div>
           <div class="table-container">
             <table class="data-table">
@@ -655,7 +656,6 @@
   <option>แก้ไข (ตีกลับ)</option>
 </select>
 <select id="admin-filter-dept-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
- <select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
   <option value="">ทุกแผนก</option>
 </select>
 <select id="admin-filter-tech-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
