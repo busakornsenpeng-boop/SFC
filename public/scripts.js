@@ -724,8 +724,22 @@ function tpRenderMine(){
 }
 
 function tpJobCardHTML(j,mode){
-  const statLabel=j.status==='กำลังซ่อม'?`<span class="tp-jstat work"><span class="tp-jdot"></span>กำลังซ่อม</span>`:j.status==='เสร็จแล้ว'?`<span class="tp-jstat done-s"><span class="tp-jdot"></span>เสร็จแล้ว</span>`:`<span class="tp-jstat wait"><span class="tp-jdot"></span>รอซ่อม</span>`;
+  const statusLabelMap = {
+    'รอซ่อม':          {cls:'wait',   text:'รอซ่อม'},
+    'กำลังซ่อม':        {cls:'work',   text:'กำลังซ่อม'},
+    'รออะไหล่':        {cls:'work',   text:'รออะไหล่'},
+    'ขอหยุดเครื่อง':    {cls:'work',   text:'ขอหยุดเครื่อง'},
+    'Workaround':      {cls:'work',   text:'Workaround'},
+    'ซ่อมเสร็จแล้ว':    {cls:'done-s', text:'รอ QC'},
+    'เสร็จแล้ว':        {cls:'done-s', text:'เสร็จแล้ว'},
+    'ปิดงาน':          {cls:'done-s', text:'ปิดงานแล้ว'},
+    'ตีกลับ':          {cls:'wait',   text:'↩ ตีกลับ'},
+    'แก้ไข (ตีกลับ)':   {cls:'wait',   text:'↩ ตีกลับ'},
+  };
+  const stInfo = statusLabelMap[j.status] || {cls:'wait', text:j.status};
+  const statLabel = `<span class="tp-jstat ${stInfo.cls}"><span class="tp-jdot"></span>${stInfo.text}</span>`;
   const ovHTML=j.overdue?`<div class="tp-jovr">⚠️ เกิน 24 ชม. (${j.overdueHrs} ชม.)</div>`:'';
+  const noteHTML=j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4">📝 ${j.progress}</div>`:'';
   const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag">${t}</span>`).join('');
   let actHTML='';
  if(mode==='queue'){
@@ -741,6 +755,8 @@ function tpJobCardHTML(j,mode){
     <button class="tp-jbtn-a" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#ef4444" onclick="tpOpenRejectModal('${j.id}')">↩ ตีกลับ</button>`;
 } else if(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน'){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')">👁 ดูรายละเอียด</button><div class="tp-jbtn-done">✔ ปิดงานแล้ว</div>`;
+} else if(j.status==='ตีกลับ'||j.status==='แก้ไข (ตีกลับ)'){
+  actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')">👁 ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:#ef4444">↩ ส่งกลับให้ผู้แจ้งแล้ว</div>`;
 }
 
 return `<div class="tp-jcard${j.overdue?' ov':''}">
@@ -748,6 +764,7 @@ return `<div class="tp-jcard${j.overdue?' ov':''}">
   <div class="tp-jtitle">${j.title}</div>
   <div class="tp-jdesc">${j.desc}</div>
   ${ovHTML}
+  ${noteHTML}
   <div class="tp-jtags">${tagsHTML}</div>
   <div class="tp-jdate">📅 ${j.date}${j.eta?' · ETA '+j.eta:''}</div>
   <div class="tp-jact">${actHTML}</div>
