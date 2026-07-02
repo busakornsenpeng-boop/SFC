@@ -267,7 +267,7 @@ function setupDashboard() {
   document.getElementById('login-page').style.display = 'none';
 
   // ทั้ง technician และ engineer → TE Panel
-  if (currentUser.role === 'engineer') {
+  if (currentUser.role === 'engineer' || currentUser.role === 'technician') {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
     initTEPanel();
@@ -814,11 +814,13 @@ function tpSubmitReject(id) {
     .then(r => r.json())
     .then(res => {
       hideLoading();
-      if (res.success) {
+    if (res.success) {
         j.status = 'ตีกลับ';
         j.note = reason;
         showToast(`↩ ตีกลับงาน ${j.machine} — ${reason}`, 'warning');
-        tpCloseModal(); tpUpdateStats(); tpRenderMine(); tpRenderQueue();
+        tpCloseModal();
+        teUpdateStats(); teRenderQueue(); teRenderMine();
+        tpUpdateStats(); tpRenderMine(); tpRenderQueue();
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
@@ -827,10 +829,12 @@ function tpSubmitReject(id) {
     return;
   }
 
-  // Local Mode
+ // Local Mode
   j.status = 'ตีกลับ';
   j.note = reason;
-  tpCloseModal(); tpUpdateStats(); tpRenderMine(); tpRenderQueue();
+  tpCloseModal();
+  teUpdateStats(); teRenderQueue(); teRenderMine();
+  tpUpdateStats(); tpRenderMine(); tpRenderQueue();
   showToast(`↩ ตีกลับงาน ${j.machine} — ${reason}`, 'warning');
 }
 
@@ -991,11 +995,13 @@ function tpSaveUpdate(id) {
     .then(r => r.json())
     .then(res => {
       hideLoading();
-      if (res.success) {
+     if (res.success) {
         Object.assign(j, { note, eta, planStopDate: stopDate });
         if (finalStatus) j.status = finalStatus;
         showToast('บันทึกสำเร็จ!', 'success');
-     tpCloseModal(); tpUpdateStats(); tpRenderMine(); tpRenderQueue();
+     tpCloseModal();
+     teUpdateStats(); teRenderQueue(); teRenderMine();
+     tpUpdateStats(); tpRenderMine(); tpRenderQueue();
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
@@ -1003,11 +1009,13 @@ function tpSaveUpdate(id) {
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
     return;
   }
-  j.note = note;
+ j.note = note;
   if (eta) j.eta = eta;
   if (stopDate) j.planStopDate = stopDate;
   if (finalStatus) j.status = finalStatus; 
-  tpCloseModal(); tpUpdateStats(); tpRenderMine(); tpRenderQueue();
+  tpCloseModal();
+  teUpdateStats(); teRenderQueue(); teRenderMine();
+  tpUpdateStats(); tpRenderMine(); tpRenderQueue();
   const label = ns === 'เสร็จแล้ว' ? 'ซ่อมเสร็จสิ้น' : `อัปเดตเป็น "${ns}"`;
   showToast(`${label} — ${j.title}`, ns === 'เสร็จแล้ว' ? 'success' : 'info');
 }
