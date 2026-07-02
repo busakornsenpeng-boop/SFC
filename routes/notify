@@ -8,7 +8,12 @@ const LINE_PUSH_API  = 'https://api.line.me/v2/bot/message/push';
 const LINE_REPLY_API = 'https://api.line.me/v2/bot/message/reply';
 
 // ── รายชื่อ Admin LINE User ID (เพิ่มได้หลายคน) ──
-const ADMIN_LINE_IDS = (process.env.ADMIN_LINE_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+function getAdminLineIds() {
+  return (process.env.ADMIN_LINE_IDS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
 // ── สีและ icon ตาม status ──
 const STATUS_CONFIG = {
@@ -193,12 +198,13 @@ async function sendTextReply(replyToken, message) {
 // broadcastToAdmins — ส่ง Flex ให้ admin ทุกคน
 // ────────────────────────────────────────────
 async function broadcastToAdmins(jobId, reporter, machine, detail, status, note = '') {
-  if (!ADMIN_LINE_IDS.length) {
+  const adminIds = getAdminLineIds();
+  if (!adminIds.length) {
     console.warn('[LINE] ADMIN_LINE_IDS ว่างเปล่า — ตั้งค่าใน .env');
     return;
   }
   await Promise.all(
-    ADMIN_LINE_IDS.map(adminId =>
+    adminIds.map(adminId =>
       sendFlexMessage(adminId, jobId, reporter, machine, detail, status, note)
     )
   );
@@ -292,6 +298,7 @@ module.exports = {
   sendFlexReply,
   sendTextReply,
   broadcastToAdmins,
+  getAdminLineIds,
   getLineUserIdByName,
   saveLineUserId,
   findUsernameByLineId,

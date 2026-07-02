@@ -169,28 +169,26 @@ router.post('/', async (req, res) => {
       },
     });
 
-   // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง
-    // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requester);
-    // if (requesterLineId) {
-    //   await sendLineMessage(requesterLineId,
-    //     `✅ รับแจ้งซ่อมเรียบร้อย!\n` +
-    //     `📋 รหัสงาน: ${jobId}\n` +
-    //     `🔧 เครื่องจักร: ${machine}\n` +
-    //     `📌 สถานะ: รอช่างรับงาน\n` +
-    //     `📅 วันที่แจ้ง: ${dateStr}`
-    //   );
-    // }
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requester);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `✅ รับแจ้งซ่อมเรียบร้อย!\n` +
+        `📋 รหัสงาน: ${jobId}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `📌 สถานะ: รอช่างรับงาน\n` +
+        `📅 วันที่แจ้ง: ${dateStr}`
+      );
+    }
 
-    // TODO: เปิดใช้ภายหลัง — แจ้งเตือนช่าง/วิศวกร
-    // const shortDetail = (detail || '').length > 60 ? detail.slice(0, 60) + '...' : (detail || '');
-    // await broadcastToTechs(
-    //   `🔔 มีใบแจ้งซ่อมใหม่!\n` +
-    //   `📋 รหัสงาน: ${jobId}\n` +
-    //   `🔧 เครื่องจักร: ${machine}\n` +
-    //   `📍 แผนก: ${dept}\n` +
-    //   `📝 อาการ: ${shortDetail}\n` +
-    //   `📅 ${dateStr}`
-    // );
+    const shortDetail = (detail || '').length > 60 ? detail.slice(0, 60) + '...' : (detail || '');
+    await broadcastToTechs(
+      `🔔 มีใบแจ้งซ่อมใหม่!\n` +
+      `📋 รหัสงาน: ${jobId}\n` +
+      `🔧 เครื่องจักร: ${machine}\n` +
+      `📍 แผนก: ${dept}\n` +
+      `📝 อาการ: ${shortDetail}\n` +
+      `📅 ${dateStr}`
+    );
 
     // แจ้ง admin ผ่าน LINE
     await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
@@ -229,17 +227,16 @@ router.post('/:id/accept', async (req, res) => {
       ]},
     });
 
-   // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง
-    // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    // if (requesterLineId) {
-    //   await sendLineMessage(requesterLineId,
-    //     `🔧 ช่างรับงานซ่อมของคุณแล้ว!\n` +
-    //     `📋 รหัสงาน: ${id}\n` +
-    //     `🔧 เครื่องจักร: ${machine}\n` +
-    //     `👨‍🔧 ช่างซ่อม: ${technician}\n` +
-    //     `📌 สถานะ: กำลังซ่อม`
-    //   );
-    // }
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `🔧 ช่างรับงานซ่อมของคุณแล้ว!\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `👨‍🔧 ช่างซ่อม: ${technician}\n` +
+        `📌 สถานะ: กำลังซ่อม`
+      );
+    }
 
     // แจ้ง admin ผ่าน LINE
     await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'กำลังซ่อม', `ช่างรับงาน: ${technician}`);
@@ -304,17 +301,16 @@ router.post('/:id/update', async (req, res) => {
       'Workaround':    '🛠 แก้ไขชั่วคราว (Workaround)',
     }[status] || `📌 ${status}`;
 
-   // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง
-    // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    // if (requesterLineId) {
-    //   await sendLineMessage(requesterLineId,
-    //     `📢 อัปเดตสถานะงานซ่อม\n` +
-    //     `📋 รหัสงาน: ${id}\n` +
-    //     `🔧 เครื่องจักร: ${machine}\n` +
-    //     `${statusLabel}\n` +
-    //     (note ? `📝 หมายเหตุ: ${note}` : '')
-    //   );
-    // }
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `📢 อัปเดตสถานะงานซ่อม\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `${statusLabel}\n` +
+        (note ? `📝 หมายเหตุ: ${note}` : '')
+      );
+    }
 
     if (status === 'ซ่อมเสร็จแล้ว' || status === 'ซ่อมเสร็จ') {
       // TODO: เปิดใช้ภายหลัง — แจ้งเตือนช่าง
@@ -376,25 +372,24 @@ router.post('/:id/qc', async (req, res) => {
     });
 
    if (result === 'ผ่าน QC') {
-      // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง/ช่าง
-      // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-      // if (requesterLineId) {
-      //   await sendLineMessage(requesterLineId,
-      //     `🎉 งานซ่อมผ่าน QC และปิดงานแล้ว!\n` +
-      //     `📋 รหัสงาน: ${id}\n` +
-      //     `🔧 เครื่องจักร: ${machine}\n` +
-      //     `✅ ตรวจสอบโดย: ${by}`
-      //   );
-      // }
-      // const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
-      // if (techLineId) {
-      //   await sendLineMessage(techLineId,
-      //     `🎉 งานซ่อมของคุณผ่าน QC!\n` +
-      //     `📋 รหัสงาน: ${id}\n` +
-      //     `🔧 เครื่องจักร: ${machine}\n` +
-      //     `✅ ปิดงานเรียบร้อย`
-      //   );
-      // }
+      const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+      if (requesterLineId) {
+        await sendLineMessage(requesterLineId,
+          `🎉 งานซ่อมผ่าน QC และปิดงานแล้ว!\n` +
+          `📋 รหัสงาน: ${id}\n` +
+          `🔧 เครื่องจักร: ${machine}\n` +
+          `✅ ตรวจสอบโดย: ${by}`
+        );
+      }
+      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
+      if (techLineId) {
+        await sendLineMessage(techLineId,
+          `🎉 งานซ่อมของคุณผ่าน QC!\n` +
+          `📋 รหัสงาน: ${id}\n` +
+          `🔧 เครื่องจักร: ${machine}\n` +
+          `✅ ปิดงานเรียบร้อย`
+        );
+      }
       // แจ้ง admin ผ่าน LINE
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่าน QC - ${by}`);
     } else {
@@ -482,17 +477,16 @@ router.post('/:id/reject', async (req, res) => {
       ]},
     });
 
- // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง
-    // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    // if (requesterLineId) {
-    //   await sendLineMessage(requesterLineId,
-    //     `⚠️ ใบแจ้งซ่อมถูกตีกลับ\n` +
-    //     `📋 รหัสงาน: ${id}\n` +
-    //     `🔧 เครื่องจักร: ${machine}\n` +
-    //     `📝 เหตุผล: ${reason}\n` +
-    //     `กรุณาแก้ไขข้อมูลและส่งใหม่อีกครั้ง`
-    //   );
-    // }
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `⚠️ ใบแจ้งซ่อมถูกตีกลับ\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `📝 เหตุผล: ${reason}\n` +
+        `กรุณาแก้ไขข้อมูลและส่งใหม่อีกครั้ง`
+      );
+    }
 
     // แจ้ง admin ผ่าน LINE
     await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
@@ -548,41 +542,39 @@ router.post('/:id/status', async (req, res) => {
       requestBody: { valueInputOption: 'USER_ENTERED', data: updateData }
     });
 
-  // TODO: เปิดใช้ภายหลัง — แจ้งเตือนผู้แจ้ง
-    // const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    // if (requesterLineId && status) {
-    //   const statusMsg = {
-    //     'รอซ่อม':       '📋 ระบบได้บันทึกการแจ้งซ่อมของคุณแล้ว',
-    //     'กำลังซ่อม':     '🔧 ช่างกำลังดำเนินการซ่อมอยู่',
-    //     'รออะไหล่':      '⏳ ระบบรอจัดหาอะไหล่เข้า',
-    //     'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อดำเนินการซ่อม',
-    //     'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
-    //     'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
-    //     'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
-    //     'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
-    //   }[status] || `📌 สถานะ: ${status}`;
-    //   
-    //   await sendLineMessage(requesterLineId,
-    //     `📢 อัปเดตสถานะงานซ่อม\n` +
-    //     `📋 รหัสงาน: ${id}\n` +
-    //     `🔧 เครื่องจักร: ${machine}\n` +
-    //     `${statusMsg}\n` +
-    //     (note ? `📝 หมายเหตุ: ${note}` : '')
-    //   );
-    // }
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId && status) {
+      const statusMsg = {
+        'รอซ่อม':       '📋 ระบบได้บันทึกการแจ้งซ่อมของคุณแล้ว',
+        'กำลังซ่อม':     '🔧 ช่างกำลังดำเนินการซ่อมอยู่',
+        'รออะไหล่':      '⏳ ระบบรอจัดหาอะไหล่เข้า',
+        'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อดำเนินการซ่อม',
+        'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
+        'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
+        'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
+        'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
+      }[status] || `📌 สถานะ: ${status}`;
+      
+      await sendLineMessage(requesterLineId,
+        `📢 อัปเดตสถานะงานซ่อม\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `${statusMsg}\n` +
+        (note ? `📝 หมายเหตุ: ${note}` : '')
+      );
+    }
 
-    // TODO: เปิดใช้ภายหลัง — แจ้งเตือนช่าง
-    // if (technician && technician !== oldTech) {
-    //   const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, technician);
-    //   if (techLineId) {
-    //     await sendLineMessage(techLineId,
-    //       `🔔 มีงานซ่อมใหม่ที่ได้รับมอบหมาย\n` +
-    //       `📋 รหัสงาน: ${id}\n` +
-    //       `🔧 เครื่องจักร: ${machine}\n` +
-    //       `👤 ผู้แจ้ง: ${requesterName}`
-    //     );
-    //   }
-    // }
+    if (technician && technician !== oldTech) {
+      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, technician);
+      if (techLineId) {
+        await sendLineMessage(techLineId,
+          `🔔 มีงานซ่อมใหม่ที่ได้รับมอบหมาย\n` +
+          `📋 รหัสงาน: ${id}\n` +
+          `🔧 เครื่องจักร: ${machine}\n` +
+          `👤 ผู้แจ้ง: ${requesterName}`
+        );
+      }
+    }
 
     // แจ้ง admin
     await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', status || 'ไม่ระบุ');
