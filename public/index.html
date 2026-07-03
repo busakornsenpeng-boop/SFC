@@ -71,11 +71,15 @@
             <div class="brand-subtitle">บูรณาการการแจ้งซ่อมและแผนบำรุงรักษา (PM) ออนไลน์</div>
           </div>
         </div>
-        <div class="user-profile">
+     <div class="user-profile">
           <div class="profile-info">
             <div class="profile-name" id="user-display-name">Username</div>
             <div class="profile-role" id="user-display-role">ROLE</div>
           </div>
+          <button onclick="dashConnectLINE()" title="เชื่อมบัญชี LINE"
+            style="background:#06C755;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
+            <i class="bi bi-line"></i> เชื่อม LINE
+          </button>
           <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
             <i class="bi bi-box-arrow-right"></i>
           </button>
@@ -779,6 +783,10 @@
           <div class="tp-tb-sub">SFC SMART REPAIR</div>
         </div>
       </div>
+   <button onclick="dashConnectLINE()" title="เชื่อมบัญชี LINE"
+        style="background:#06C755;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;margin-right:6px">
+        <i class="bi bi-line"></i>
+      </button>
       <div class="tp-logout" onclick="handleLogout()">⏻</div>
     </div>
 
@@ -949,16 +957,16 @@
     <!-- Error -->
       <!-- LINE Connect -->
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e2e8f0)">
-        <a href="https://line.me/R/ti/p/@340vyagm" target="_blank" id="reg-line-btn"
+       <button type="button" onclick="regConnectLINE()" id="reg-line-btn"
           style="width:100%;padding:12px;border:none;border-radius:10px;
                  background:#06C755;color:#fff;font-size:13px;font-weight:700;
                  cursor:pointer;font-family:inherit;display:flex;align-items:center;
-                 justify-content:center;gap:8px;text-decoration:none;box-sizing:border-box">
+                 justify-content:center;gap:8px;box-sizing:border-box">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
             <path d="M12 2C6.48 2 2 6.02 2 11c0 3.54 2.29 6.53 5.47 8.11L6.5 22l3.27-1.7C10.5 20.43 11.24 20.5 12 20.5c5.52 0 10-4.02 10-9S17.52 2 12 2z"/>
           </svg>
           เชื่อมต่อ LINE OA
-        </a>
+        </button>
         <div id="reg-line-status" style="margin-top:8px;font-size:11px;color:var(--text3,#94a3b8);text-align:center">
           รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่าน QC
         </div>

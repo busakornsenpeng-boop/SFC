@@ -218,9 +218,10 @@ function handleLoginSubmit(event) {
   .then(res => {
     hideLoading();
     if (res.success) {
-      currentUser = {
-        name:    res.name,
-        role:    res.role,
+    currentUser = {
+        username: res.username,
+        name:     res.name,
+        role:     res.role,
         avatar:  res.avatar,
         isChief: res.isChief,
         dept :    res.dept,
@@ -2457,6 +2458,39 @@ function loginWithLINE() {
     `https://access.line.me/oauth2/v2.1/authorize` +
     `?response_type=code&client_id=${clientId}` +
     `&redirect_uri=${redirectUri}&state=login&scope=profile`;
+}
+async function dashConnectLINE() {
+  if (!currentUser?.username) return showToast('ไม่พบข้อมูล username กรุณา login ใหม่', 'error');
+  try {
+    const r = await fetch('/api/users/line/auth-url?mode=popup').then(r => r.json());
+    if (!r.url) return showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
+
+    const popup = window.open(r.url, 'line_auth_dash', 'width=520,height=680');
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'LINE_AUTH_CODE') return;
+      window.removeEventListener('message', onMsg);
+      popup?.close();
+
+      const cb = await fetch('/api/users/line/callback', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: e.data.code }),
+      }).then(r => r.json());
+
+      if (cb.lineUserId) {
+        const link = await fetch(`/api/users/${encodeURIComponent(currentUser.username)}/link-line`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId: cb.lineUserId }),
+        }).then(r => r.json());
+        if (link.success) showToast('✅ เชื่อม LINE สำเร็จ!', 'success');
+        else showToast(link.message || 'เชื่อมไม่สำเร็จ', 'error');
+      } else if (cb.linked) {
+        showToast('LINE นี้ผูกกับบัญชีอื่นอยู่แล้ว', 'error');
+      }
+    };
+    window.addEventListener('message', onMsg);
+  } catch (err) {
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+  }
 }
 // เพิ่มฟังก์ชันใหม่ — สำหรับผูก LINE หลัง login แล้ว
 function connectLINE() {

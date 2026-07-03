@@ -53,9 +53,10 @@ router.post('/login', async (req, res) => {
       if (password !== ADMIN_ACCOUNT.password) {
         return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
       }
-      return res.json({
-        success: true,
-        name:    ADMIN_ACCOUNT.fullname,
+     return res.json({
+        success:  true,
+        username: ADMIN_ACCOUNT.username,
+        name:     ADMIN_ACCOUNT.fullname,
         role:    'admin',
         dept:    ADMIN_ACCOUNT.dept,
         avatar:  ADMIN_ACCOUNT.avatar_url,
@@ -75,8 +76,9 @@ router.post('/login', async (req, res) => {
 
     const effectiveRole = resolveRole(user.role, user.dept, user.username);
 
-    res.json({
+   res.json({
       success:      true,
+      username:     user.username,
       name:         user.fullname,
       role:         effectiveRole,
       dept:         user.dept,
