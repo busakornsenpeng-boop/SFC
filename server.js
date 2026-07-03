@@ -34,7 +34,19 @@ const {
   saveLineUserId,
   findUsernameByLineId,
   sendLineMessage,
+  broadcastToAdmins,
 } = require('./routes/notify');
+
+// ── 🧪 ทดสอบแจ้งเตือน LINE (ลบออกทีหลังได้เมื่อทดสอบเสร็จ) ──
+app.get('/api/test-line-notify', async (req, res) => {
+  try {
+    await broadcastToAdmins('TEST-001', 'ทดสอบระบบ', 'เครื่องทดสอบ', 'นี่คือข้อความทดสอบ', 'รอซ่อม');
+    res.send('✅ ส่งคำสั่งแจ้งเตือนแล้ว เช็ค LINE ได้เลย (ถ้าไม่มา ให้เช็ค Render Logs)');
+  } catch (err) {
+    console.error('[TEST-LINE] error:', err.message);
+    res.status(500).send('❌ Error: ' + err.message);
+  }
+});
 
 app.get('/auth/line/callback', async (req, res) => {
   const { code, state, error } = req.query;
