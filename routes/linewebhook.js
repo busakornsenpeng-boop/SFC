@@ -56,7 +56,7 @@ router.post('/', async (req, res) => {
       // ── Routing ข้อความ ──
 
       if (text.includes('ติดต่อ')) {
-        await sendTextReply(replyToken, '📞 ติดต่อเจ้าหน้าที่ QSMS: 098-182-5072');
+        await sendTextReply(replyToken, '📞 ติดต่อเจ้าหน้าที่ ENG: 098-182-5072');
         continue;
       }
 
