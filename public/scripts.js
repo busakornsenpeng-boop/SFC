@@ -2685,11 +2685,11 @@ async function regConnectLINE() {
     _regLinePopupOpen = true;
     popup.location.href = r.url;
 
-    const onMsg = async (e) => {
+   const onMsg = async (e) => {
       if (e.data?.type !== 'LINE_AUTH_CODE') return;
       window.removeEventListener('message', onMsg);
       _regLinePopupOpen = false;
-
+      popup?.close();
       const cb = await fetch('/api/users/line/callback', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
