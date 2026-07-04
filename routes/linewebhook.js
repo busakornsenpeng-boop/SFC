@@ -34,39 +34,6 @@ async function saveUserIfNew(userId) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// ผูกบัญชี LINE ผ่านคำสั่งแชท เช่น "ผูกไอดี somchai01"
-// ใช้แทนการ login ผ่าน LINE OAuth (ไม่ต้องพึ่ง LINE Login channel เลย)
-// ─────────────────────────────────────────────────────────────
-const LINK_CMD_REGEX = /^(?:ผูกไอดี|ผูกบัญชี|เชื่อมบัญชี|เชื่อมไอดี)\s+(.+)$/i;
-
-async function linkLineAccount(username, lineUserId) {
-  const res  = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
-  const rows = res.data.values || [];
-
-  const rowIndex = rows.findIndex(r => String(r[0] || '').toLowerCase() === username.toLowerCase());
-  if (rowIndex === -1) {
-    return { success: false, message: `ไม่พบ username "${username}" ในระบบ\nกรุณาตรวจสอบการสะกดอีกครั้ง (username ต้องตรงกับที่ใช้ login เว็บ)` };
-  }
-
-  // กันไม่ให้ LINE ID เดียวถูกผูกซ้ำกับคนละ username
-  const conflictRow = rows.find((r, i) => i !== rowIndex && r[9] === lineUserId);
-  if (conflictRow) {
-    return { success: false, message: `LINE นี้ถูกผูกกับบัญชี "${conflictRow[0]}" ไปแล้ว\nหากต้องการเปลี่ยนบัญชี กรุณาติดต่อแอดมิน` };
-  }
-
-  const fullname = rows[rowIndex][3] || username;
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `Users!J${rowIndex + 2}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[lineUserId]] },
-  });
-  console.log(`[LINE Webhook] ผูกบัญชีสำเร็จ: ${username} → ${lineUserId}`);
-
-  return { success: true, fullname };
-}
-
 // POST /api/line/webhook  ← ตั้งใน LINE Developers Console
 router.post('/', async (req, res) => {
   // ตอบ 200 ทันทีเสมอ (LINE จะ retry ถ้าไม่ได้รับ 200)
@@ -88,36 +55,15 @@ router.post('/', async (req, res) => {
 
       // ── Routing ข้อความ ──
 
-      // คำสั่งผูกบัญชี LINE: "ผูกไอดี username" / "เชื่อมบัญชี username"
-      const linkMatch = text.match(LINK_CMD_REGEX);
-      if (linkMatch) {
-        const username = linkMatch[1].trim();
-        try {
-          const result = await linkLineAccount(username, userId);
-          if (result.success) {
-            await sendTextReply(replyToken,
-              `✅ เชื่อมบัญชี LINE สำเร็จ!\n👤 บัญชี: ${result.fullname}\n🔔 คุณจะได้รับแจ้งเตือนงานซ่อม/PM ผ่าน LINE นับจากนี้`
-            );
-          } else {
-            await sendTextReply(replyToken, `❌ ${result.message}`);
-          }
-        } catch (err) {
-          console.error('[LINE Webhook] linkLineAccount error:', err.message);
-          await sendTextReply(replyToken, '❌ เกิดข้อผิดพลาดในการผูกบัญชี กรุณาลองใหม่อีกครั้ง');
-        }
-        continue;
-      }
-
       if (text.includes('ติดต่อ')) {
         await sendTextReply(replyToken, '📞 ติดต่อเจ้าหน้าที่ ENG: 098-182-5072');
         continue;
       }
 
       if (text === 'แจ้งซ่อม') {
-        const reportUrl = `${APP_URL}${APP_URL.includes('?') ? '&' : '?'}line_uid=${encodeURIComponent(userId)}`;
         await sendTextReply(
           replyToken,
-          `📋 กดลิงก์ด้านล่างเพื่อแจ้งซ่อมได้เลยครับ 👇\n\n${reportUrl}\n\n` +
+          `📋 กดลิงก์ด้านล่างเพื่อแจ้งซ่อมได้เลยครับ 👇\n\n${APP_URL}\n\n` +
           `🔔 เมื่อช่างอัปเดตสถานะ ระบบจะแจ้งกลับมาหาคุณทันที`
         );
         continue;
@@ -146,9 +92,7 @@ router.post('/', async (req, res) => {
         `👋 สวัสดีครับ! พิมพ์คำสั่งด้านล่างได้เลย:\n\n` +
         `📋 "แจ้งซ่อม" — เปิดฟอร์มแจ้งซ่อม\n` +
         `🔍 "REP-XXXXXXXX-XXX" — เช็คสถานะงาน\n` +
-        `📞 "ติดต่อ" — ติดต่อเจ้าหน้าที่\n` +
-        `🔗 "ผูกไอดี username" — เชื่อมบัญชี LINE เพื่อรับแจ้งเตือน\n` +
-        `   (เช่น พิมพ์ "ผูกไอดี somchai01")`
+        `📞 "ติดต่อ" — ติดต่อเจ้าหน้าที่`
       );
     }
   } catch (err) {
