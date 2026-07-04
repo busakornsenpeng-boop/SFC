@@ -114,9 +114,10 @@ router.post('/', async (req, res) => {
       }
 
       if (text === 'แจ้งซ่อม') {
+        const reportUrl = `${APP_URL}${APP_URL.includes('?') ? '&' : '?'}line_uid=${encodeURIComponent(userId)}`;
         await sendTextReply(
           replyToken,
-          `📋 กดลิงก์ด้านล่างเพื่อแจ้งซ่อมได้เลยครับ 👇\n\n${APP_URL}\n\n` +
+          `📋 กดลิงก์ด้านล่างเพื่อแจ้งซ่อมได้เลยครับ 👇\n\n${reportUrl}\n\n` +
           `🔔 เมื่อช่างอัปเดตสถานะ ระบบจะแจ้งกลับมาหาคุณทันที`
         );
         continue;

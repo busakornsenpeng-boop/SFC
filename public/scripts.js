@@ -102,6 +102,12 @@ document.addEventListener('DOMContentLoaded', function() {
     history.replaceState({}, '', '/');
     showToast('ยินดีต้อนรับ! กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ', 'info');
   }
+  // ── ดักจับ line_uid ที่แนบมาจากลิงก์ "แจ้งซ่อม" ใน LINE OA ──
+  // เก็บไว้รอผูกบัญชีอัตโนมัติทันทีที่ login สำเร็จ (ดูใน handleLoginSubmit)
+  if (_lp.get('line_uid')) {
+    localStorage.setItem('pending_line_uid', _lp.get('line_uid'));
+    history.replaceState({}, '', location.pathname);
+  }
   // ── จบส่วนที่เพิ่ม ──
 
   if (isLocalMode) {
@@ -225,12 +231,36 @@ function handleLoginSubmit(event) {
         isChief: res.isChief,
         dept :    res.dept,
       };
+      autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
       setupDashboard();
     } else {
       showLoginError();
     }
   })
   .catch(() => { hideLoading(); showLoginError(); });
+}
+
+// ─────────────────────────────────────────────────────────────
+// ผูก LINE ID อัตโนมัติหลัง login สำเร็จ (ถ้ามี line_uid ค้างจากลิงก์แจ้งซ่อมใน LINE OA)
+// ทำงานเงียบๆ เบื้องหลัง ไม่รบกวน flow การ login
+// ─────────────────────────────────────────────────────────────
+async function autoLinkPendingLineId() {
+  const lineUid = localStorage.getItem('pending_line_uid');
+  if (!lineUid || !currentUser?.username) return;
+  try {
+    const res = await fetch(`${API_URL}/users/${encodeURIComponent(currentUser.username)}/link-line`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lineUserId: lineUid }),
+    }).then(r => r.json());
+    localStorage.removeItem('pending_line_uid'); // เอาออกไม่ว่าจะสำเร็จหรือไม่ กันลูปผูกซ้ำ
+    if (res.success) {
+      showToast('✅ เชื่อมบัญชี LINE สำเร็จอัตโนมัติ! จะได้รับแจ้งเตือนผ่าน LINE', 'success');
+    }
+    // ถ้าไม่สำเร็จ (เช่น LINE นี้ผูกกับบัญชีอื่นแล้ว) จะไม่โชว์ error รบกวน เพราะไม่ใช่การกระทำที่ user ตั้งใจกดเอง
+  } catch (err) {
+    console.error('[autoLinkPendingLineId] error:', err.message);
+  }
 }
 
 function mockCheckLogin(u,p) {
