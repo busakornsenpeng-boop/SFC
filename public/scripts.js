@@ -2664,22 +2664,31 @@ function techAcceptSelectedJob() {
 let _regLineUserId    = null;
 let _regLinePopupOpen = false;
 
-// ── เปิด popup LINE OAuth จากหน้า Register ──
 async function regConnectLINE() {
   if (_regLinePopupOpen) return;
+
+  // เปิด popup ว่างเปล่าทันที (ก่อน await) เพื่อไม่ให้เบราว์เซอร์บล็อก
+  const popup = window.open('', 'line_auth_reg',
+    'width=520,height=680,scrollbars=yes,resizable=yes');
+  if (!popup) {
+    showToast('เบราว์เซอร์บล็อก popup กรุณาอนุญาต popup แล้วลองกดใหม่อีกครั้ง', 'warning');
+    return;
+  }
+
   try {
     const r = await fetch('/api/users/line/auth-url?mode=popup').then(r => r.json());
-    if (!r.url) return showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
+    if (!r.url) {
+      popup.close();
+      return showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
+    }
 
     _regLinePopupOpen = true;
-    const popup = window.open(r.url, 'line_auth_reg',
-      'width=520,height=680,scrollbars=yes,resizable=yes');
+    popup.location.href = r.url;
 
     const onMsg = async (e) => {
       if (e.data?.type !== 'LINE_AUTH_CODE') return;
       window.removeEventListener('message', onMsg);
       _regLinePopupOpen = false;
-      // ไม่ต้องปิด popup ทันที — ปล่อยให้ server พา popup ไปหน้าเพิ่มเพื่อน LINE OA เอง
 
       const cb = await fetch('/api/users/line/callback', {
         method:  'POST',
@@ -2689,7 +2698,6 @@ async function regConnectLINE() {
 
       if (cb.lineUserId) {
         _regLineUserId = cb.lineUserId;
-        // อัปเดต UI
         document.getElementById('reg-line-status').innerHTML =
           `<span style="color:#16a34a;font-weight:700;">✅ เชื่อมต่อแล้ว</span>` +
           (cb.displayName ? ` · ${cb.displayName}` : '');
@@ -2699,18 +2707,14 @@ async function regConnectLINE() {
         btn.style.opacity    = '0.8';
         btn.disabled         = true;
       } else if (cb.linked) {
-        // LINE นี้ผูกบัญชีอยู่แล้ว → แจ้ง user
         showToast('LINE นี้ผูกบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบด้วย LINE แทน', 'error');
-        _regLinePopupOpen = false;
       } else {
         showToast('ไม่สามารถรับข้อมูล LINE ได้', 'error');
-        _regLinePopupOpen = false;
       }
     };
 
     window.addEventListener('message', onMsg);
 
-    // กรณี popup ถูกปิดก่อน callback
     const checkClosed = setInterval(() => {
       if (popup?.closed) {
         clearInterval(checkClosed);
@@ -2724,7 +2728,6 @@ async function regConnectLINE() {
     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
   }
 }
-
 // ── reset ค่า LINE เมื่อปิด modal ──
 function closeRegisterModal() {
   document.getElementById('register-modal').style.display = 'none';
