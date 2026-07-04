@@ -1,4 +1,3 @@
-
 // ============================================================
 // GLOBAL STATE
 // ============================================================
@@ -280,6 +279,13 @@ function setupDashboard() {
   document.getElementById('dashboard-page').style.display  = 'block';
   document.getElementById('user-display-name').textContent = currentUser.name;
   document.getElementById('user-display-role').textContent = currentUser.role;
+
+  // ── ซ่อนปุ่ม "เชื่อม LINE" สำหรับแอดมิน ──
+  // แอดมินตั้งค่า LINE ID สำหรับรับแจ้งเตือนผ่าน ADMIN_LINE_IDS ใน .env โดยตรง
+  // ไม่ได้เก็บ line_user_id ไว้ใน Users sheet เหมือน user ทั่วไป จึงไม่ต้องมีปุ่มนี้
+  const lineBtn = document.getElementById('btn-line-connect');
+  if (lineBtn) lineBtn.style.display = (currentUser.role === 'admin') ? 'none' : 'inline-flex';
+
   const nav = document.getElementById('main-nav-tabs'); nav.innerHTML = '';
 
   const roleTabs = {
