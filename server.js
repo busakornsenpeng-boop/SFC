@@ -51,17 +51,26 @@ app.get('/api/test-line-notify', async (req, res) => {
 app.get('/auth/line/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
-  // ── กรณีเปิดจาก popup (Register modal กดเชื่อม LINE) ──
+ // ── กรณีเปิดจาก popup (Register modal กดเชื่อม LINE) ──
   if (state === 'popup_register') {
+    const OA_ADD_FRIEND_URL = process.env.LINE_OA_ADD_FRIEND_URL || '';
+
     if (error || !code) {
       return res.send(`<!DOCTYPE html><html><body>
         <script>window.opener?.postMessage({type:'LINE_AUTH_CANCEL'},'*');window.close();</script>
         <p style="font-family:sans-serif;text-align:center;padding:40px;color:#666">ยกเลิกการเชื่อมต่อ...</p>
       </body></html>`);
     }
+
+    // ส่ง code กลับไปให้หน้าหลักเก็บ ID ก่อน แล้วค่อยพา popup นี้ไปหน้าเพิ่มเพื่อน (ไม่ปิดหน้าต่างทันที)
     return res.send(`<!DOCTYPE html><html><body>
-      <script>window.opener?.postMessage({type:'LINE_AUTH_CODE',code:${JSON.stringify(code)}},'*');window.close();</script>
-      <p style="font-family:sans-serif;text-align:center;padding:40px;color:#666">กำลังเชื่อมต่อ LINE...</p>
+      <script>
+        window.opener?.postMessage({type:'LINE_AUTH_CODE',code:${JSON.stringify(code)}},'*');
+        ${OA_ADD_FRIEND_URL
+          ? `setTimeout(function(){ window.location.href = ${JSON.stringify(OA_ADD_FRIEND_URL)}; }, 400);`
+          : `window.close();`}
+      </script>
+      <p style="font-family:sans-serif;text-align:center;padding:40px;color:#666">กำลังเชื่อมต่อ LINE... กรุณารอสักครู่</p>
     </body></html>`);
   }
 

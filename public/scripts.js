@@ -2679,7 +2679,7 @@ async function regConnectLINE() {
       if (e.data?.type !== 'LINE_AUTH_CODE') return;
       window.removeEventListener('message', onMsg);
       _regLinePopupOpen = false;
-      popup?.close();
+      // ไม่ต้องปิด popup ทันที — ปล่อยให้ server พา popup ไปหน้าเพิ่มเพื่อน LINE OA เอง
 
       const cb = await fetch('/api/users/line/callback', {
         method:  'POST',
