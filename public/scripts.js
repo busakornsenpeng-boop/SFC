@@ -1803,6 +1803,8 @@ function insGenCode(){return'PM-D-'+new Date().toISOString().replace(/[-T:.Z]/g,
 function insInitForm(){
   document.getElementById('ins-pm-code').value=insGenCode();
   document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];
+  const insp = document.getElementById('ins-pm-inspector');
+  if (insp && currentUser) insp.value = currentUser.name;
   insBuildChecklist();insRenderHistory();
 }
 function insBuildChecklist(){
@@ -1854,7 +1856,7 @@ function insSubmitForm(){
 }
   insDailyHistory.unshift(entry);insRenderHistory();insResetForm();showToast('บันทึกผล PM รายวันสำเร็จ!','success');
 }
-function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});resetSearchableSelect('ins-pm-machine');['ins-pm-inspector','ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});insBuildChecklist();}
+function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});resetSearchableSelect('ins-pm-machine');['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insBuildChecklist();}
 function insRenderHistory(){
   const body=document.getElementById('ins-hist-body');const cnt=document.getElementById('ins-hist-count');if(cnt)cnt.textContent=insDailyHistory.length+' รายการ';
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}
