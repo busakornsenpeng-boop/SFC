@@ -591,12 +591,17 @@
           <div class="adm-filter-title"><i class="bi bi-graph-up-arrow"></i> วิเคราะห์ภาพรวม</div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="adm-export-btn" onclick="exportAdminPDF()"><i class="bi bi-file-earmark-pdf"></i> ส่งออก PDF</button>
-            <div class="adm-flt-group">
-              <button class="adm-flt active" onclick="changeAdminTimeFilter('all');setFltBtn(this)">ทั้งหมด</button>
-              <button class="adm-flt" onclick="changeAdminTimeFilter('daily');setFltBtn(this)">วันนี้</button>
-              <button class="adm-flt" onclick="changeAdminTimeFilter('monthly');setFltBtn(this)">เดือนนี้</button>
-              <button class="adm-flt" onclick="changeAdminTimeFilter('3months');setFltBtn(this)">3 เดือน</button>
-            </div>
+         <div class="adm-flt-group" style="position:relative">
+  <button class="adm-flt active" onclick="changeAdminTimeFilter('all');setFltBtn(this)">ทั้งหมด</button>
+  <button class="adm-flt" onclick="changeAdminTimeFilter('daily');setFltBtn(this)">วันนี้</button>
+  <button class="adm-flt" onclick="changeAdminTimeFilter('monthly');setFltBtn(this)">เดือนนี้</button>
+  <button class="adm-flt" onclick="changeAdminTimeFilter('3months');setFltBtn(this)">3 เดือน</button>
+  <button class="adm-flt" id="adm-flt-custom-btn" onclick="const i=document.getElementById('adm-custom-date-input');i.showPicker?i.showPicker():i.click();">
+    <i class="bi bi-calendar3"></i> เลือกวันที่
+  </button>
+  <input type="date" id="adm-custom-date-input" onchange="changeAdminCustomDate(this.value)"
+    style="position:absolute;opacity:0;width:0;height:0;pointer-events:none">
+</div>
           </div>
         </div>
 

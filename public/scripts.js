@@ -1561,7 +1561,18 @@ function viewPMDoc(pmCode,arrIdx){
 // ADMIN DASHBOARD
 // ============================================================
 function parseJobDate(str){if(!str)return null;try{const parts=str.split(',')[0].trim().split('/');if(parts.length!==3)return null;let y=parseInt(parts[2]);if(y>2400)y-=543;return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]));}catch(e){return null;}}
-function filterJobsByTimeRange(jobs,ft){if(ft==='all')return jobs;const today=new Date();today.setHours(0,0,0,0);const msStart=new Date(today.getFullYear(),today.getMonth(),1);const t3m=new Date();t3m.setMonth(today.getMonth()-2);t3m.setDate(1);t3m.setHours(0,0,0,0);return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});}
+function filterJobsByTimeRange(jobs,ft){
+  if(ft==='all')return jobs;
+  const today=new Date();today.setHours(0,0,0,0);
+  const msStart=new Date(today.getFullYear(),today.getMonth(),1);
+  const t3m=new Date();t3m.setMonth(today.getMonth()-2);t3m.setDate(1);t3m.setHours(0,0,0,0);
+  if(ft==='custom' && currentAdminCustomDate){
+    const[cy,cm,cd]=currentAdminCustomDate.split('-').map(Number);
+    const custom=new Date(cy,cm-1,cd);custom.setHours(0,0,0,0);
+    return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);return jd.getTime()===custom.getTime();});
+  }
+  return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
+}
 function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,sideData:{},deptData:{},monthlyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;}});return s;}
 function calculateTechPerformance(jobs){const m={};jobs.forEach(j=>{if(!j.technician)return;if(!m[j.technician])m[j.technician]={name:j.technician,total:0,done:0,closed:0,back:0};const t=m[j.technician];t.total++;if(j.status==='ซ่อมเสร็จแล้ว')t.done++;else if(j.status==='ปิดงาน'){t.closed++;t.done++;}else if(j.status==='แก้ไข (ตีกลับ)')t.back++;});return Object.values(m).map(t=>{const pc=t.total>0?(t.closed/t.total)*100:0;const pb=t.total>0?(t.back/t.total)*100:0;const perf=Math.round(pc*0.6+(100-pb)*0.4);return{...t,perfScore:Math.min(100,Math.max(0,perf))};}).sort((a,b)=>b.perfScore-a.perfScore);}
 
@@ -1588,8 +1599,25 @@ function initAdminDashboard(){
 
 function setFltBtn(btn){document.querySelectorAll('.adm-flt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
 function exportAdminPDF(){showToast('กำลังเตรียมไฟล์ PDF...','info');setTimeout(()=>{try{window.print();}catch(e){showToast('เปิด Print Dialog เพื่อบันทึกเป็น PDF ได้เลยครับ','info');}},300);}
-function changeAdminTimeFilter(ft){currentAdminTimeFilter=ft;initAdminDashboard();}
+function changeAdminTimeFilter(ft){
+  currentAdminTimeFilter=ft;
+  const customBtn=document.getElementById('adm-flt-custom-btn');
+  if(customBtn && ft!=='custom') customBtn.innerHTML='<i class="bi bi-calendar3"></i> เลือกวันที่';
+  initAdminDashboard();
+}
 
+function changeAdminCustomDate(value){
+  if(!value) return;
+  currentAdminCustomDate=value;
+  currentAdminTimeFilter='custom';
+  const[y,m,d]=value.split('-').map(Number);
+  const btn=document.getElementById('adm-flt-custom-btn');
+  if(btn){
+    btn.innerHTML=`<i class="bi bi-calendar3"></i> ${d}/${m}/${y+543}`;
+    setFltBtn(btn);
+  }
+  initAdminDashboard();
+}
 function renderAdminRepairsTable(){
   const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
   const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
