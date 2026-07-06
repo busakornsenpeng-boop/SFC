@@ -881,3 +881,47 @@
   border-top: 1px solid var(--border);
   background: var(--bg2);
 }
+/* ================================================
+   SEARCHABLE MACHINE SELECT (ค้นหาได้ + อื่นๆ ระบุเอง)
+   ================================================ */
+.ssel-wrap{position:relative;width:100%}
+.ssel-display{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:10px 12px;font-size:13.5px;color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  transition:all .2s;user-select:none
+}
+.ssel-display:hover{border-color:var(--border2)}
+.ssel-display.open{border-color:var(--accent);box-shadow:0 0 8px rgba(239,68,68,.1)}
+.ssel-display i{font-size:11px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.ssel-display.open i{transform:rotate(180deg)}
+.ssel-display-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ssel-display-text.placeholder{color:var(--text3)}
+
+.ssel-panel{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);
+  box-shadow:0 12px 32px rgba(0,0,0,.15);z-index:200;
+  display:none;overflow:hidden
+}
+.ssel-panel.open{display:block}
+.ssel-search-box{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  border-bottom:1px solid var(--border);background:var(--bg2)
+}
+.ssel-search-box i{color:var(--text3);font-size:13px}
+.ssel-search-input{
+  flex:1;border:none;background:transparent;outline:none;
+  font-size:13px;font-family:inherit;color:var(--text)
+}
+.ssel-list{max-height:220px;overflow-y:auto}
+.ssel-option{
+  padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;
+  border-bottom:1px solid rgba(0,0,0,.03);transition:background .1s
+}
+.ssel-option:last-child{border-bottom:none}
+.ssel-option:hover{background:var(--bg2)}
+.ssel-option.sel{background:rgba(239,68,68,.08);color:var(--accent);font-weight:600}
+.ssel-option.other-opt{color:var(--teal);font-weight:600;border-top:1px solid var(--border)}
+.ssel-empty{padding:16px;text-align:center;color:var(--text3);font-size:12.5px}
+.ssel-other-input{margin-top:8px}

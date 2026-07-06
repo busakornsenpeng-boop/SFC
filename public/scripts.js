@@ -1514,7 +1514,7 @@ function adminDeleteSelectedJob(){
 function submitPMEventForm(event){
   event.preventDefault();
   const id=document.getElementById('pmem-id').value, date=document.getElementById('pmem-date').value,
-        title=document.getElementById('pmem-title-input').value, machine=document.getElementById('pmem-machine').value,
+        title=document.getElementById('pmem-title-input').value, machine=getMachineValue('pmem-machine'),
         type=document.getElementById('pmem-type').value, status=document.getElementById('pmem-status').value;
   const item = {id:id||null, date, title, machine, type, status};
   if(!isLocalMode){
@@ -1816,7 +1816,7 @@ function insBuildChecklist(){
 }
 function insGetChecklistData(){let ok=0,ng=0,items=[];INS_GROUPS.forEach((g,gi)=>{g.items.forEach((item,ii)=>{const r=document.querySelector(`input[name="ins_chk_${gi}_${ii}"]:checked`);const note=document.getElementById(`ins_note_${gi}_${ii}`).value;const status=r?r.value:'ok';if(status==='ok')ok++;else ng++;items.push({group:g.name,item,status,note});});});return{ok,ng,items};}
 function insSubmitForm(){
-  const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const machine=document.getElementById('ins-pm-machine').value;const overall=document.getElementById('ins-pm-overall').value;
+ const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const machine=getMachineValue('ins-pm-machine');const overall=document.getElementById('ins-pm-overall').value;
   if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกไลน์ผลิต','warning');return;}if(!machine){showToast('กรุณาเลือกเครื่องจักร','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
   const chk=insGetChecklistData();const now=new Date();
   const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,machine,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
@@ -1854,7 +1854,7 @@ function insSubmitForm(){
 }
   insDailyHistory.unshift(entry);insRenderHistory();insResetForm();showToast('บันทึกผล PM รายวันสำเร็จ!','success');
 }
-function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-machine','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-inspector','ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});insBuildChecklist();}
+function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});resetSearchableSelect('ins-pm-machine');['ins-pm-inspector','ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});insBuildChecklist();}
 function insRenderHistory(){
   const body=document.getElementById('ins-hist-body');const cnt=document.getElementById('ins-hist-count');if(cnt)cnt.textContent=insDailyHistory.length+' รายการ';
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}
@@ -2279,7 +2279,7 @@ function submitRepairForm(event) {
   const formData = {
     requester: currentUser ? currentUser.name : document.getElementById('rep-requester').value,
     dept:    document.getElementById('rep-dept').value,
-    machine: document.getElementById('rep-machine').value,
+    machine: getMachineValue('rep-machine'),
     side:    document.getElementById('rep-side').value,
     op_type: document.getElementById('rep-type').value,
     detail:  document.getElementById('rep-detail').value,
@@ -2468,6 +2468,14 @@ function populateMachineDropdown(machines) {
       opt.textContent = machine;
       el.appendChild(opt);
     });
+    const otherOpt = document.createElement('option');
+    otherOpt.value = '__OTHER__';
+    otherOpt.textContent = '🔧 อื่นๆ (โปรดระบุ)';
+    el.appendChild(otherOpt);
+
+    const id = sel.slice(1); // ตัด '#' ออก
+    initSearchableSelect(id);
+    if (el._sselRefresh) el._sselRefresh();
   });
 }
 
@@ -2644,7 +2652,7 @@ function openEditPMModal(pmId) {
   document.getElementById('pmem-id').value         = p.id;
   document.getElementById('pmem-date').value        = p.date;
   document.getElementById('pmem-title-input').value = p.title;
-  document.getElementById('pmem-machine').value     = p.machine;
+ setSearchableSelectValue('pmem-machine', p.machine);
   document.getElementById('pmem-type').value        = p.type;
   document.getElementById('pmem-status').value      = p.status;
   openModal('pm-event-modal');
@@ -2842,4 +2850,157 @@ async function submitRegister() {
 // ── openRegisterModal ──
 function openRegisterModal() {
   document.getElementById('register-modal').style.display = 'block';
+}
+// ============================================================
+// SEARCHABLE MACHINE SELECT (ค้นหาได้ + อื่นๆ ระบุเอง)
+// ============================================================
+function initSearchableSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select || select.dataset.sselInit) return;
+  select.dataset.sselInit = '1';
+  select.style.display = 'none';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ssel-wrap';
+  wrap.id = selectId + '-sswrap';
+
+  const display = document.createElement('div');
+  display.className = 'ssel-display';
+  display.innerHTML = `<span class="ssel-display-text placeholder">เลือกเครื่องจักร</span><i class="bi bi-chevron-down"></i>`;
+
+  const panel = document.createElement('div');
+  panel.className = 'ssel-panel';
+  panel.innerHTML = `
+    <div class="ssel-search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" class="ssel-search-input" placeholder="พิมพ์ค้นหาเครื่องจักร...">
+    </div>
+    <div class="ssel-list"></div>`;
+
+  wrap.appendChild(display);
+  wrap.appendChild(panel);
+  select.parentNode.insertBefore(wrap, select.nextSibling);
+
+  const otherInput = document.createElement('input');
+  otherInput.type = 'text';
+  otherInput.className = 'input-ctrl ssel-other-input d-none';
+  otherInput.id = selectId + '-other';
+  otherInput.placeholder = 'ระบุชื่อเครื่องจักร...';
+  wrap.parentNode.insertBefore(otherInput, wrap.nextSibling);
+
+  const searchInput = panel.querySelector('.ssel-search-input');
+  const listEl = panel.querySelector('.ssel-list');
+
+  function renderList(filter) {
+    filter = (filter || '').trim().toLowerCase();
+    const opts = Array.from(select.options).filter(o => o.value !== '');
+    const filtered = opts.filter(o => o.text.toLowerCase().includes(filter));
+    listEl.innerHTML = '';
+    if (!filtered.length) {
+      listEl.innerHTML = `<div class="ssel-empty">🔍 ไม่พบเครื่องจักรที่ค้นหา</div>`;
+      return;
+    }
+    filtered.forEach(o => {
+      const item = document.createElement('div');
+      const isOther = o.value === '__OTHER__';
+      item.className = 'ssel-option' + (o.value === select.value ? ' sel' : '') + (isOther ? ' other-opt' : '');
+      item.textContent = o.text;
+      item.onclick = () => {
+        select.value = o.value;
+        updateDisplay();
+        closePanel();
+        toggleOtherInput();
+        select.dispatchEvent(new Event('change'));
+      };
+      listEl.appendChild(item);
+    });
+  }
+
+  function updateDisplay() {
+    const opt = select.options[select.selectedIndex];
+    const span = display.querySelector('.ssel-display-text');
+    if (!select.value) {
+      span.textContent = 'เลือกเครื่องจักร';
+      span.classList.add('placeholder');
+    } else {
+      span.textContent = opt ? opt.text : 'เลือกเครื่องจักร';
+      span.classList.remove('placeholder');
+    }
+  }
+
+  function toggleOtherInput() {
+    if (select.value === '__OTHER__') {
+      otherInput.classList.remove('d-none');
+      otherInput.focus();
+    } else {
+      otherInput.classList.add('d-none');
+    }
+  }
+
+  function openPanel() {
+    renderList(searchInput.value);
+    panel.classList.add('open');
+    display.classList.add('open');
+    searchInput.value = '';
+    setTimeout(() => searchInput.focus(), 50);
+    document.addEventListener('click', outsideClick);
+  }
+  function closePanel() {
+    panel.classList.remove('open');
+    display.classList.remove('open');
+    document.removeEventListener('click', outsideClick);
+  }
+  function outsideClick(e) {
+    if (!wrap.contains(e.target)) closePanel();
+  }
+
+  display.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.contains('open') ? closePanel() : openPanel();
+  });
+  searchInput.addEventListener('input', (e) => renderList(e.target.value));
+  searchInput.addEventListener('click', (e) => e.stopPropagation());
+
+  // เผื่อ populateMachineDropdown เรียกซ้ำ (โหลดข้อมูลใหม่) ให้ sync UI ได้
+  select._sselRefresh = function () {
+    updateDisplay();
+    toggleOtherInput();
+  };
+
+  updateDisplay();
+}
+
+// ดึงค่าที่ "จะใช้จริง" จาก select แบบค้นหาได้ (คืนค่าที่พิมพ์เองถ้าเลือก "อื่นๆ")
+function getMachineValue(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return '';
+  if (select.value === '__OTHER__') {
+    return (document.getElementById(selectId + '-other')?.value || '').trim();
+  }
+  return select.value;
+}
+
+// ตั้งค่า select แบบค้นหาได้ (ใช้ตอนเปิดฟอร์มแก้ไข เช่น openEditPMModal)
+function setSearchableSelectValue(selectId, value) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const otherInput = document.getElementById(selectId + '-other');
+  const match = Array.from(select.options).find(o => o.value === value);
+  if (match) {
+    select.value = value;
+    if (otherInput) otherInput.value = '';
+  } else if (value) {
+    // ค่าเดิมไม่อยู่ในลิสต์ (ข้อมูลเก่า/พิมพ์เอง) → ถือเป็น "อื่นๆ"
+    select.value = '__OTHER__';
+    if (otherInput) otherInput.value = value;
+  } else {
+    select.value = '';
+    if (otherInput) otherInput.value = '';
+  }
+  if (select._sselRefresh) select._sselRefresh();
+}
+
+// รีเซ็ต select แบบค้นหาได้กลับเป็นค่าว่าง
+function resetSearchableSelect(selectId) {
+  setSearchableSelectValue(selectId, '');
 }
