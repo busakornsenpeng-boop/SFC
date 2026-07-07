@@ -135,6 +135,7 @@ function loadAllData() {
     if (masterRes.success) {
       populateMachineDropdown(masterRes.machines);
       populateDeptDropdown(masterRes.departments);
+      populateLineDropdown(masterRes.lines);
     }
     if (techRes.data) {
       populateTechDropdown(techRes.data);
@@ -2493,6 +2494,21 @@ function populateDeptDropdown(departments) {
   // rep-dept เป็น <input readonly> ใส่ค่าจาก currentUser ตรงๆ
   const repEl = document.getElementById('rep-dept');
   if (repEl && currentUser) repEl.value = currentUser.dept || '';
+}
+
+function populateLineDropdown(lines) {
+  const selectors = ['#ins-pm-line', '#chk-pm-line'];
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.innerHTML = '<option value="">เลือกไลน์ผลิต</option>';
+    (lines || []).forEach(line => {
+      const opt = document.createElement('option');
+      opt.value = line;
+      opt.textContent = line;
+      el.appendChild(opt);
+    });
+  });
 }
 
 function populateMachineDropdown(machines) {
