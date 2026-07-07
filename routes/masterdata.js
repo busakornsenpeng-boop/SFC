@@ -6,7 +6,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'MasterData!A3:C1000',
+      range: 'MasterData!A3:D1000',   // ← ขยายจาก C เป็น D เพื่อดึงคอลัมน์ line ด้วย
     });
     const rows = result.data.values || [];
 
@@ -18,7 +18,10 @@ router.get('/', async (req, res) => {
     // แผนก — unique
     const departments = [...new Set(rows.map(r => r[2]).filter(Boolean))];
 
-    res.json({ success: true, machines, departments });
+    // ไลน์ผลิต — unique (คอลัมน์ D)
+    const lines = [...new Set(rows.map(r => r[3]).filter(Boolean))];
+
+    res.json({ success: true, machines, departments, lines });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
