@@ -1024,10 +1024,14 @@ function tpSetStatus(btn, val) {
   if (stopBox)  stopBox.style.display  = val==='ขอหยุดเครื่อง' ? 'block' : 'none';
   if (etaField) etaField.style.display = val==='เสร็จแล้ว' ? 'none'  : 'block';
 }
-
 function tpSaveUpdate(id) {
   const j = getRepairJobsData().find(j => j.id === id);
   if (!j) return;
+
+  // ป้องกันกดซ้ำ (double-submit)
+  const saveBtn = document.querySelector('.tp-mact-update');
+  if (saveBtn) { if (saveBtn.disabled) return; saveBtn.disabled = true; }
+
   const note     = document.getElementById('tp-upd-note')?.value.trim() || '';
   const ns       = document.getElementById('tp-upd-status')?.value || '';
   const eta      = document.getElementById('tp-upd-eta')?.value || '';
@@ -1049,6 +1053,7 @@ function tpSaveUpdate(id) {
     .then(r => r.json())
     .then(res => {
       hideLoading();
+      if (saveBtn) saveBtn.disabled = false;
      if (res.success) {
         Object.assign(j, { note, eta, planStopDate: stopDate });
         if (finalStatus) j.status = finalStatus;
@@ -1060,7 +1065,11 @@ function tpSaveUpdate(id) {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
     })
-    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+    .catch(() => {
+      hideLoading();
+      if (saveBtn) saveBtn.disabled = false;
+      showToast('เชื่อมต่อ server ไม่ได้', 'error');
+    });
     return;
   }
  j.note = note;
@@ -1072,8 +1081,8 @@ function tpSaveUpdate(id) {
   tpUpdateStats(); tpRenderMine(); tpRenderQueue();
   const label = ns === 'เสร็จแล้ว' ? 'ซ่อมเสร็จสิ้น' : `อัปเดตเป็น "${ns}"`;
   showToast(`${label} — ${j.title}`, ns === 'เสร็จแล้ว' ? 'success' : 'info');
+  if (saveBtn) saveBtn.disabled = false;
 }
-
 function tpRenderPMList(){
   const el=document.getElementById('tp-v-p');
   const pmList=getPMData();
