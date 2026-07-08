@@ -101,17 +101,30 @@
                 <label>ชื่อผู้แจ้งซ่อม<span class="req">*</span></label>
                   <input type="text" id="rep-requester" class="input-ctrl" readonly>        
             </div>
-              <div class="form-field">
-              <label>แผนกที่แจ้งซ่อม<span class="req">*</span></label>
-              <input type="text" id="rep-dept" class="input-ctrl" readonly>
-              </div>
-              <div class="form-field">
-                <label>เครื่องจักร/อุปกรณ์<span class="req">*</span></label>
-               <select id="rep-machine" class="select-ctrl" required>
-                  <option value="">กำลังโหลด...</option>
-                </select>
-              </div>
-            </div>
+              <div class="form-grid-3">
+  <div class="form-field">
+    <label>ชื่อผู้แจ้งซ่อม<span class="req">*</span></label>
+    <input type="text" id="rep-requester" class="input-ctrl" readonly>
+  </div>
+  <div class="form-field">
+    <label>แผนกที่แจ้งซ่อม<span class="req">*</span></label>
+    <input type="text" id="rep-dept" class="input-ctrl" readonly>
+  </div>
+  <div class="form-field">
+    <label>เครื่องจักร/อุปกรณ์<span class="req">*</span></label>
+    <select id="rep-machine" class="select-ctrl" required>
+      <option value="">กำลังโหลด...</option>
+    </select>
+  </div>
+</div>
+<div class="form-grid-2">
+  <div class="form-field">
+    <label>สถานที่ปฏิบัติงาน<span class="req">*</span></label>
+    <select id="rep-line" class="select-ctrl" required>
+      <option value="">กำลังโหลด...</option>
+    </select>
+  </div>
+</div>
             <div class="form-grid-2">
               <div class="form-field">
                 <label>ด้านปัญหา<span class="req">*</span></label>
