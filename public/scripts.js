@@ -323,7 +323,7 @@ function setupDashboard() {
   user: [
     {panel:'report-repair', label:'แจ้งซ่อมบำรุง',  icon:'bi-plus-circle'},
     {panel:'track-repairs', label:'ติดตามงานซ่อม',   icon:'bi-clock-history'},
-    {panel:'ins-daily-pm',  label:'ตรวจ PM รายวัน',  icon:'bi-clipboard-check'},
+   {panel:'ins-daily-pm',  label:'เช็คก่อนผลิตทุกวัน',  icon:'bi-clipboard-check'},
     {panel:'qc-panel',      label:'ตรวจรับงาน QC',   icon:'bi-patch-check'}
   ],
   engineer: [
@@ -1857,7 +1857,7 @@ function insBuildChecklist(){
 function insGetChecklistData(){let ok=0,ng=0,items=[];INS_GROUPS.forEach((g,gi)=>{g.items.forEach((item,ii)=>{const r=document.querySelector(`input[name="ins_chk_${gi}_${ii}"]:checked`);const note=document.getElementById(`ins_note_${gi}_${ii}`).value;const status=r?r.value:'ok';if(status==='ok')ok++;else ng++;items.push({group:g.name,item,status,note});});});return{ok,ng,items};}
 function insSubmitForm(){
  const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const machine=getMachineValue('ins-pm-machine');const overall=document.getElementById('ins-pm-overall').value;
-  if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกไลน์ผลิต','warning');return;}if(!machine){showToast('กรุณาเลือกเครื่องจักร','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
+  if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกสถานที่ปฏิบัติงาน','warning');return;}if(!machine){showToast('กรุณาเลือกเครื่องจักร','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
   const chk=insGetChecklistData();const now=new Date();
   const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,machine,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
   if (!isLocalMode) {
@@ -2501,7 +2501,7 @@ function populateLineDropdown(lines) {
   selectors.forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
-    el.innerHTML = '<option value="">เลือกไลน์ผลิต</option>';
+    el.innerHTML = '<option value="">เลือกสถานที่ปฏิบัติงาน</option>';
     (lines || []).forEach(line => {
       const opt = document.createElement('option');
       opt.value = line;
