@@ -1856,26 +1856,25 @@ function insBuildChecklist(){
 }
 function insGetChecklistData(){let ok=0,ng=0,items=[];INS_GROUPS.forEach((g,gi)=>{g.items.forEach((item,ii)=>{const r=document.querySelector(`input[name="ins_chk_${gi}_${ii}"]:checked`);const note=document.getElementById(`ins_note_${gi}_${ii}`).value;const status=r?r.value:'ok';if(status==='ok')ok++;else ng++;items.push({group:g.name,item,status,note});});});return{ok,ng,items};}
 function insSubmitForm(){
- const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const machine=getMachineValue('ins-pm-machine');const overall=document.getElementById('ins-pm-overall').value;
-  if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกสถานที่ปฏิบัติงาน','warning');return;}if(!machine){showToast('กรุณาเลือกเครื่องจักร','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
+ const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const overall=document.getElementById('ins-pm-overall').value;
+if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกสถานที่ปฏิบัติงาน','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
   const chk=insGetChecklistData();const now=new Date();
-  const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,machine,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
+ const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
   if (!isLocalMode) {
   showLoading('กำลังบันทึก...');
   fetch(`${API_URL}/daily-pm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      code:           entry.id,
-      date:           entry.date,
-      time:           entry.ts,
-      machine:        entry.machine,
-      productionLine: entry.line,
-      inspector:      entry.inspector,
-      result:         entry.overall,
-      note:           entry.remark,
-      checklist:      JSON.stringify(entry.checklist),
-    })
+  code:           entry.id,
+  date:           entry.date,
+  time:           entry.ts,
+  productionLine: entry.line,
+  inspector:      entry.inspector,
+  result:         entry.overall,
+  note:           entry.remark,
+  checklist:      JSON.stringify(entry.checklist),
+})
   })
   .then(r => r.json())
   .then(res => {
@@ -1894,7 +1893,7 @@ function insSubmitForm(){
 }
   insDailyHistory.unshift(entry);insRenderHistory();insResetForm();showToast('บันทึกผล PM รายวันสำเร็จ!','success');
 }
-function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});resetSearchableSelect('ins-pm-machine');['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insBuildChecklist();}
+function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insBuildChecklist();}
 function insRenderHistory(){
   const body=document.getElementById('ins-hist-body');const cnt=document.getElementById('ins-hist-count');if(cnt)cnt.textContent=insDailyHistory.length+' รายการ';
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}
@@ -2512,7 +2511,7 @@ function populateLineDropdown(lines) {
 }
 
 function populateMachineDropdown(machines) {
-  const selectors = ['#rep-machine', '#pmem-machine', '#ins-pm-machine'];
+ const selectors = ['#rep-machine', '#pmem-machine'];
   selectors.forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
