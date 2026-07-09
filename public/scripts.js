@@ -2318,6 +2318,7 @@ function submitRepairForm(event) {
   const formData = {
     requester: currentUser ? currentUser.name : document.getElementById('rep-requester').value,
     dept:    document.getElementById('rep-dept').value,
+    line:    document.getElementById('rep-line').value,
     machine: getMachineValue('rep-machine'),
     side:    document.getElementById('rep-side').value,
     op_type: document.getElementById('rep-type').value,
@@ -2496,7 +2497,7 @@ function populateDeptDropdown(departments) {
 }
 
 function populateLineDropdown(lines) {
-  const selectors = ['#ins-pm-line', '#chk-pm-line'];
+  const selectors = ['#ins-pm-line', '#chk-pm-line', '#rep-line'];
   selectors.forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
