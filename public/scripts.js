@@ -125,18 +125,25 @@ function loadAllData() {
     fetch(`${API_URL}/repairs`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => ({ data: [] })),
-    fetch(`${API_URL}/masterdata`).then(r => r.json()).catch(() => ({ success: false })),
+   fetch(`${API_URL}/masterdata`)
+  .then(r => r.json())
+  .catch(err => { console.error('[masterdata] fetch failed:', err); return { success: false }; }),
     fetch(`${API_URL}/users/technicians`).then(r => r.json()).catch(() => ({ data: [] })),
   ])
   .then(([repairsRes, pmRes, pmHistRes, masterRes, techRes]) => {
     cachedJobs      = repairsRes.data  || [];
     cachedPM        = pmRes.data       || [];
     cachedPMHistory = pmHistRes.data   || [];
-    if (masterRes.success) {
-      populateMachineDropdown(masterRes.machines);
-      populateDeptDropdown(masterRes.departments);
-      populateLineDropdown(masterRes.lines);
-    }
+   if (masterRes.success) {
+  populateMachineDropdown(masterRes.machines);
+  populateDeptDropdown(masterRes.departments);
+  populateLineDropdown(masterRes.lines);
+} else {
+  console.error('[masterdata] success=false, response:', masterRes);
+  populateLineDropdown([]);      // จะขึ้น error แทนค้าง "กำลังโหลด..."
+  populateMachineDropdown([]);
+  showToast('โหลดข้อมูล master (สถานที่/เครื่องจักร) ไม่สำเร็จ กรุณารีเฟรชหน้า', 'error');
+}
     if (techRes.data) {
       populateTechDropdown(techRes.data);
     }
