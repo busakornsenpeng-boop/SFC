@@ -41,11 +41,14 @@ async function generateJobId(dept) {
   const running = String(count + 1).padStart(3, '0');
   return `${deptPrefix}-${running}-${dateStr}`; // PDF-001-300626
 }
-
 async function uploadBase64Image(base64String, filename = 'repair') {
   const result = await cloudinary.uploader.upload(base64String, {
-    folder:    'sfc-repair',
-    public_id: `${filename}_${Date.now()}`,
+    folder:        'sfc-repair',
+    public_id:     `${filename}_${Date.now()}`,
+    quality:       'auto:good',   // บีบอัดคุณภาพอัตโนมัติ ยังดูดีอยู่
+    fetch_format:  'auto',        // เลือก format ที่เบาที่สุดอัตโนมัติ
+    width:         1600,          // ย่อรูปที่กว้างเกิน 1600px ลงมา
+    crop:          'limit',       // ย่อแบบไม่ครอบตัด ไม่เสียสัดส่วน
   });
   return result.secure_url;
 }
