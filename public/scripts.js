@@ -2787,6 +2787,18 @@ function populateDeptDropdown(departments) {
   // rep-dept เป็น <input readonly> ใส่ค่าจาก currentUser ตรงๆ
   const repEl = document.getElementById('rep-dept');
   if (repEl && currentUser) repEl.value = currentUser.dept || '';
+
+  // admin-filter-dept-rep ดึงรายชื่อแผนกจริงจาก sheet (ใช้กรองในหน้า "จัดการใบแจ้งซ่อม")
+  const adminDeptEl = document.getElementById('admin-filter-dept-rep');
+  if (adminDeptEl) {
+    adminDeptEl.innerHTML = '<option value="">ทุกแผนก</option>';
+    (departments || []).forEach(dept => {
+      const opt = document.createElement('option');
+      opt.value = dept;
+      opt.textContent = dept;
+      adminDeptEl.appendChild(opt);
+    });
+  }
 }
 
 function populateLineDropdown(lines) {
