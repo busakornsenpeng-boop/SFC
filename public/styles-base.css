@@ -266,3 +266,41 @@
   .d-none{display:none!important}
   .flex-wrap{display:flex;flex-wrap:wrap;gap:8px}
   .day-nav-btn.active{background:var(--accent)!important;color:white!important}
+  /* ============ SOFTEN PATCH — วางต่อท้าย styles-base.css ============ */
+:root {
+  /* มุมโค้งมนขึ้น */
+  --r: 14px;
+  --r-sm: 10px;
+
+  /* เงานุ่ม กระจาย แทนเงาแข็ง */
+  --shadow: 0 2px 10px rgba(16,24,40,0.06);
+  --shadow-sm: 0 1px 4px rgba(16,24,40,0.05);
+  --shadow-lg: 0 10px 28px rgba(16,24,40,0.10);
+  --glow: 0 0 0 4px rgba(46,92,230,0.08);
+
+  /* เส้นขอบจางลงอีกนิด */
+  --border: rgba(15,23,42,0.06);
+  --border2: rgba(15,23,42,0.11);
+}
+
+/* ตัวเลข/หัวข้อ หนักไปลดลงนิด ให้ดูเบาสบายตา */
+.adm-kpi-val, .kv-val, .eng-kpi-val, .stat-value { font-weight: 700; letter-spacing: -0.3px; }
+.brand-title, .adm-brand-name { font-weight: 650; }
+
+/* การ์ด/ปุ่ม ที่ hardcode radius ไว้ — ปัดให้กลมขึ้นตาม */
+.stat-card, .card, .adm-kpi-card, .qc-card, .tp-jcard, .tp-pcard,
+.eng-kpi, .adm-kpi, .cal-mini-wrap, .cal-wrap, .calendar-container,
+.tbl-wrap, .table-container, .pm-table-wrap, .tp-modal, .modal-content,
+.login-card { border-radius: 16px; }
+
+.btn, .btn-login, .tbl-btn, .adm-export-btn, .freq-btn { border-radius: 10px; }
+.act-btn, .manage-btn, .del-btn, .edit-btn-eng, .view-btn-eng,
+.tp-jbtn-v, .tp-jbtn-a, .tp-jbtn-done { border-radius: 8px; }
+.pill, .spill, .badge, .p-wait, .p-work, .p-done, .p-close, .p-fail { border-radius: 100px; } /* pill อยู่แล้ว คงไว้ */
+
+/* input ให้ดูนุ่มขึ้น ไม่ชนขอบ */
+.input-ctrl, .select-ctrl, .textarea-ctrl, .login-input,
+.tp-sinp, .tp-ssel, .pm-search-eng, .tbl-search { border-radius: 10px; }
+
+/* transition ให้การขยับดู smooth ขึ้นทุกจุด */
+* { transition-timing-function: cubic-bezier(.4,0,.2,1); }
