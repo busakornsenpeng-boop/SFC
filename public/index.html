@@ -608,11 +608,13 @@
     <div class="adm-date-popover-row">
       <div class="form-field" style="margin:0">
         <label>จากวันที่</label>
-        <input type="date" id="adm-custom-date-from" class="input-ctrl">
+        <input type="date" id="adm-custom-date-from" class="input-ctrl" lang="th" oninput="updateThaiDateHint('adm-custom-date-from','adm-custom-date-from-th')">
+        <div class="thai-date-hint" id="adm-custom-date-from-th"></div>
       </div>
       <div class="form-field" style="margin:0">
         <label>ถึงวันที่</label>
-        <input type="date" id="adm-custom-date-to" class="input-ctrl">
+        <input type="date" id="adm-custom-date-to" class="input-ctrl" lang="th" oninput="updateThaiDateHint('adm-custom-date-to','adm-custom-date-to-th')">
+        <div class="thai-date-hint" id="adm-custom-date-to-th"></div>
       </div>
     </div>
     <button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="applyAdminCustomRange()">
@@ -714,11 +716,13 @@
     <div class="adm-date-popover-row">
       <div class="form-field" style="margin:0">
         <label>จากวันที่</label>
-        <input type="date" id="admin-rep-date-from" class="input-ctrl">
+        <input type="date" id="admin-rep-date-from" class="input-ctrl" lang="th" oninput="updateThaiDateHint('admin-rep-date-from','admin-rep-date-from-th')">
+        <div class="thai-date-hint" id="admin-rep-date-from-th"></div>
       </div>
       <div class="form-field" style="margin:0">
         <label>ถึงวันที่</label>
-        <input type="date" id="admin-rep-date-to" class="input-ctrl">
+        <input type="date" id="admin-rep-date-to" class="input-ctrl" lang="th" oninput="updateThaiDateHint('admin-rep-date-to','admin-rep-date-to-th')">
+        <div class="thai-date-hint" id="admin-rep-date-to-th"></div>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">

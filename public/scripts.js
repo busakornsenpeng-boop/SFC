@@ -1682,6 +1682,19 @@ function changeAdminTimeFilter(ft){
   initAdminDashboard();
 }
 
+// ── แปลงวันที่ ISO (YYYY-MM-DD) เป็นรูปแบบไทย พ.ศ. ──
+function formatThaiDate(isoStr){
+  if(!isoStr) return '';
+  const[y,m,d]=isoStr.split('-').map(Number);
+  const months=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return `${d} ${months[m-1]} ${y+543}`;
+}
+function updateThaiDateHint(inputId, hintId){
+  const el=document.getElementById(inputId);
+  const hint=document.getElementById(hintId);
+  if(el && hint) hint.textContent = formatThaiDate(el.value);
+}
+
 function toggleAdminDatePopover(ev){
   if(ev) ev.stopPropagation();
   const pop=document.getElementById('adm-date-popover');
@@ -1695,6 +1708,8 @@ function toggleAdminDatePopover(ev){
     const toEl=document.getElementById('adm-custom-date-to');
     if(fromEl) fromEl.value = currentAdminCustomFrom || today;
     if(toEl)   toEl.value   = currentAdminCustomTo   || today;
+    updateThaiDateHint('adm-custom-date-from','adm-custom-date-from-th');
+    updateThaiDateHint('adm-custom-date-to','adm-custom-date-to-th');
     document.addEventListener('click', closeAdminDatePopoverOutside);
   }
 }
@@ -1758,6 +1773,8 @@ function toggleAdminRepDatePopover(ev){
     const toEl=document.getElementById('admin-rep-date-to');
     if(fromEl) fromEl.value=adminRepDateFrom || today;
     if(toEl)   toEl.value=adminRepDateTo || today;
+    updateThaiDateHint('admin-rep-date-from','admin-rep-date-from-th');
+    updateThaiDateHint('admin-rep-date-to','admin-rep-date-to-th');
     document.addEventListener('click', closeAdminRepDatePopoverOutside);
   }
 }

@@ -622,6 +622,7 @@
 .adm-date-popover.open { display: block; }
 .adm-date-popover-title { font-size: 12.5px; font-weight: 700; color: var(--text2); margin-bottom: 10px; }
 .adm-date-popover-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.thai-date-hint { font-size: 11.5px; color: var(--teal); margin-top: 4px; min-height: 15px; font-weight: 600; }
 
 .kv-val {
   font-size: 26px;
