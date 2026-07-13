@@ -612,6 +612,17 @@
 .dbm-empty { text-align: center; color: var(--text3); padding: 24px 0; font-size: 13px; }
 .dbm-total-line { color: var(--text2); font-size: 12.5px; margin-bottom: 14px; }
 
+.adm-date-popover {
+  display: none;
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r, 8px);
+  box-shadow: var(--shadow, 0 8px 24px rgba(0,0,0,.18));
+  padding: 14px; width: 300px;
+}
+.adm-date-popover.open { display: block; }
+.adm-date-popover-title { font-size: 12.5px; font-weight: 700; color: var(--text2); margin-bottom: 10px; }
+.adm-date-popover-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
 .kv-val {
   font-size: 26px;
   font-weight: 700;

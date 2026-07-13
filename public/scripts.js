@@ -4,6 +4,8 @@
 let isLocalMode = false;
 const API_URL = '/api';
 let currentAdminTimeFilter = 'all';
+let currentAdminCustomFrom = null;
+let currentAdminCustomTo = null;
 let currentUser = null;
 let localRepairs = [];
 let localPMCalendar = [];
@@ -1583,10 +1585,12 @@ function filterJobsByTimeRange(jobs,ft){
   const today=new Date();today.setHours(0,0,0,0);
   const msStart=new Date(today.getFullYear(),today.getMonth(),1);
   const t3m=new Date();t3m.setMonth(today.getMonth()-2);t3m.setDate(1);t3m.setHours(0,0,0,0);
-  if(ft==='custom' && currentAdminCustomDate){
-    const[cy,cm,cd]=currentAdminCustomDate.split('-').map(Number);
-    const custom=new Date(cy,cm-1,cd);custom.setHours(0,0,0,0);
-    return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);return jd.getTime()===custom.getTime();});
+  if(ft==='custom' && currentAdminCustomFrom && currentAdminCustomTo){
+    const[fy,fm,fd]=currentAdminCustomFrom.split('-').map(Number);
+    const[ty,tm,td]=currentAdminCustomTo.split('-').map(Number);
+    const from=new Date(fy,fm-1,fd);from.setHours(0,0,0,0);
+    const to=new Date(ty,tm-1,td);to.setHours(0,0,0,0);
+    return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);return jd.getTime()>=from.getTime()&&jd.getTime()<=to.getTime();});
   }
   return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
 }
@@ -1676,16 +1680,53 @@ function changeAdminTimeFilter(ft){
   initAdminDashboard();
 }
 
-function changeAdminCustomDate(value){
-  if(!value) return;
-  currentAdminCustomDate=value;
-  currentAdminTimeFilter='custom';
-  const[y,m,d]=value.split('-').map(Number);
+function toggleAdminDatePopover(ev){
+  if(ev) ev.stopPropagation();
+  const pop=document.getElementById('adm-date-popover');
+  if(!pop) return;
+  const willOpen = !pop.classList.contains('open');
+  pop.classList.toggle('open', willOpen);
+  if(willOpen){
+    // pre-fill กับค่าที่เลือกไว้ล่าสุด (ถ้ามี) มิฉะนั้นตั้งเป็นวันนี้
+    const today=new Date().toISOString().split('T')[0];
+    const fromEl=document.getElementById('adm-custom-date-from');
+    const toEl=document.getElementById('adm-custom-date-to');
+    if(fromEl) fromEl.value = currentAdminCustomFrom || today;
+    if(toEl)   toEl.value   = currentAdminCustomTo   || today;
+    document.addEventListener('click', closeAdminDatePopoverOutside);
+  }
+}
+function closeAdminDatePopoverOutside(ev){
+  const pop=document.getElementById('adm-date-popover');
+  const btn=document.getElementById('adm-flt-custom-btn');
+  if(!pop) return;
+  if(pop.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  pop.classList.remove('open');
+  document.removeEventListener('click', closeAdminDatePopoverOutside);
+}
+function applyAdminCustomRange(){
+  const fromEl=document.getElementById('adm-custom-date-from');
+  const toEl=document.getElementById('adm-custom-date-to');
+  const from=fromEl?.value, to=toEl?.value;
+  if(!from || !to){ showToast('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด','error'); return; }
+  if(from > to){ showToast('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด','error'); return; }
+
+  currentAdminCustomFrom = from;
+  currentAdminCustomTo   = to;
+  currentAdminTimeFilter = 'custom';
+
+  const[fy,fm,fd]=from.split('-').map(Number);
+  const[ty,tm,td]=to.split('-').map(Number);
   const btn=document.getElementById('adm-flt-custom-btn');
   if(btn){
-    btn.innerHTML=`<i class="bi bi-calendar3"></i> ${d}/${m}/${y+543}`;
+    const label = (from===to)
+      ? `${fd}/${fm}/${fy+543}`
+      : `${fd}/${fm}/${fy+543} - ${td}/${tm}/${ty+543}`;
+    btn.innerHTML=`<i class="bi bi-calendar3"></i> ${label}`;
     setFltBtn(btn);
   }
+  document.getElementById('adm-date-popover')?.classList.remove('open');
+  document.removeEventListener('click', closeAdminDatePopoverOutside);
   initAdminDashboard();
 }
 function renderAdminRepairsTable(){

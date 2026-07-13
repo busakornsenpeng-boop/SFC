@@ -602,11 +602,25 @@
   <button class="adm-flt" onclick="changeAdminTimeFilter('daily');setFltBtn(this)">วันนี้</button>
   <button class="adm-flt" onclick="changeAdminTimeFilter('monthly');setFltBtn(this)">เดือนนี้</button>
   <button class="adm-flt" onclick="changeAdminTimeFilter('3months');setFltBtn(this)">3 เดือน</button>
-  <button class="adm-flt" id="adm-flt-custom-btn" onclick="const i=document.getElementById('adm-custom-date-input');i.showPicker?i.showPicker():i.click();">
-    <i class="bi bi-calendar3"></i> เลือกวันที่
+  <button class="adm-flt" id="adm-flt-custom-btn" onclick="toggleAdminDatePopover(event)">
+    <i class="bi bi-calendar3"></i> เลือกช่วงวันที่
   </button>
-  <input type="date" id="adm-custom-date-input" onchange="changeAdminCustomDate(this.value)"
-    style="position:absolute;opacity:0;width:0;height:0;pointer-events:none">
+  <div class="adm-date-popover" id="adm-date-popover" onclick="event.stopPropagation()">
+    <div class="adm-date-popover-title">กำหนดช่วงวันที่</div>
+    <div class="adm-date-popover-row">
+      <div class="form-field" style="margin:0">
+        <label>จากวันที่</label>
+        <input type="date" id="adm-custom-date-from" class="input-ctrl">
+      </div>
+      <div class="form-field" style="margin:0">
+        <label>ถึงวันที่</label>
+        <input type="date" id="adm-custom-date-to" class="input-ctrl">
+      </div>
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="applyAdminCustomRange()">
+      <i class="bi bi-check2"></i> ใช้ช่วงวันที่นี้
+    </button>
+  </div>
 </div>
           </div>
         </div>
