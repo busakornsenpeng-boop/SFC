@@ -16,6 +16,8 @@ const ADMIN_ACCOUNT = {
   avatar_url: '',
 };
 
+// รวม role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ให้เป็น role เดียวกันคือ 'engineer'
+// เพื่อให้ทั้งสองกลุ่มเข้า TE Panel เดียวกัน แต่ยังคงมีหลาย username/ID แยกกันตามปกติ
 function resolveRole(role, dept, username) {
   if (username === ADMIN_ACCOUNT.username) return 'admin';
   if (PRIVILEGED_DEPTS.includes(dept)) return 'engineer';
@@ -420,8 +422,10 @@ router.delete('/:username', async (req, res) => {
 router.get('/technicians', async (req, res) => {
   try {
     const users = await getAllUsers();
+    // role 'engineer' คือ role รวมของช่างซ่อม+วิศวกร (ดู resolveRole ด้านบน)
+    // เก็บ 'technician'/'tech' ไว้เผื่อมี user เก่าที่ยังไม่ได้อัปเดต role ใน Sheet
     const technicians = users
-      .filter(u => ['technician', 'engineer', 'tech'].includes((u.role || '').toLowerCase()))
+      .filter(u => ['engineer', 'technician', 'tech'].includes((u.role || '').toLowerCase()))
       .map(u => u.fullname || u.username);
     res.json({ success: true, data: technicians });
   } catch (err) {

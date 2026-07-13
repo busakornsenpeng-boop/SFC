@@ -194,30 +194,6 @@ function handleServerResponse(res) {
 // ============================================================
 // LOGIN
 // ============================================================
-function selectLoginRole(role, btn) {
-  document.querySelectorAll('.role-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('grp-username-text').style.display='none';
-  document.getElementById('grp-username-tech').style.display='none';
-  document.getElementById('grp-username-eng').style.display='none';
-  if(role==='user'||role==='admin'||role==='ins') {
-    document.getElementById('grp-username-text').style.display='block';
-    const ud = document.getElementById('username-display');
-    if (ud) {
-      ud.removeAttribute('readonly');
-      ud.value = '';
-      ud.placeholder = 'กรอก username';
-    }
-    syncUsername('');
-  } else if(role==='technician') {
-    document.getElementById('grp-username-tech').style.display='block';
-    syncUsername(document.getElementById('username-tech').value);
-  } else if(role==='engineer') {
-    document.getElementById('grp-username-eng').style.display='block';
-    syncUsername(document.getElementById('username-eng').value);
-  }
-}
-
 function syncUsername(val) { document.getElementById('username').value=val; }
 
 function handleLoginSubmit(event) {
@@ -302,14 +278,24 @@ function handleLogout() {
 }
 
 // ============================================================
+// ROLE HELPERS
+// ============================================================
+// ช่างซ่อมและวิศวกรถูกรวมเป็น role เดียวกัน ('engineer') ตั้งแต่ระดับ backend
+// (resolveRole ใน users.js จะ map แผนก MTN/ENG ให้เป็น 'engineer' เหมือนกันหมด)
+// ฟังก์ชันนี้เก็บไว้เผื่อมี user เก่าที่ยังมี role='technician' ค้างอยู่ใน Sheet
+function isRepairStaff(role) {
+  return role === 'engineer' || role === 'technician';
+}
+
+// ============================================================
 // SETUP DASHBOARD
 // ============================================================
 // ใหม่
 function setupDashboard() {
   document.getElementById('login-page').style.display = 'none';
 
-  // ทั้ง technician และ engineer → TE Panel
-  if (currentUser.role === 'engineer' || currentUser.role === 'technician') {
+  // ทั้ง technician และ engineer → TE Panel (role เดียวกัน)
+  if (isRepairStaff(currentUser.role)) {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
     initTEPanel();
@@ -1860,7 +1846,7 @@ async function exportAdminRepairsExcel(){
 
   try{
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'SFC Smart Repair';
+    workbook.creator = 'SFC Maintenance Service';
     workbook.created = new Date();
     const sheet = workbook.addWorksheet('ใบแจ้งซ่อม', { views:[{ state:'frozen', ySplit:1 }] });
 
@@ -1962,7 +1948,7 @@ function renderAdminUsersTable() {
           <input type="text" id="admin-user-search" class="input-ctrl" style="flex:1;min-width:160px;font-size:13px" placeholder="🔍 ค้นหา username / ชื่อ..." oninput="filterAdminUsers()">
           <select id="admin-user-role-filter" class="select-ctrl" style="width:140px;font-size:12px" onchange="filterAdminUsers()">
             <option value="">ทุก Role</option><option value="user">พนักงาน (user)</option>
-            <option value="technician">ช่างซ่อม</option><option value="engineer">วิศวกร</option><option value="admin">แอดมิน</option>
+            <option value="engineer">ช่าง/วิศวกร</option><option value="admin">แอดมิน</option>
           </select>
           <select id="admin-user-status-filter" class="select-ctrl" style="width:120px;font-size:12px" onchange="filterAdminUsers()">
             <option value="">ทุกสถานะ</option><option value="active">Active</option><option value="inactive">Inactive</option>
@@ -1979,7 +1965,7 @@ function renderAdminUsersTable() {
   if (isLocalMode) {
     _renderUsersRows([
       {username:'demo_user',role:'user',fullname:'สมชาย ทดสอบ',dept:'ฝ่ายผลิต',contact:'081-000-0001',status:'active',avatar:''},
-      {username:'demo_tech',role:'technician',fullname:'วิชัย ช่างดี',dept:'ฝ่ายวิศวกรรม',contact:'081-000-0002',status:'active',avatar:''},
+      {username:'demo_tech',role:'engineer',fullname:'วิชัย ช่างดี',dept:'ฝ่ายวิศวกรรม',contact:'081-000-0002',status:'active',avatar:''},
     ]);
     return;
   }
@@ -1997,7 +1983,7 @@ function filterAdminUsers() {
   const statusF= document.getElementById('admin-user-status-filter')?.value|| '';
   const filtered = _allUsersCache.filter(u =>
     (!search  || u.username.toLowerCase().includes(search) || u.fullname.toLowerCase().includes(search)) &&
-    (!roleF   || u.role   === roleF) &&
+    (!roleF   || u.role === roleF || (roleF === 'engineer' && isRepairStaff(u.role))) &&
     (!statusF || u.status === statusF)
   );
   _renderUsersRows(filtered);
@@ -2010,8 +1996,8 @@ function _renderUsersRows(users) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">ไม่พบข้อมูลผู้ใช้งาน</td></tr>`;
     return;
   }
-  const roleLabel = { user:'👤 พนักงาน', technician:'🔧 ช่างซ่อม', engineer:'✅ วิศวกร', admin:'🛡 แอดมิน' };
-  const rolePill  = { user:'pill-waiting', technician:'pill-repairing', engineer:'pill-closed', admin:'pill-fail' };
+  const roleLabel = { user:'👤 พนักงาน', technician:'🔧 ช่าง/วิศวกร', engineer:'🔧 ช่าง/วิศวกร', admin:'🛡 แอดมิน' };
+  const rolePill  = { user:'pill-waiting', technician:'pill-closed', engineer:'pill-closed', admin:'pill-fail' };
   tbody.innerHTML = users.map((u, i) => {
     const avatarHtml = u.avatar && u.avatar.length > 10
       ? `<img src="${u.avatar}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border)">`
@@ -2961,10 +2947,10 @@ function viewJobDetail(id) {
     .forEach(sid => document.getElementById(sid)?.classList.add('d-none'));
 
   const role = currentUser?.role;
-  if ((role==='technician'||role==='engineer') && j.status==='รอซ่อม') {
+  if (isRepairStaff(role) && j.status==='รอซ่อม') {
     document.getElementById('tech-action-accept')?.classList.remove('d-none');
   }
-  if ((role==='technician'||role==='engineer') &&
+  if (isRepairStaff(role) &&
       ['กำลังซ่อม','รออะไหล่','Workaround','ขอหยุดเครื่อง'].includes(j.status)) {
     document.getElementById('tech-action-update')?.classList.remove('d-none');
     const s = document.getElementById('tup-status'); if(s) s.value = j.status;
