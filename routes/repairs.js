@@ -282,21 +282,8 @@ router.post('/:id/update', async (req, res) => {
       );
     }
 
-    if (status === 'ซ่อมเสร็จแล้ว' || status === 'ซ่อมเสร็จ') {
-      // TODO: เปิดใช้ภายหลัง — แจ้งเตือนช่าง
-      // const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
-      // if (techLineId) {
-      //   await sendLineMessage(techLineId,
-      //     `✅ งานซ่อมของคุณเสร็จสิ้น\n` +
-      //     `📋 รหัสงาน: ${id}\n` +
-      //     `🔧 เครื่องจักร: ${machine}\n` +
-      //     `📌 รอวิศวกรตรวจสอบ QC`
-      //   );
-      // }
-      // แจ้ง admin ผ่าน LINE
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ซ่อมเสร็จ รอ QC');
-    }
-    // ตัดแจ้งเตือน admin สำหรับสถานะระหว่างทาง (รออะไหล่, ขอหยุดเครื่อง, Workaround) — requester รู้อยู่แล้วพอ
+    // ตัดแจ้งเตือน admin ตอน "เสร็จซ่อม/รอ QC" ออก — แอดมินรู้แค่ตอนเปิดงาน กับ ตอน QC ผ่าน (ปิดงาน) พอ
+    // (TODO เปิดใช้ภายหลัง — แจ้งเตือนช่างตอนงานเสร็จ ถ้าต้องการ)
 
     res.json({ success: true });
   } catch (err) {
@@ -364,7 +351,7 @@ router.post('/:id/qc', async (req, res) => {
       //     `กรุณาแก้ไขและส่งใหม่อีกครั้ง`
       //   );
       // }
-      // แจ้ง admin ผ่าน LINE (ตีกลับ)
+      // แจ้ง admin ผ่าน LINE ตอน QC ไม่ผ่าน/ตีกลับ
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', note || '');
     }
 
@@ -437,6 +424,7 @@ router.post('/:id/reject', async (req, res) => {
       ]},
     });
 
+    // แจ้ง requester ให้รู้ว่าต้องแก้ไขข้อมูล
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
     if (requesterLineId) {
       await sendLineMessage(requesterLineId,
@@ -448,7 +436,7 @@ router.post('/:id/reject', async (req, res) => {
       );
     }
 
-    // แจ้ง admin ผ่าน LINE
+    // แจ้งแอดมินด้วย
     await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
 
     res.json({ success: true });
