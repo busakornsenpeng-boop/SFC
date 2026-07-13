@@ -77,7 +77,7 @@
             <div class="profile-role" id="user-display-role">ROLE</div>
           </div>
           <button id="btn-line-connect" onclick="dashConnectLINE()" title="เชื่อมบัญชี LINE"
-            style="background:#06C755;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
+            style="background:#06C755;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
             <i class="bi bi-line"></i> เชื่อม LINE
           </button>
           <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
@@ -629,7 +629,7 @@
 
         <!-- Leaderboard -->
         <div class="adm-leader-v2">
-          <div class="adm-leader-hdr-v2"><i class="bi bi-trophy-fill" style="color:#f59e0b"></i> ประสิทธิภาพช่างซ่อม (Leaderboard)</div>
+          <div class="adm-leader-hdr-v2"><i class="bi bi-trophy-fill" style="color:var(--yellow)"></i> ประสิทธิภาพช่างซ่อม (Leaderboard)</div>
           <div style="overflow-x:auto">
             <table class="adm-leader-table">
               <thead>
@@ -781,7 +781,7 @@
         </div>
       </div>
  <button id="btn-line-connect" onclick="dashConnectLINE()" title="เชื่อมบัญชี LINE"
-    style="background:#06C755;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
+    style="background:#06C755;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
     <i class="bi bi-line"></i> เชื่อม LINE
 </button>
       <div class="tp-logout" onclick="handleLogout()">⏻</div>
@@ -820,10 +820,10 @@
     <!-- Calendar (ต้องการ HTML พิเศษ) -->
     <div class="te-sec" id="te-v-cal" style="display:none">
       <div class="tp-cal-legend">
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:#f59e0b"></div>รอดำเนินการ</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:#3b82f6"></div>กำลังดำเนินการ</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:#10b981"></div>เสร็จแล้ว</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:#ef4444"></div>เกินกำหนด</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
+        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--red)"></div>เกินกำหนด</div>
       </div>
       <div class="tp-cal-hdr">
         <div style="display:flex;gap:5px">
@@ -865,50 +865,50 @@
   <!-- ════════════════════════════ SHARED MODALS ════════════════════════════ -->
 
 <!-- ══ REGISTER MODAL ══ -->
-<div id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="background:var(--surface,#fff);border-radius:16px;margin:24px auto;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+<div id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(16,24,40,0.55);z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="background:var(--surface,#fff);border-radius:12px;margin:24px auto;max-width:440px;box-shadow:var(--shadow-lg);overflow:hidden;">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#f97316,#ef4444);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="background:var(--accent);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
       <div>
         <div style="color:#fff;font-size:16px;font-weight:700;"><i class="bi bi-person-plus-fill"></i> ลงทะเบียนใช้งาน</div>
-        <div style="color:rgba(255,255,255,.8);font-size:12px;margin-top:2px;">สร้างบัญชีสำหรับ SFC Smart Repair</div>
+        <div style="color:rgba(255,255,255,.82);font-size:12px;margin-top:2px;">สร้างบัญชีสำหรับ SFC Smart Repair</div>
       </div>
-      <button onclick="closeRegisterModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <button onclick="closeRegisterModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
     <div style="padding:20px 24px;">
 
       <!-- Avatar Upload -->
       <div style="margin-bottom:18px;">
-        <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:8px;">
-          รูปโปรไฟล์ <span style="color:var(--text3,#94a3b8);font-weight:400;">(ไม่บังคับ)</span>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:8px;">
+          รูปโปรไฟล์ <span style="color:var(--text3,#98a2b8);font-weight:400;">(ไม่บังคับ)</span>
         </label>
         <div style="display:flex;align-items:center;gap:14px;">
           <!-- วงกลม preview -->
           <div id="reg-avatar-preview"
             onclick="document.getElementById('reg-avatar-file').click()"
-            style="width:72px;height:72px;border-radius:50%;border:2px dashed #cbd5e1;background:var(--bg2,#f1f5f9);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer;transition:.2s;">
-            <i class="bi bi-person-fill" id="reg-avatar-icon" style="font-size:32px;color:#cbd5e1;pointer-events:none;"></i>
+            style="width:72px;height:72px;border-radius:50%;border:2px dashed var(--border2,#cbd5e1);background:var(--bg2,#eff1f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer;transition:.2s;">
+            <i class="bi bi-person-fill" id="reg-avatar-icon" style="font-size:32px;color:var(--text3,#98a2b8);pointer-events:none;"></i>
             <img id="reg-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
           </div>
           <!-- ข้อความ + ปุ่ม -->
           <div style="flex:1;">
-            <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.5;">
+            <div style="font-size:11px;color:var(--text3,#98a2b8);margin-bottom:8px;line-height:1.5;">
               JPG, PNG ขนาดไม่เกิน 2MB
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
               <button type="button"
                 onclick="document.getElementById('reg-avatar-file').click()"
-                style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-size:12px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap;">
+                style="padding:6px 14px;border-radius:6px;border:1.5px solid var(--border,#e9edf3);background:transparent;color:var(--text2,#5d6b84);font-size:12px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap;">
                 <i class="bi bi-camera"></i> เลือกรูป
               </button>
               <button type="button" id="reg-avatar-clear-btn"
                 onclick="clearRegAvatar()"
-                style="display:none;padding:6px 10px;border-radius:8px;border:1.5px solid #fee2e2;background:transparent;color:#ef4444;font-size:12px;font-family:inherit;cursor:pointer;">
+                style="display:none;padding:6px 10px;border-radius:6px;border:1.5px solid var(--red-bg,#fee2e2);background:transparent;color:var(--red,#dc2626);font-size:12px;font-family:inherit;cursor:pointer;">
                 <i class="bi bi-x"></i>
               </button>
             </div>
-            <div id="reg-avatar-filename" style="font-size:10px;color:#94a3b8;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;"></div>
+            <div id="reg-avatar-filename" style="font-size:10px;color:var(--text3,#98a2b8);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;"></div>
           </div>
         </div>
         <input type="file" id="reg-avatar-file" accept="image/*" style="display:none;" onchange="previewRegAvatar(this)">
@@ -917,34 +917,34 @@
       <!-- Fields -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">ชื่อ-นามสกุล <span style="color:#ef4444">*</span></label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">ชื่อ-นามสกุล <span style="color:var(--red,#dc2626)">*</span></label>
           <input id="reg-fullname" type="text" placeholder="เช่น สมชาย ใจดี"
             class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
         </div>
         <div>
-  <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">แผนก / ตำแหน่ง <span style="color:#ef4444">*</span></label>
+  <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">แผนก / ตำแหน่ง <span style="color:var(--red,#dc2626)">*</span></label>
   <select id="reg-dept" class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
     <option value="">กำลังโหลด...</option>
   </select>
 </div>
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">เบอร์โทร / LINE ID <span style="color:#ef4444">*</span></label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">เบอร์โทร / LINE ID <span style="color:var(--red,#dc2626)">*</span></label>
           <input id="reg-contact" type="text" placeholder="เช่น 081-234-5678"
             class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
         </div>
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">Username <span style="color:#ef4444">*</span></label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">Username <span style="color:var(--red,#dc2626)">*</span></label>
           <input id="reg-username" type="text" placeholder="ตั้ง username สำหรับ login"
             class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">รหัสผ่าน <span style="color:#ef4444">*</span></label>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">รหัสผ่าน <span style="color:var(--red,#dc2626)">*</span></label>
             <input id="reg-password" type="password" placeholder="อย่างน้อย 4 ตัว"
               class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
           </div>
           <div>
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#1e293b);margin-bottom:5px;">ยืนยันรหัสผ่าน <span style="color:#ef4444">*</span></label>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">ยืนยันรหัสผ่าน <span style="color:var(--red,#dc2626)">*</span></label>
             <input id="reg-password2" type="password" placeholder="พิมพ์อีกครั้ง"
               class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
           </div>
@@ -953,9 +953,9 @@
 
     <!-- Error -->
       <!-- LINE Connect -->
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e2e8f0)">
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border,#e9edf3)">
        <button type="button" onclick="regConnectLINE()" id="reg-line-btn"
-          style="width:100%;padding:12px;border:none;border-radius:10px;
+          style="width:100%;padding:12px;border:none;border-radius:8px;
                  background:#06C755;color:#fff;font-size:13px;font-weight:700;
                  cursor:pointer;font-family:inherit;display:flex;align-items:center;
                  justify-content:center;gap:8px;box-sizing:border-box">
@@ -964,26 +964,26 @@
           </svg>
           เชื่อมต่อ LINE OA
         </button>
-        <div id="reg-line-status" style="margin-top:8px;font-size:11px;color:var(--text3,#94a3b8);text-align:center">
+        <div id="reg-line-status" style="margin-top:8px;font-size:11px;color:var(--text3,#98a2b8);text-align:center">
           รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่าน QC
         </div>
       </div>
-      <div id="reg-error" style="display:none;margin-top:12px;padding:10px 14px;background:#fee2e2;border-radius:8px;color:#dc2626;font-size:12px;border-left:3px solid #ef4444;"></div>
+      <div id="reg-error" style="display:none;margin-top:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626);"></div>
       <!-- Buttons -->
       <div style="display:flex;gap:10px;margin-top:20px;">
         <button type="button" onclick="closeRegisterModal()"
-          style="flex:1;padding:12px;border:1.5px solid var(--border,#e2e8f0);border-radius:10px;background:transparent;color:var(--text2,#64748b);font-size:13px;cursor:pointer;font-family:inherit;">
+          style="flex:1;padding:12px;border:1.5px solid var(--border,#e9edf3);border-radius:8px;background:transparent;color:var(--text2,#5d6b84);font-size:13px;cursor:pointer;font-family:inherit;">
           ยกเลิก
         </button>
         <button type="button" id="reg-submit-btn" onclick="submitRegister()"
-          style="flex:2;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+          style="flex:2;padding:12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
           <i class="bi bi-person-check-fill"></i> ลงทะเบียน
         </button>
       </div>
 
-      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3,#94a3b8);">
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3,#98a2b8);">
         มีบัญชีแล้ว?
-        <button type="button" onclick="closeRegisterModal()" style="border:none;background:none;color:var(--accent,#f97316);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">เข้าสู่ระบบ</button>
+        <button type="button" onclick="closeRegisterModal()" style="border:none;background:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">เข้าสู่ระบบ</button>
       </div>
 
     </div>
@@ -1168,7 +1168,7 @@
       <div style="font-size:55px;color:var(--green);margin-bottom:15px"><i class="bi bi-check-circle-fill"></i></div>
       <h3 style="font-size:22px;font-weight:700;margin-bottom:8px">แจ้งซ่อมสำเร็จเรียบร้อย!</h3>
       <p style="color:var(--text2);font-size:13.5px;margin-bottom:22px">กรุณาแจ้งรหัสงานซ่อมนี้ให้กับทีมช่างเทคนิค</p>
-      <div style="background:rgba(239,68,68,0.06);border:1.5px dashed var(--accent);padding:18px;border-radius:var(--r);margin-bottom:25px">
+      <div style="background:rgba(46,92,230,0.06);border:1.5px dashed var(--accent);padding:18px;border-radius:var(--r);margin-bottom:25px">
         <span style="display:block;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:600">รหัสใบแจ้งซ่อม (Job ID)</span>
         <span id="success-job-id" style="font-family:var(--font-mono);font-size:26px;font-weight:700">REP-XXXXXXXX-XXX</span>
       </div>
