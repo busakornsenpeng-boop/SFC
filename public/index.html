@@ -566,19 +566,19 @@
       <div id="panel-admin-dashboard" class="view-panel">
         <!-- KPI Bar v2 -->
         <div class="adm-kpi-bar-v2">
-          <div class="adm-kpi-v2 kv-blue">
+          <div class="adm-kpi-v2 kv-blue kv-clickable" onclick="openDeptBreakdown('total')">
             <div class="kv-icon"><i class="bi bi-clipboard-list-fill"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-total">0</div><div class="kv-lbl">แจ้งซ่อมทั้งหมด</div><div class="kv-trend" id="adm-trend-total">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-amber">
+          <div class="adm-kpi-v2 kv-amber kv-clickable" onclick="openDeptBreakdown('waiting')">
             <div class="kv-icon"><i class="bi bi-hourglass-split"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-wait">0</div><div class="kv-lbl">รอซ่อม</div><div class="kv-trend" id="adm-trend-wait">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-orange">
+          <div class="adm-kpi-v2 kv-orange kv-clickable" onclick="openDeptBreakdown('working')">
             <div class="kv-icon"><i class="bi bi-wrench-adjustable"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-work">0</div><div class="kv-lbl">กำลังซ่อม</div><div class="kv-trend" id="adm-trend-work">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-green">
+          <div class="adm-kpi-v2 kv-green kv-clickable" onclick="openDeptBreakdown('closed')">
             <div class="kv-icon"><i class="bi bi-check-circle-fill"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-closed">0</div><div class="kv-lbl">ปิดงานเสร็จ</div><div class="kv-trend" id="adm-trend-closed">—</div></div>
           </div>
@@ -644,6 +644,21 @@
           </div>
         </div>
       </div><!-- /panel-admin-dashboard -->
+
+      <!-- ══════════════════════════════════════════════════════
+           MODAL: Dept Breakdown (คลิกจาก KPI card)
+      ══════════════════════════════════════════════════════ -->
+      <div class="modal" id="dept-breakdown-modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <span class="modal-title" id="dbm-title">รายละเอียดตามแผนก</span>
+            <button class="modal-close" onclick="closeModal('dept-breakdown-modal')"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="modal-body">
+            <div id="dbm-body"></div>
+          </div>
+        </div>
+      </div>
 
       <!-- ══════════════════════════════════════════════════════
            PANEL: Admin Repairs

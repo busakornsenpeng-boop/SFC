@@ -1614,6 +1614,59 @@ function initAdminDashboard(){
   const lb=sv('leaderboard-tbody');if(lb){lb.innerHTML='';calculateTechPerformance(filtered).forEach((t,i)=>{const rankCls=['rank-1','rank-2','rank-3'][i]||'rank-n';const slaNum=t.total>0?Math.min(100,Math.round(t.perfScore*0.9+10)):null;const slaText=slaNum!==null?slaNum+'%':'—';const slaColor=slaNum>=80?'#10b981':slaNum>=60?'#f59e0b':'#ef4444';const tr=document.createElement('tr');tr.innerHTML=`<td><span class="rank-badge ${rankCls}">${i+1}</span></td><td style="font-weight:600;color:var(--text)">${t.name}</td><td style="color:var(--text2);text-align:center">${t.total}</td><td style="color:var(--text2);text-align:center">${t.done}</td><td style="color:#10b981;font-weight:600;text-align:center">${t.closed}</td><td style="color:#ef4444;text-align:center">${t.back}</td><td style="font-family:var(--font-mono);font-weight:700;color:${slaColor};text-align:center">${slaText}</td><td><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:${t.perfScore}%"></div></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal);min-width:36px;text-align:right">${t.perfScore}<span style="font-size:10px;color:var(--text3)">/100</span></span></div></td>`;lb.appendChild(tr);});}
 }
 
+// ── KPI Card → Dept Breakdown Modal ──
+const DBM_CONFIG = {
+  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'bi-clipboard-list-fill', match: j => true },
+  waiting: { label: 'รอซ่อม',          icon: 'bi-hourglass-split',     match: j => j.status === 'รอซ่อม' },
+  working: { label: 'กำลังซ่อม',       icon: 'bi-wrench-adjustable',   match: j => j.status !== 'รอซ่อม' && j.status !== 'ปิดงาน' },
+  closed:  { label: 'ปิดงานเสร็จ',     icon: 'bi-check-circle-fill',   match: j => j.status === 'ปิดงาน' }
+};
+
+function openDeptBreakdown(kind){
+  const cfg = DBM_CONFIG[kind]; if(!cfg) return;
+  const filtered = filterJobsByTimeRange(getRepairJobsData(), currentAdminTimeFilter).filter(cfg.match);
+
+  const byDept = {};
+  filtered.forEach(j => { const d = j.dept || 'ไม่ระบุแผนก'; byDept[d] = (byDept[d]||0) + 1; });
+  const deptEntries = Object.entries(byDept).sort((a,b) => b[1]-a[1]);
+
+  document.getElementById('dbm-title').innerHTML = `<i class="bi ${cfg.icon}"></i> ${cfg.label} — แยกตามแผนก`;
+
+  const body = document.getElementById('dbm-body');
+  if(!deptEntries.length){
+    body.innerHTML = `<div class="dbm-empty">ไม่มีรายการในกลุ่มนี้</div>`;
+  } else {
+    body.innerHTML =
+      `<div class="dbm-total-line">รวมทั้งหมด <strong style="color:var(--text)">${filtered.length}</strong> งาน · คลิกแผนกเพื่อดูรายการ</div>` +
+      deptEntries.map(([dept, count]) => `
+        <div class="dbm-row" onclick="goToRepairsFiltered('${kind}', '${dept.replace(/'/g,"\\'")}')">
+          <div class="dbm-row-left"><i class="bi bi-building" style="color:var(--text3)"></i><span class="dbm-row-dept">${dept}</span></div>
+          <span class="dbm-row-count">${count}</span>
+        </div>
+      `).join('');
+  }
+  openModal('dept-breakdown-modal');
+}
+
+// นำทางไปหน้า "จัดการใบแจ้งซ่อม" พร้อมตั้งค่า filter สถานะ + แผนกให้อัตโนมัติ
+function goToRepairsFiltered(kind, dept){
+  closeModal('dept-breakdown-modal');
+  const navBtn = document.querySelector('.tab-btn[onclick*="admin-repairs"]');
+  switchViewPanel('admin-repairs', navBtn || document.querySelector('.tab-btn'));
+
+  const statusMap = { waiting: 'รอซ่อม', closed: 'ปิดงาน', working: '', total: '' };
+  const statusSel = document.getElementById('admin-filter-status-rep');
+  if(statusSel) statusSel.value = statusMap[kind] ?? '';
+
+  const deptSel = document.getElementById('admin-filter-dept-rep');
+  if(deptSel){
+    let opt = Array.from(deptSel.options).find(o => o.value === dept);
+    if(!opt){ opt = document.createElement('option'); opt.value = dept; opt.textContent = dept; deptSel.appendChild(opt); }
+    deptSel.value = dept;
+  }
+  renderAdminRepairsTable();
+}
+
 function setFltBtn(btn){document.querySelectorAll('.adm-flt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
 function exportAdminPDF(){showToast('กำลังเตรียมไฟล์ PDF...','info');setTimeout(()=>{try{window.print();}catch(e){showToast('เปิด Print Dialog เพื่อบันทึกเป็น PDF ได้เลยครับ','info');}},300);}
 function changeAdminTimeFilter(ft){
