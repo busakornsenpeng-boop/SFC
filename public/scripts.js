@@ -1738,6 +1738,139 @@ function renderAdminRepairsTable(){
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
 }
+
+// ── ดึงข้อมูลรูปภาพจาก URL มาเป็น buffer สำหรับฝังลง Excel ──
+function fetchImageForExcel(url){
+  return new Promise(resolve => {
+    if(!url){ resolve(null); return; }
+    fetch(url)
+      .then(r => { if(!r.ok) throw new Error('fetch failed'); return r.arrayBuffer(); })
+      .then(buf => {
+        const blob = new Blob([buf]);
+        const objUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(objUrl);
+          let ext = (url.split('?')[0].split('.').pop() || 'png').toLowerCase();
+          if(!['png','jpeg','jpg','gif'].includes(ext)) ext = 'png';
+          if(ext === 'jpg') ext = 'jpeg';
+          resolve({ buffer: buf, extension: ext, naturalWidth: img.naturalWidth || 120, naturalHeight: img.naturalHeight || 90 });
+        };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(null); };
+        img.src = objUrl;
+      })
+      .catch(() => resolve(null));
+  });
+}
+
+function firstImgUrl(raw){
+  if(!raw) return '';
+  try { const arr = JSON.parse(raw); return Array.isArray(arr) && arr.length ? arr[0] : ''; }
+  catch { return raw.startsWith('http') || raw.startsWith('data:') ? raw : ''; }
+}
+
+// ── ส่งออกรายการแจ้งซ่อม (ตาม filter ปัจจุบัน) เป็นไฟล์ Excel พร้อมรูปภาพ ──
+async function exportAdminRepairsExcel(){
+  if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
+
+  const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
+  const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
+  const deptF=document.getElementById('admin-filter-dept-rep')?.value||'';
+  const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF)));
+
+  if(!filtered.length){ showToast('ไม่มีข้อมูลให้ส่งออก','error'); return; }
+
+  const btn=document.getElementById('admin-rep-export-btn');
+  if(btn) btn.disabled = true;
+  showLoading('กำลังเตรียมไฟล์ Excel...');
+
+  try{
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SFC Smart Repair';
+    workbook.created = new Date();
+    const sheet = workbook.addWorksheet('ใบแจ้งซ่อม', { views:[{ state:'frozen', ySplit:1 }] });
+
+    sheet.columns = [
+      { header:'JobID',        key:'id',      width:20 },
+      { header:'วันที่แจ้ง',    key:'date',    width:18 },
+      { header:'ผู้แจ้ง',       key:'name',    width:16 },
+      { header:'แผนก',         key:'dept',    width:20 },
+      { header:'เครื่องจักร',   key:'machine', width:22 },
+      { header:'ด้านปัญหา',     key:'side',    width:20 },
+      { header:'ประเภทงาน',     key:'opType',  width:18 },
+      { header:'รายละเอียด',    key:'detail',  width:30 },
+      { header:'ช่างซ่อม',      key:'tech',    width:16 },
+      { header:'สถานะ',        key:'status',  width:14 },
+      { header:'วันที่เสร็จ',    key:'doneDate',width:14 },
+      { header:'กำหนดเสร็จ (ETA)',key:'eta',   width:14 },
+      { header:'หมายเหตุ',      key:'note',    width:24 },
+      { header:'ผล QC',        key:'qc',      width:12 },
+      { header:'รูปก่อนซ่อม',   key:'imgBefore',width:20 },
+      { header:'รูปหลังซ่อม',   key:'imgAfter', width:20 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold:true, color:{ argb:'FFFFFFFF' }, name:'Arial' };
+    headerRow.eachCell(cell => {
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF0D9488' } };
+      cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+    });
+    headerRow.height = 22;
+
+    // ดึงรูปทั้งหมดล่วงหน้าแบบขนาน (เร็วกว่าดึงทีละแถว)
+    const imgTasks = filtered.map(j => Promise.all([
+      fetchImageForExcel(firstImgUrl(j.img)),
+      fetchImageForExcel(firstImgUrl(j.imgAfter))
+    ]));
+    const imgResults = await Promise.all(imgTasks);
+
+    filtered.forEach((j, i) => {
+      const row = sheet.addRow({
+        id: j.id, date: j.date, name: j.name || j.requester || '-', dept: j.dept || '-',
+        machine: j.machine || '-', side: j.side || '-', opType: j.opType || '-',
+        detail: j.detail || '-', tech: j.technician || 'ยังไม่กำหนด', status: j.status || '-',
+        doneDate: j.doneDate || '-', eta: j.eta || '-', note: j.note || '-', qc: j.qcResult || '-',
+        imgBefore: '', imgAfter: ''
+      });
+      row.font = { name:'Arial', size:10 };
+      row.alignment = { vertical:'middle', wrapText:true };
+      row.height = 78;
+
+      const [before, after] = imgResults[i];
+      const rowIdx = row.number - 1; // 0-based สำหรับ ExcelJS anchor
+      if(before){
+        const imgId = workbook.addImage({ buffer: before.buffer, extension: before.extension });
+        sheet.addImage(imgId, { tl:{ col:14, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
+      } else {
+        row.getCell('imgBefore').value = '-';
+      }
+      if(after){
+        const imgId = workbook.addImage({ buffer: after.buffer, extension: after.extension });
+        sheet.addImage(imgId, { tl:{ col:15, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
+      } else {
+        row.getCell('imgAfter').value = '-';
+      }
+    });
+
+    const buf = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const stamp = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()+543}`;
+    const a = document.createElement('a');
+    a.href = url; a.download = `ใบแจ้งซ่อม_${stamp}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`ส่งออก Excel สำเร็จ (${filtered.length} รายการ)`, 'success');
+  }catch(err){
+    console.error('[Export Excel] error:', err);
+    showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel', 'error');
+  }finally{
+    hideLoading();
+    if(btn) btn.disabled = false;
+  }
+}
 // ── Admin Users Panel ──
 function renderAdminUsersTable() {
   const panel = document.getElementById('panel-admin-users');
