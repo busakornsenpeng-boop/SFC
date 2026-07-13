@@ -6,6 +6,8 @@ const API_URL = '/api';
 let currentAdminTimeFilter = 'all';
 let currentAdminCustomFrom = null;
 let currentAdminCustomTo = null;
+let adminRepDateFrom = null;
+let adminRepDateTo = null;
 let currentUser = null;
 let localRepairs = [];
 let localPMCalendar = [];
@@ -1729,12 +1731,70 @@ function applyAdminCustomRange(){
   document.removeEventListener('click', closeAdminDatePopoverOutside);
   initAdminDashboard();
 }
-function renderAdminRepairsTable(){
+function getFilteredAdminRepairs(){
   const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
   const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
   const deptF=document.getElementById('admin-filter-dept-rep')?.value||'';
+  let list=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF)));
+  if(adminRepDateFrom && adminRepDateTo){
+    const[fy,fm,fd]=adminRepDateFrom.split('-').map(Number);
+    const[ty,tm,td]=adminRepDateTo.split('-').map(Number);
+    const from=new Date(fy,fm-1,fd);from.setHours(0,0,0,0);
+    const to=new Date(ty,tm-1,td);to.setHours(0,0,0,0);
+    list=list.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);return jd.getTime()>=from.getTime()&&jd.getTime()<=to.getTime();});
+  }
+  return list;
+}
+
+function toggleAdminRepDatePopover(ev){
+  if(ev) ev.stopPropagation();
+  const pop=document.getElementById('admin-rep-date-popover');
+  if(!pop) return;
+  const willOpen=!pop.classList.contains('open');
+  pop.classList.toggle('open', willOpen);
+  if(willOpen){
+    const today=new Date().toISOString().split('T')[0];
+    const fromEl=document.getElementById('admin-rep-date-from');
+    const toEl=document.getElementById('admin-rep-date-to');
+    if(fromEl) fromEl.value=adminRepDateFrom || today;
+    if(toEl)   toEl.value=adminRepDateTo || today;
+    document.addEventListener('click', closeAdminRepDatePopoverOutside);
+  }
+}
+function closeAdminRepDatePopoverOutside(ev){
+  const pop=document.getElementById('admin-rep-date-popover');
+  const btn=document.getElementById('admin-rep-date-btn');
+  if(!pop) return;
+  if(pop.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  pop.classList.remove('open');
+  document.removeEventListener('click', closeAdminRepDatePopoverOutside);
+}
+function applyAdminRepDateFilter(){
+  const from=document.getElementById('admin-rep-date-from')?.value;
+  const to=document.getElementById('admin-rep-date-to')?.value;
+  if(!from || !to){ showToast('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด','error'); return; }
+  if(from > to){ showToast('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด','error'); return; }
+  adminRepDateFrom=from; adminRepDateTo=to;
+  const[fy,fm,fd]=from.split('-').map(Number);
+  const[ty,tm,td]=to.split('-').map(Number);
+  const btn=document.getElementById('admin-rep-date-btn');
+  if(btn) btn.innerHTML=`<i class="bi bi-calendar3"></i> ${fd}/${fm}/${fy+543} - ${td}/${tm}/${ty+543}`;
+  document.getElementById('admin-rep-date-popover')?.classList.remove('open');
+  document.removeEventListener('click', closeAdminRepDatePopoverOutside);
+  renderAdminRepairsTable();
+}
+function clearAdminRepDateFilter(){
+  adminRepDateFrom=null; adminRepDateTo=null;
+  const btn=document.getElementById('admin-rep-date-btn');
+  if(btn) btn.innerHTML=`<i class="bi bi-calendar3"></i> เลือกช่วงวันที่`;
+  document.getElementById('admin-rep-date-popover')?.classList.remove('open');
+  document.removeEventListener('click', closeAdminRepDatePopoverOutside);
+  renderAdminRepairsTable();
+}
+
+function renderAdminRepairsTable(){
   const tbody=document.getElementById('admin-rep-list-tbody');if(!tbody)return;tbody.innerHTML='';
-  const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF)));
+  const filtered=getFilteredAdminRepairs();
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
 }
@@ -1773,10 +1833,7 @@ function firstImgUrl(raw){
 async function exportAdminRepairsExcel(){
   if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
 
-  const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
-  const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
-  const deptF=document.getElementById('admin-filter-dept-rep')?.value||'';
-  const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF)));
+  const filtered=getFilteredAdminRepairs();
 
   if(!filtered.length){ showToast('ไม่มีข้อมูลให้ส่งออก','error'); return; }
 
@@ -1856,7 +1913,9 @@ async function exportAdminRepairsExcel(){
     const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
-    const stamp = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()+543}`;
+    const stamp = adminRepDateFrom && adminRepDateTo
+      ? `${adminRepDateFrom.replace(/-/g,'')}-${adminRepDateTo.replace(/-/g,'')}`
+      : `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()+543}`;
     const a = document.createElement('a');
     a.href = url; a.download = `ใบแจ้งซ่อม_${stamp}.xlsx`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);

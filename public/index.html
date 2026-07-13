@@ -708,6 +708,28 @@
 <select id="admin-filter-tech-rep" class="select-ctrl" style="width:130px;font-size:12px" onchange="renderAdminRepairsTable()">
   <option value="">ทุกช่าง</option>
 </select>
+<div style="position:relative">
+  <button class="btn btn-sec" style="font-size:12px" id="admin-rep-date-btn" onclick="toggleAdminRepDatePopover(event)">
+    <i class="bi bi-calendar3"></i> เลือกช่วงวันที่
+  </button>
+  <div class="adm-date-popover" id="admin-rep-date-popover" onclick="event.stopPropagation()">
+    <div class="adm-date-popover-title">กำหนดช่วงวันที่</div>
+    <div class="adm-date-popover-row">
+      <div class="form-field" style="margin:0">
+        <label>จากวันที่</label>
+        <input type="date" id="admin-rep-date-from" class="input-ctrl">
+      </div>
+      <div class="form-field" style="margin:0">
+        <label>ถึงวันที่</label>
+        <input type="date" id="admin-rep-date-to" class="input-ctrl">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-sec" style="flex:1" onclick="clearAdminRepDateFilter()">ล้างวันที่</button>
+      <button class="btn btn-accent" style="flex:1" onclick="applyAdminRepDateFilter()"><i class="bi bi-check2"></i> ใช้ช่วงวันที่</button>
+    </div>
+  </div>
+</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px" id="admin-rep-summary"></div>
           <div class="table-container">
