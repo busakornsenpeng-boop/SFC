@@ -13,6 +13,10 @@ cloudinary.config({
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
 
+// ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
+// ปรับลิสต์นี้ได้ตามที่คิดว่าสำคัญจริงกับผู้แจ้งงาน
+const NOTIFY_REQUESTER_STATUSES = ['ซ่อมเสร็จ', 'ซ่อมเสร็จแล้ว', 'ขอหยุดเครื่อง'];
+
 // ── สร้าง JobID format: PDF-001-300626 ──
 // เลขรัน (001, 002, 003...) นับรวมทุกแผนกในเดือน+ปีเดียวกัน
 // เมื่อขึ้นเดือนใหม่ เลขจะรีเซ็ตกลับมาเริ่มที่ 001 อัตโนมัติ
@@ -96,23 +100,6 @@ async function getAllRepairs() {
   }));
 }
 
-// ── Broadcast แจ้งเตือนช่าง/วิศวกรทุกคนที่ผูก LINE ──
-async function broadcastToTechs(message) {
-  try {
-    const res  = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'Users!A2:J1000',
-    });
-    const rows = res.data.values || [];
-    const targets = rows.filter(r =>
-      ['technician', 'engineer', 'tech'].includes((r[2] || '').toLowerCase()) && r[9]
-    );
-    await Promise.all(targets.map(r => sendLineMessage(r[9], message)));
-  } catch (err) {
-    console.error('[LINE Broadcast] ช่าง error:', err.message);
-  }
-}
-
 // GET /api/repairs
 router.get('/', async (req, res) => {
   try {
@@ -183,17 +170,7 @@ router.post('/', async (req, res) => {
       );
     }
 
-    const shortDetail = (detail || '').length > 60 ? detail.slice(0, 60) + '...' : (detail || '');
-    await broadcastToTechs(
-      `🔔 มีใบแจ้งซ่อมใหม่!\n` +
-      `📋 รหัสงาน: ${jobId}\n` +
-      `🔧 เครื่องจักร: ${machine}\n` +
-      `📍 แผนก: ${dept}\n` +
-      `📝 อาการ: ${shortDetail}\n` +
-      `📅 ${dateStr}`
-    );
-
-    // แจ้ง admin ผ่าน LINE
+    // แจ้ง admin ผ่าน LINE — แอดมินเป็นผู้กระจายงานให้ช่างเอง (ไม่แจ้งช่างผ่านระบบ)
     await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
     res.json({ success: true, jobId });
   } catch (err) {
@@ -241,8 +218,7 @@ router.post('/:id/accept', async (req, res) => {
       );
     }
 
-    // แจ้ง admin ผ่าน LINE
-    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'กำลังซ่อม', `ช่างรับงาน: ${technician}`);
+    // ตัดแจ้งเตือน admin ตอนช่างรับงาน — แอดมินรู้ตอนเปิดงาน/ปิดงานพอ
 
     res.json({ success: true });
   } catch (err) {
@@ -304,8 +280,9 @@ router.post('/:id/update', async (req, res) => {
       'Workaround':    '🛠 แก้ไขชั่วคราว (Workaround)',
     }[status] || `📌 ${status}`;
 
+    // แจ้งเตือนผู้แจ้งงานเฉพาะสถานะสำคัญ (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก)
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    if (requesterLineId) {
+    if (requesterLineId && NOTIFY_REQUESTER_STATUSES.includes(status)) {
       await sendLineMessage(requesterLineId,
         `📢 อัปเดตสถานะงานซ่อม\n` +
         `📋 รหัสงาน: ${id}\n` +
@@ -328,10 +305,8 @@ router.post('/:id/update', async (req, res) => {
       // }
       // แจ้ง admin ผ่าน LINE
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ซ่อมเสร็จ รอ QC');
-    } else {
-      // แจ้ง admin ผ่าน LINE (สถานะอื่นๆ เช่น รออะไหล่, ขอหยุดเครื่อง, Workaround)
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', status || 'อัปเดตสถานะ', note || '');
     }
+    // ตัดแจ้งเตือน admin สำหรับสถานะระหว่างทาง (รออะไหล่, ขอหยุดเครื่อง, Workaround) — requester รู้อยู่แล้วพอ
 
     res.json({ success: true });
   } catch (err) {
@@ -384,15 +359,7 @@ router.post('/:id/qc', async (req, res) => {
           `✅ ตรวจสอบโดย: ${by}`
         );
       }
-      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
-      if (techLineId) {
-        await sendLineMessage(techLineId,
-          `🎉 งานซ่อมของคุณผ่าน QC!\n` +
-          `📋 รหัสงาน: ${id}\n` +
-          `🔧 เครื่องจักร: ${machine}\n` +
-          `✅ ปิดงานเรียบร้อย`
-        );
-      }
+      // ตัดแจ้งเตือนช่างตอนผ่าน QC ออก (แอดมินเป็นผู้ประสานงานให้ช่างเอง)
       // แจ้ง admin ผ่าน LINE
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่าน QC - ${by}`);
     } else {
@@ -502,7 +469,6 @@ router.post('/:id/reject', async (req, res) => {
 });
 
 // POST /api/repairs/:id/status — admin update
-// POST /api/repairs/:id/status — admin update
 router.post('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
@@ -546,7 +512,7 @@ router.post('/:id/status', async (req, res) => {
     });
 
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-    if (requesterLineId && status) {
+    if (requesterLineId && status && NOTIFY_REQUESTER_STATUSES.includes(status)) {
       const statusMsg = {
         'รอซ่อม':       '📋 ระบบได้บันทึกการแจ้งซ่อมของคุณแล้ว',
         'กำลังซ่อม':     '🔧 ช่างกำลังดำเนินการซ่อมอยู่',
@@ -557,7 +523,7 @@ router.post('/:id/status', async (req, res) => {
         'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
         'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
       }[status] || `📌 สถานะ: ${status}`;
-      
+
       await sendLineMessage(requesterLineId,
         `📢 อัปเดตสถานะงานซ่อม\n` +
         `📋 รหัสงาน: ${id}\n` +
@@ -567,20 +533,9 @@ router.post('/:id/status', async (req, res) => {
       );
     }
 
-    if (technician && technician !== oldTech) {
-      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, technician);
-      if (techLineId) {
-        await sendLineMessage(techLineId,
-          `🔔 มีงานซ่อมใหม่ที่ได้รับมอบหมาย\n` +
-          `📋 รหัสงาน: ${id}\n` +
-          `🔧 เครื่องจักร: ${machine}\n` +
-          `👤 ผู้แจ้ง: ${requesterName}`
-        );
-      }
-    }
+    // ตัดแจ้งเตือนช่างตอนถูก assign ออก — แอดมินมอบหมายงานเองนอกระบบ
+    // ตัดแจ้งเตือน admin ออก — แอดมินเป็นผู้แก้เอง ไม่จำเป็นต้องแจ้งเตือนตัวเอง
 
-    // แจ้ง admin
-    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', status || 'ไม่ระบุ');
     res.json({ success: true });
   } catch (err) {
     console.error(err);
