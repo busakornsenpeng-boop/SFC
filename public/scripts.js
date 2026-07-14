@@ -2517,15 +2517,20 @@ function refreshIdentifyBadge() {
   if (!btn) return;
   if (TECH_PROFILES.length > 0) {
     btn.style.display = 'inline-flex';
-    btn.innerHTML = myIdentifiedName
-      ? `<i class="bi bi-person-check-fill"></i> ${myIdentifiedName}`
-      : `<i class="bi bi-person-badge"></i> ระบุตัวตน`;
+   btn.innerHTML = myIdentifiedName
+  ? `<i class="bi bi-person-check-fill"></i> ${myIdentifiedName}`
+  : `<i class="bi bi-person-badge"></i> ระบุตัวตน`;
+btn.title = myIdentifiedName ? 'กดเพื่อเปลี่ยนตัวตน' : 'กดเพื่อระบุตัวตนก่อนรับงาน';
   } else {
     btn.style.display = 'none';
   }
 }
-
 function openTechIdentifySelf() {
+  // ถ้ามีคนระบุตัวตนไว้อยู่แล้ว ให้ถามยืนยันก่อนเปลี่ยน กันกดพลาด
+  if (myIdentifiedName) {
+    if (!confirm(`ตอนนี้ระบุตัวตนเป็น "${myIdentifiedName}" อยู่\nต้องการเปลี่ยนเป็นคนอื่นหรือไม่?`)) return;
+    clearIdentity();
+  }
   _pendingAcceptJobId = null; // ไม่ใช่ flow รับงาน — แค่ยืนยันตัวตนล่วงหน้า
   openTechIdentifyModal();
 }
