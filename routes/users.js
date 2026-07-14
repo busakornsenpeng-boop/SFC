@@ -459,15 +459,33 @@ router.delete('/:username', async (req, res) => {
   }
 });
 
-// GET /api/users/technicians — ดึงรายชื่อช่างทั้งหมด
+// GET /api/users/technicians — ดึงรายชื่อช่างทั้งหมด (ใช้ populate dropdown เลือกช่าง)
 router.get('/technicians', async (req, res) => {
   try {
     const users = await getAllUsers();
-    // role 'engineer' คือ role รวมของช่างซ่อม+วิศวกร (ดู resolveRole ด้านบน)
-    // เก็บ 'technician'/'tech' ไว้เผื่อมี user เก่าที่ยังไม่ได้อัปเดต role ใน Sheet
-    const technicians = users
+    // เก็บ role 'engineer'/'technician'/'tech' จาก Users sheet ไว้เผื่อมี user เก่าที่ยังไม่ย้ายออก
+    const legacyNames = users
       .filter(u => ['engineer', 'technician', 'tech'].includes((u.role || '').toLowerCase()))
       .map(u => u.fullname || u.username);
+
+    // ดึงชื่อช่างจากบัญชีกลาง (TechProfiles) — ที่นี่คือ roster หลักของช่าง/วิศวกรตอนนี้
+    let profileNames = [];
+    try {
+      const profRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'TechProfiles!A2:H1000',
+      });
+      const rows = profRes.data.values || [];
+      profileNames = rows
+        .filter(r => (r[6] || 'active') === 'active') // column G = status
+        .map(r => r[1] || '') // column B = fullname
+        .filter(Boolean);
+    } catch (e) {
+      // Sheet TechProfiles อาจยังไม่ถูกสร้าง — ไม่ต้อง fail ทั้ง endpoint
+      console.warn('[technicians] TechProfiles sheet not found or empty:', e.message);
+    }
+
+    const technicians = [...new Set([...profileNames, ...legacyNames])];
     res.json({ success: true, data: technicians });
   } catch (err) {
     console.error(err);
