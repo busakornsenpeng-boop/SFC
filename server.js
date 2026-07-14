@@ -22,6 +22,17 @@ const adminRoutes        = require('./routes/admin');
 const lineWebhookRoutes  = require('./routes/linewebhook'); // ✅ เพิ่ม
 const techProfilesRoutes = require('./routes/techprofiles'); // ✅ เพิ่ม — โปรไฟล์ช่างในบัญชีกลาง
 
+// 🔍 DEBUG ชั่วคราว — เช็คว่า route ไหน export ผิดพลาด (ไม่ใช่ function)
+// ลบส่วนนี้ทิ้งได้หลังจากหาสาเหตุเจอและแก้เสร็จแล้ว
+console.log('[DEBUG] typeof repairRoutes       =', typeof repairRoutes);
+console.log('[DEBUG] typeof userRoutes         =', typeof userRoutes);
+console.log('[DEBUG] typeof pmRoutes           =', typeof pmRoutes);
+console.log('[DEBUG] typeof masterDataRoutes   =', typeof masterDataRoutes);
+console.log('[DEBUG] typeof dailyPMRoutes      =', typeof dailyPMRoutes);
+console.log('[DEBUG] typeof adminRoutes        =', typeof adminRoutes);
+console.log('[DEBUG] typeof lineWebhookRoutes  =', typeof lineWebhookRoutes);
+console.log('[DEBUG] typeof techProfilesRoutes =', typeof techProfilesRoutes);
+
 app.use('/api/repairs',       repairRoutes);
 app.use('/api/users',         userRoutes);
 app.use('/api/pm',            pmRoutes);
