@@ -19,9 +19,14 @@ const ADMIN_ACCOUNT = {
 // บัญชีกลางของทีมช่าง/วิศวกร — กำหนด username/password ไว้เองผ่าน env var
 // (ไม่ต้องผ่านระบบสมัครสมาชิก/ไม่มีแถวใน Users sheet) ใช้ร่วมกันหน้างานบนเครื่องเดียว
 // แล้วให้แต่ละคนเลือกชื่อ+กรอกรหัสพนักงานตอนรับงาน (ดู routes/techprofiles.js)
+//
+// มีค่า default สำรองไว้ (eng_team / Sfca2026) เผื่อยังไม่ได้ตั้งค่าใน Render
+// ถ้าตั้งค่า TE_SHARED_USERNAME / TE_SHARED_PASSWORD ใน Render ไว้แล้ว
+// ระบบจะใช้ค่าจาก Render ก่อนเสมอ (ไม่ใช้ default)
+// ⚠️ แนะนำให้เปลี่ยนไปตั้งค่าจริงผ่าน Render แทนการพึ่ง default นี้ในระยะยาว
 const TE_SHARED_ACCOUNT = {
-  username:   process.env.TE_SHARED_USERNAME,
-  password:   process.env.TE_SHARED_PASSWORD,
+  username:   process.env.TE_SHARED_USERNAME || 'eng_team',
+  password:   process.env.TE_SHARED_PASSWORD || 'Sfca2026',
   role:       'engineer',
   fullname:   'ทีมช่าง/วิศวกร',
   dept:       'ENG',
