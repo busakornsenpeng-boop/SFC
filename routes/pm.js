@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { sendLineMessage, getLineUserIdByName, broadcastToAdmins } = require('./notify');
+const { requireAuth, requireRole } = require('../middleware/adminAuth');
 
 async function getAllPM() {
   const res = await sheets.spreadsheets.values.get({
@@ -59,8 +60,8 @@ router.get('/history', async (req, res) => {
   }
 });
 
-// POST /api/pm
-router.post('/', async (req, res) => {
+// POST /api/pm (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { title, machine, date, type, assignee, status } = req.body;
     const pmId = 'PM-' + Date.now();
@@ -79,8 +80,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/pm/checklist
-router.post('/checklist', async (req, res) => {
+// POST /api/pm/checklist (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/checklist', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { pmCode, equip, productionLine, date, tech, shift, runningHr, parts, result, workDone, remarks, checklist } = req.body;
     console.log(`[PM Checklist] Submitting PM: ${pmCode}, Equipment: ${equip}, Tech: ${tech}`);

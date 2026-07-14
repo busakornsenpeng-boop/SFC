@@ -3,6 +3,7 @@ const router     = express.Router();
 const cloudinary = require('cloudinary').v2;
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { sendLineMessage, getLineUserIdByName, broadcastToAdmins, sendFlexMessage } = require('./notify');
+const { requireAuth, requireRole } = require('../middleware/adminAuth');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -129,8 +130,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/repairs — แจ้งซ่อมใหม่
-router.post('/', async (req, res) => {
+// POST /api/repairs — แจ้งซ่อมใหม่ (ต้อง login ก่อน)
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { requester, dept, machine, side, op_type, detail, img, job_type } = req.body;
     let imgArr = [];
@@ -179,8 +180,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/accept — ช่างรับงาน
-router.post('/:id/accept', async (req, res) => {
+// POST /api/repairs/:id/accept — ช่างรับงาน (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { technician } = req.body;
@@ -217,8 +218,8 @@ router.post('/:id/accept', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/update — ช่างอัปเดตสถานะ
-router.post('/:id/update', async (req, res) => {
+// POST /api/repairs/:id/update — ช่างอัปเดตสถานะ (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, note, eta, imgAfter } = req.body;
@@ -292,8 +293,8 @@ router.post('/:id/update', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/qc
-router.post('/:id/qc', async (req, res) => {
+// POST /api/repairs/:id/qc (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/:id/qc', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { result, by, note } = req.body;
@@ -362,8 +363,8 @@ router.post('/:id/qc', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/approval
-router.post('/:id/approval', async (req, res) => {
+// POST /api/repairs/:id/approval (เฉพาะแอดมิน — อนุมัติงานติดตั้งใหม่/งานโครงการ)
+router.post('/:id/approval', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { result, progressNote } = req.body;
@@ -394,8 +395,8 @@ router.post('/:id/approval', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/reject — ช่างตีกลับ
-router.post('/:id/reject', async (req, res) => {
+// POST /api/repairs/:id/reject — ช่างตีกลับ (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -446,8 +447,8 @@ router.post('/:id/reject', async (req, res) => {
   }
 });
 
-// POST /api/repairs/:id/status — admin update
-router.post('/:id/status', async (req, res) => {
+// POST /api/repairs/:id/status — admin update (เฉพาะแอดมิน)
+router.post('/:id/status', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, note, eta, technician, imgAfter } = req.body;

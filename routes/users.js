@@ -1,7 +1,32 @@
 const axios   = require('axios');
+const bcrypt  = require('bcryptjs');
 const express = require('express');
 const router  = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
+const { signToken, requireAuth, requireRole } = require('../middleware/adminAuth');
+
+// เกณฑ์เช็คว่าค่าที่เก็บไว้เป็น bcrypt hash แล้วหรือยัง (hash ของ bcrypt ขึ้นต้นด้วย $2a$/$2b$/$2y$ เสมอ)
+const isBcryptHash = (val) => typeof val === 'string' && /^\$2[aby]\$/.test(val);
+
+// เขียน hash ใหม่ทับรหัสผ่าน plaintext เดิมในชีต (ใช้ตอน migrate อัตโนมัติเมื่อ user login สำเร็จ)
+async function upgradePasswordHash(username, plainPassword) {
+  try {
+    const result   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
+    const rows     = result.data.values || [];
+    const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
+    if (rowIndex === -1) return;
+    const newHash = await bcrypt.hash(plainPassword, 10);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `Users!B${rowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[newHash]] },
+    });
+    console.log(`[users] อัปเกรดรหัสผ่านเป็น bcrypt hash ให้ ${username} แล้ว`);
+  } catch (err) {
+    console.error('[users] upgradePasswordHash error:', err.message);
+  }
+}
 
 const ADMIN_ACCOUNT = {
   username:   process.env.ADMIN_USERNAME,
@@ -74,8 +99,10 @@ router.post('/login', async (req, res) => {
       if (password !== ADMIN_ACCOUNT.password) {
         return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
       }
+      const token = signToken({ username: ADMIN_ACCOUNT.username, role: 'admin', dept: ADMIN_ACCOUNT.dept });
      return res.json({
         success:  true,
+        token,
         username: ADMIN_ACCOUNT.username,
         name:     ADMIN_ACCOUNT.fullname,
         role:    'admin',
@@ -90,8 +117,10 @@ router.post('/login', async (req, res) => {
       if (password !== TE_SHARED_ACCOUNT.password) {
         return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
       }
+      const token = signToken({ username: TE_SHARED_ACCOUNT.username, role: TE_SHARED_ACCOUNT.role, dept: TE_SHARED_ACCOUNT.dept });
       return res.json({
         success:    true,
+        token,
         username:   TE_SHARED_ACCOUNT.username,
         name:       TE_SHARED_ACCOUNT.fullname,
         role:       TE_SHARED_ACCOUNT.role,
@@ -103,9 +132,23 @@ router.post('/login', async (req, res) => {
     }
 
     const users = await getAllUsers();
-    const user  = users.find(u => u.username === username && u.password === password);
+    const user  = users.find(u => u.username === username);
 
     if (!user) {
+      return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
+    }
+
+    // รองรับทั้งรหัสผ่านแบบเก่า (plaintext) และแบบ bcrypt hash
+    // ถ้ายังเป็น plaintext อยู่ จะ hash แล้วอัปเดตกลับเข้าชีตให้อัตโนมัติตอน login สำเร็จ (migrate แบบไม่ต้องหยุดระบบ)
+    let passwordOk = false;
+    if (isBcryptHash(user.password)) {
+      passwordOk = await bcrypt.compare(password, user.password);
+    } else {
+      passwordOk = password === user.password;
+      if (passwordOk) await upgradePasswordHash(username, password);
+    }
+
+    if (!passwordOk) {
       return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
     }
     if (user.status !== 'active') {
@@ -113,9 +156,11 @@ router.post('/login', async (req, res) => {
     }
 
     const effectiveRole = resolveRole(user.role, user.dept, user.username);
+    const token = signToken({ username: user.username, role: effectiveRole, dept: user.dept });
 
    res.json({
       success:      true,
+      token,
       username:     user.username,
       name:         user.fullname,
       role:         effectiveRole,
@@ -161,13 +206,15 @@ router.post('/register', async (req, res) => {
       }
     }
 
+    const passwordHash = await bcrypt.hash(password, 10);
+
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'Users!A:J',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          username, password, role, fullname, dept, contact,
+          username, passwordHash, role, fullname, dept, contact,
           'active', 'FALSE', '', lineUserId || '',
         ]],
       },
@@ -183,7 +230,7 @@ router.post('/register', async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // GET /api/users  (list all)
 // ─────────────────────────────────────────────────────────────
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const users     = await getAllUsers();
     const safeUsers = users.map(u => ({
@@ -392,8 +439,8 @@ router.post('/:username/link-line', async (req, res) => {
 // /:username routes  ← ต้องอยู่หลัง /line/* เสมอ
 // ─────────────────────────────────────────────────────────────
 
-// POST /api/users/:username/status
-router.post('/:username/status', async (req, res) => {
+// POST /api/users/:username/status  (admin เท่านั้น — ระงับ/เปิดใช้งานบัญชี)
+router.post('/:username/status', requireRole('admin'), async (req, res) => {
   try {
     const { username } = req.params;
     const { status }   = req.body;
@@ -419,8 +466,8 @@ router.post('/:username/status', async (req, res) => {
   }
 });
 
-// DELETE /api/users/:username
-router.delete('/:username', async (req, res) => {
+// DELETE /api/users/:username  (admin เท่านั้น)
+router.delete('/:username', requireRole('admin'), async (req, res) => {
   try {
     const { username } = req.params;
 

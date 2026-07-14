@@ -20,6 +20,33 @@ let selectedJobForAction = null;
 let uploadedFilesBase64 = [];
 let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = null;
 let insDailyHistory = [];
+let authToken = null; // JWT ที่ได้จาก /api/users/login — เก็บไว้ใน memory เท่านั้น (ไม่ใส่ localStorage เพื่อลดความเสี่ยง XSS-token-theft)
+
+// ── ใช้แทน fetch() ธรรมดาสำหรับ endpoint ที่ต้อง login (แนบ Authorization header ให้อัตโนมัติ) ──
+function authFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  return fetch(url, { ...options, headers }).then(res => {
+    if (res.status === 401) {
+      // token หมดอายุ/ไม่ถูกต้อง → บังคับ login ใหม่
+      currentUser = null;
+      authToken = null;
+      showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
+    }
+    return res;
+  });
+}
+
+// ── กัน stored-XSS: escape ค่าที่มาจากผู้ใช้ก่อนแทรกลง innerHTML ──
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 const LOGO_BASE64 = "/logo.png";
 const monthsThai = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -219,6 +246,7 @@ function handleLoginSubmit(event) {
         isChief: res.isChief,
         dept :    res.dept,
       };
+      authToken = res.token || null;
       autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
       setupDashboard();
     } else {
@@ -263,6 +291,7 @@ function showLoginError() {
 function handleLogout() {
   currentAdminTimeFilter = 'all';
   currentUser = null;
+  authToken = null;
   if (isLocalMode) sessionStorage.removeItem('mock_session');
   document.getElementById('dashboard-page').style.display  = 'none';
   document.getElementById('te-panel-page').style.display   = 'none'; // ← เหลือแค่นี้
@@ -860,7 +889,7 @@ function tpSubmitReject(id) {
 
   if (!isLocalMode) {
     showLoading('กำลังตีกลับงาน...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(id)}/reject`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason })
@@ -1044,7 +1073,7 @@ function tpSaveUpdate(id) {
   const upd = { status: finalStatus, note, eta, planStopDate: stopDate };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
    body: JSON.stringify({ ...upd, imgAfter: uploadedFilesBase64 || [] 
@@ -1173,7 +1202,7 @@ function tpSubmitPMChecklist(pmId) {
   };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก PM...');
-    fetch(`${API_URL}/pm/${pmId}/checklist`, {
+    authFetch(`${API_URL}/pm/${pmId}/checklist`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, tech: ME, runningHr, parts, result, workDone, remarks, checklist: JSON.stringify(chkObj) })
@@ -1241,7 +1270,7 @@ function renderRepairsTable(){
   const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF))&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลรายการแจ้งซ่อม</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
-    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td style="font-weight:600">${j.machine}</td><td><span class="lbl-tag">${(j.side||'').split(' ')[0]}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.detail}</td><td style="color:var(--text2)">${j.technician||'-'}</td><td><span class="pill ${sc}">${j.status}</span></td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">ดูรายละเอียด</button></td>`;tbody.appendChild(tr);});
+    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td><button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button></td>`;tbody.appendChild(tr);});
 }
 
 function updatePMStats(){
@@ -1374,7 +1403,7 @@ function submitPMForm(){
 
   if(!isLocalMode){
     showLoading('กำลังบันทึก PM...');
-    fetch(`${API_URL}/pm/checklist`, {
+    authFetch(`${API_URL}/pm/checklist`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pmCode, equip, productionLine, date, tech, shift, runningHr, parts, result, workDone, remarks, nextPm, checklist: JSON.stringify(chkObj) })
@@ -1431,7 +1460,7 @@ function techSubmitUpdate(){
   console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, eta});
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ status, note, eta })
     })
@@ -1479,7 +1508,7 @@ function adminSubmitUpdateJob(){
   const note   = document.getElementById('adm-job-note')?.value;
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ status, technician: tech, eta, note })
     })
@@ -1528,7 +1557,7 @@ function submitPMEventForm(event){
   const item = {id:id||null, date, title, machine, type, status};
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
-    fetch(`${API_URL}/pm`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item) })
+    authFetch(`${API_URL}/pm`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item) })
     .then(r => r.json())
     .then(res => { hideLoading(); if(res.success){ closeModal('pm-event-modal'); refreshData(); } else showToast(res.message||'เกิดข้อผิดพลาด','error'); })
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
@@ -1560,9 +1589,9 @@ function viewPMDoc(pmCode,arrIdx){
   let itemsHtml='';
   checkGroups.forEach((g,gi)=>{
     itemsHtml+=`<div style="background:var(--bg2);padding:6px 12px;font-weight:700;color:var(--teal);font-size:12.5px;border-radius:4px;margin:10px 0 6px">${gi+1}. ${g.name}</div>`;
-    g.items.forEach((item,ii)=>{const vo=chkObj[`r${gi}_${ii}`]||{status:'ok',note:''};const res=typeof vo==='string'?vo:vo.status;const note=typeof vo==='object'?(vo.note||''):'';const bc=res==='ok'?'badge-green':'badge-red';const bt=res==='ok'?'OK':'NG';const nh=note?`<span style="font-size:11.5px;color:var(--text2);margin-left:8px">(${note})</span>`:'';itemsHtml+=`<div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px"><span>— ${item} ${nh}</span><span class="badge ${bc}">${bt}</span></div>`;});
+    g.items.forEach((item,ii)=>{const vo=chkObj[`r${gi}_${ii}`]||{status:'ok',note:''};const res=typeof vo==='string'?vo:vo.status;const note=typeof vo==='object'?(vo.note||''):'';const bc=res==='ok'?'badge-green':'badge-red';const bt=res==='ok'?'OK':'NG';const nh=note?`<span style="font-size:11.5px;color:var(--text2);margin-left:8px">(${escapeHtml(note)})</span>`:'';itemsHtml+=`<div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px"><span>— ${escapeHtml(item)} ${nh}</span><span class="badge ${bc}">${bt}</span></div>`;});
   });
-  document.getElementById('pm-view-doc-body').innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--r);padding:20px"><h3 style="color:var(--accent);text-align:center;margin-bottom:12px">ใบตรวจเช็ก PM — ${doc.pmCode}</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)"><div><strong>เครื่องจักร:</strong> ${doc.equip}</div><div><strong>วันที่:</strong> ${doc.date}</div><div><strong>ช่างผู้ตรวจ:</strong> ${doc.tech}</div><div><strong>อะไหล่:</strong> ${doc.parts||'-'}</div></div><div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;margin-bottom:16px">${itemsHtml}</div><div><strong>งานที่ดำเนินการ:</strong><p style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);margin-top:4px;color:var(--text2)">${doc.workDone||'-'}</p></div></div>`;
+  document.getElementById('pm-view-doc-body').innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--r);padding:20px"><h3 style="color:var(--accent);text-align:center;margin-bottom:12px">ใบตรวจเช็ก PM — ${escapeHtml(doc.pmCode)}</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)"><div><strong>เครื่องจักร:</strong> ${escapeHtml(doc.equip)}</div><div><strong>วันที่:</strong> ${escapeHtml(doc.date)}</div><div><strong>ช่างผู้ตรวจ:</strong> ${escapeHtml(doc.tech)}</div><div><strong>อะไหล่:</strong> ${escapeHtml(doc.parts||'-')}</div></div><div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;margin-bottom:16px">${itemsHtml}</div><div><strong>งานที่ดำเนินการ:</strong><p style="background:var(--bg2);padding:10px;border-radius:var(--r-sm);margin-top:4px;color:var(--text2)">${escapeHtml(doc.workDone||'-')}</p></div></div>`;
   openModal('pm-view-doc-modal');
 }
 
@@ -1972,7 +2001,7 @@ function renderAdminUsersTable() {
     return;
   }
   showLoading('กำลังโหลดข้อมูล Users...');
-  fetch(`${API_URL}/users`)
+  authFetch(`${API_URL}/users`)
     .then(r => r.json())
     .then(data => { hideLoading(); _allUsersCache = data.users || data || []; _renderUsersRows(_allUsersCache); })
     .catch(err => { hideLoading(); showToast('โหลดข้อมูล Users ไม่สำเร็จ','error'); });
@@ -2037,7 +2066,7 @@ function _renderUsersRows(users) {
 function adminToggleUserStatus(username, newStatus, btn) {
   if (isLocalMode) { showToast('Local Mode — ไม่สามารถแก้ไขได้','warning'); return; }
   showLoading('กำลังอัปเดต...');
-  fetch(`${API_URL}/users/${encodeURIComponent(username)}/status`, {
+  authFetch(`${API_URL}/users/${encodeURIComponent(username)}/status`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ status: newStatus })
   })
@@ -2054,7 +2083,7 @@ function adminDeleteUserConfirm(username) {
   if (!confirm(`⚠️ ยืนยันการลบ User "${username}" ?`)) return;
   if (isLocalMode) { showToast('Local Mode — ไม่สามารถลบได้','warning'); return; }
   showLoading('กำลังลบ...');
-  fetch(`${API_URL}/users/${encodeURIComponent(username)}`, { method:'DELETE' })
+  authFetch(`${API_URL}/users/${encodeURIComponent(username)}`, { method:'DELETE' })
   .then(r => r.json())
   .then(res => {
     hideLoading();
@@ -2241,10 +2270,10 @@ function engOpenDailyPMDetail(code){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;font-size:13px">
           <div><span style="color:var(--text2)">เครื่องจักร: </span><strong>${h.machine}</strong></div>
           <div><span style="color:var(--text2)">ไลน์: </span><strong>${h.productionLine}</strong></div>
-          <div><span style="color:var(--text2)">ผู้ตรวจ: </span><strong>${h.inspector}</strong></div>
+          <div><span style="color:var(--text2)">ผู้ตรวจ: </span><strong>${escapeHtml(h.inspector)}</strong></div>
           <div><span style="color:var(--text2)">สภาพรวม: </span><strong>${OL[h.result]||h.result}</strong></div>
           <div><span style="color:var(--text2)">วันที่: </span>${h.date} ${h.time}</div>
-          <div><span style="color:var(--text2)">หมายเหตุ: </span>${h.note||'-'}</div>
+          <div><span style="color:var(--text2)">หมายเหตุ: </span>${escapeHtml(h.note||'-')}</div>
         </div>
         <div style="border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;max-height:300px;overflow-y:auto">
           ${itemsHtml||'<div style="padding:16px;color:var(--text3);text-align:center">ไม่มีรายการ checklist</div>'}
@@ -2259,7 +2288,7 @@ function engAckDailyPM(){
   if(!_currentDailyPMCode) return;
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
-    fetch(`${API_URL}/daily-pm/${encodeURIComponent(_currentDailyPMCode)}/ack`, {
+    authFetch(`${API_URL}/daily-pm/${encodeURIComponent(_currentDailyPMCode)}/ack`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ by: currentUser.name })
     })
@@ -2308,7 +2337,7 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
  const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
   if (!isLocalMode) {
   showLoading('กำลังบันทึก...');
-  fetch(`${API_URL}/daily-pm`, {
+  authFetch(`${API_URL}/daily-pm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -2345,7 +2374,7 @@ function insRenderHistory(){
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}
   const OL={pass:'ปกติ',warn:'ต้องติดตาม',fail:'ชำรุด'};const OC={pass:'badge-green',warn:'badge-amber',fail:'badge-red'};
   let html=`<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>เวลา</th><th>ผู้ตรวจ</th><th>ไลน์</th><th>เครื่องจักร</th><th>OK/NG</th><th>สภาพรวม</th><th>ดู</th></tr></thead><tbody>`;
-  insDailyHistory.forEach((h,i)=>{html+=`<tr><td style="font-size:12px;color:var(--text2)">${h.ts}</td><td style="font-weight:600">${h.inspector}</td><td style="color:var(--text2)">${h.line}</td><td>${h.machine}</td><td><span style="color:var(--green)">${h.checklist.ok}</span>/<span style="color:var(--red)">${h.checklist.ng}</span></td><td><span class="pm-hist-badge ${OC[h.overall]||'pm-hist-ok'}">${OL[h.overall]||h.overall}</span></td><td><button class="pm-hist-detail-btn" onclick="insShowDetail(${i})">ดู</button></td></tr>`;});
+  insDailyHistory.forEach((h,i)=>{html+=`<tr><td style="font-size:12px;color:var(--text2)">${h.ts}</td><td style="font-weight:600">${escapeHtml(h.inspector)}</td><td style="color:var(--text2)">${escapeHtml(h.line)}</td><td>${escapeHtml(h.machine)}</td><td><span style="color:var(--green)">${h.checklist.ok}</span>/<span style="color:var(--red)">${h.checklist.ng}</span></td><td><span class="pm-hist-badge ${OC[h.overall]||'pm-hist-ok'}">${OL[h.overall]||h.overall}</span></td><td><button class="pm-hist-detail-btn" onclick="insShowDetail(${i})">ดู</button></td></tr>`;});
   html+='</tbody></table></div>';if(body)body.innerHTML=html;
 }
 function insShowDetail(i){
@@ -2744,7 +2773,7 @@ function teRenderDailyPM() {
 function teAckDailyPM(code) {
   if (isLocalMode) { showToast('Local Mode', 'warning'); return; }
   showLoading('กำลังบันทึก...');
-  fetch(`${API_URL}/daily-pm/${encodeURIComponent(code)}/ack`, {
+  authFetch(`${API_URL}/daily-pm/${encodeURIComponent(code)}/ack`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ by: currentUser.name })
@@ -2776,7 +2805,7 @@ function submitRepairForm(event) {
   // ── GAS Mode ──
   if (!isLocalMode) {
     showLoading('กำลังส่งใบแจ้งซ่อม...');
-    fetch(`${API_URL}/repairs`, {
+    authFetch(`${API_URL}/repairs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)
@@ -2966,7 +2995,7 @@ function doAcceptJob(id, technicianName) {
 
   if (!isLocalMode) {
     showLoading('กำลังรับงาน...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(id)}/accept`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ technician: technicianName })
@@ -3156,15 +3185,15 @@ function viewJobDetail(id) {
   document.getElementById('jdm-spec-body').innerHTML = `
     <div class="spec-row"><span class="spec-lbl">JobID</span><span class="spec-val mono">${j.id}</span></div>
     <div class="spec-row"><span class="spec-lbl">วันที่แจ้ง</span><span class="spec-val">${j.date}</span></div>
-    <div class="spec-row"><span class="spec-lbl">ผู้แจ้ง</span><span class="spec-val">${j.name||j.requester||'-'}</span></div>
+    <div class="spec-row"><span class="spec-lbl">ผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.name||j.requester||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">แผนก</span><span class="spec-val">${j.dept||'-'}</span></div>
-    <div class="spec-row"><span class="spec-lbl">เครื่องจักร</span><span class="spec-val">${j.machine}</span></div>
+    <div class="spec-row"><span class="spec-lbl">เครื่องจักร</span><span class="spec-val">${escapeHtml(j.machine)}</span></div>
     <div class="spec-row"><span class="spec-lbl">ด้านปัญหา</span><span class="spec-val">${j.side||'-'}</span></div>
     <div class="spec-row"><span class="spec-lbl">ประเภทงาน</span><span class="spec-val">${j.opType||'-'}</span></div>
-    <div class="spec-row"><span class="spec-lbl">รายละเอียด</span><span class="spec-val">${j.detail||'-'}</span></div>
-    <div class="spec-row"><span class="spec-lbl">ช่างซ่อม</span><span class="spec-val">${j.technician||'ยังไม่ได้รับงาน'}</span></div>
+    <div class="spec-row"><span class="spec-lbl">รายละเอียด</span><span class="spec-val">${escapeHtml(j.detail||'-')}</span></div>
+    <div class="spec-row"><span class="spec-lbl">ช่างซ่อม</span><span class="spec-val">${escapeHtml(j.technician||'ยังไม่ได้รับงาน')}</span></div>
     <div class="spec-row"><span class="spec-lbl">สถานะ</span><span class="spec-val">${j.status}</span></div>
-    ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${j.note}</span></div>` : ''}
+    ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
     ${j.eta  ? `<div class="spec-row"><span class="spec-lbl">ETA</span><span class="spec-val">${j.eta}</span></div>`  : ''}`;
 
   let imgHtml = '';
@@ -3214,7 +3243,7 @@ function engSubmitQC() {
 
   if (!isLocalMode) {
     showLoading('กำลังบันทึก QC...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/qc`, {
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/qc`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ result, by, note })
@@ -3272,8 +3301,8 @@ function renderPMHistoryTable() {
       <td style="font-size:12px;color:var(--text2)">${h.date}</td>
       <td>${h.tech}</td>
       <td><span class="badge ${condCls[h.result]||'badge-green'}">${condTxt[h.result]||h.result}</span></td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)">${h.workDone||'-'}</td>
-      <td style="font-size:12px;color:var(--text2)">${h.note||'-'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text2)">${escapeHtml(h.workDone||'-')}</td>
+      <td style="font-size:12px;color:var(--text2)">${escapeHtml(h.note||'-')}</td>
       <td><button class="btn-action" onclick="viewPMDoc('${h.pmCode}',${i})">📄 ดู</button></td>
     </tr>`).join('');
 }

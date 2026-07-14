@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
+const { requireAuth, requireRole } = require('../middleware/adminAuth');
 
 // GET /api/daily-pm
 router.get('/', async (req, res) => {
@@ -30,8 +31,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/daily-pm
-router.post('/', async (req, res) => {
+// POST /api/daily-pm (ต้อง login ก่อน)
+router.post('/', requireAuth, async (req, res) => {
   try {
     const {
       code, date, time, machine, productionLine,
@@ -67,8 +68,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST /api/daily-pm/:code/ack
-router.post('/:code/ack', async (req, res) => {
+// POST /api/daily-pm/:code/ack (เฉพาะช่าง/วิศวกร/แอดมิน)
+router.post('/:code/ack', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { code } = req.params;
     const { by }   = req.body;
