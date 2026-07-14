@@ -16,6 +16,20 @@ const ADMIN_ACCOUNT = {
   avatar_url: '',
 };
 
+// บัญชีกลางของทีมช่าง/วิศวกร — กำหนด username/password ไว้เองผ่าน env var
+// (ไม่ต้องผ่านระบบสมัครสมาชิก/ไม่มีแถวใน Users sheet) ใช้ร่วมกันหน้างานบนเครื่องเดียว
+// แล้วให้แต่ละคนเลือกชื่อ+กรอกรหัสพนักงานตอนรับงาน (ดู routes/techprofiles.js)
+const TE_SHARED_ACCOUNT = {
+  username:   process.env.TE_SHARED_USERNAME,
+  password:   process.env.TE_SHARED_PASSWORD,
+  role:       'engineer',
+  fullname:   'ทีมช่าง/วิศวกร',
+  dept:       'ENG',
+  status:     'active',
+  is_chief:   'FALSE',
+  avatar_url: '',
+};
+
 // รวม role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ให้เป็น role เดียวกันคือ 'engineer'
 // เพื่อให้ทั้งสองกลุ่มเข้า TE Panel เดียวกัน แต่ยังคงมีหลาย username/ID แยกกันตามปกติ
 function resolveRole(role, dept, username) {
@@ -63,6 +77,23 @@ router.post('/login', async (req, res) => {
         dept:    ADMIN_ACCOUNT.dept,
         avatar:  ADMIN_ACCOUNT.avatar_url,
         isChief: true,
+      });
+    }
+
+    // บัญชีกลางทีมช่าง/วิศวกร (username/password กำหนดไว้เองผ่าน env var)
+    if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) {
+      if (password !== TE_SHARED_ACCOUNT.password) {
+        return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
+      }
+      return res.json({
+        success:    true,
+        username:   TE_SHARED_ACCOUNT.username,
+        name:       TE_SHARED_ACCOUNT.fullname,
+        role:       TE_SHARED_ACCOUNT.role,
+        dept:       TE_SHARED_ACCOUNT.dept,
+        avatar:     TE_SHARED_ACCOUNT.avatar_url,
+        isChief:    false,
+        lineLinked: false,
       });
     }
 
