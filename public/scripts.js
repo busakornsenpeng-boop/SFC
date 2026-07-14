@@ -2511,7 +2511,7 @@ function teUpdateStats() {
   const jobs   = getRepairJobsData();
   const pmList = getPMData();
   const waiting = jobs.filter(j => j.status === 'รอซ่อม').length;
-  const mine    = jobs.filter(j => j.status === 'กำลังซ่อม' && j.technician === ME).length;
+  const mine    = jobs.filter(j => j.status === 'กำลังซ่อม' && (j.technician === ME || j.technician === ME_IDENTIFIED)).length;
   const qcJobs  = jobs.filter(j => j.status === 'ซ่อมเสร็จแล้ว').length;
   const pmPend  = pmList.filter(p => p.status !== 'เสร็จแล้ว').length;
   const sv = id => document.getElementById(id);
