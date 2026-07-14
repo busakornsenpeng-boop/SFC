@@ -43,10 +43,11 @@
     --shadow-sm:0 1px 1px rgba(16,24,40,0.04);
     --shadow-lg:0 3px 10px rgba(16,24,40,0.08);
     --glow:0 0 0 4px rgba(46,92,230,0.10);
-    --font-mono:'IBM Plex Mono',monospace;
+    --font-mono:'SF Mono',ui-monospace,'IBM Plex Mono',monospace;
+    --font-system:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI','IBM Plex Sans Thai',sans-serif;
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background-color:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+  html,body{height:100%;background-color:var(--bg);color:var(--text);font-family:var(--font-system);font-size:14px;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
   body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;opacity:0.4}
   ::-webkit-scrollbar{width:7px;height:7px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -304,3 +305,39 @@
 
 /* transition ให้การขยับดู smooth ขึ้นทุกจุด */
 * { transition-timing-function: cubic-bezier(.4,0,.2,1); }
+
+/* ============ RESPONSIVE PATCH — วางต่อท้าย styles-base.css ============
+   styles-base.css คุมหน้า login, header, tab navigation, ตาราง, ฟอร์ม
+   ซึ่งเดิมไม่มี @media query เลย ทำให้ล้น/บีบบนจอมือถือ */
+
+@media (max-width: 640px) {
+  .container{padding:16px 12px 72px}
+
+  /* Header: ให้ห่อบรรทัดแทนการบีบ/ล้นแนวนอน */
+  .main-header{flex-wrap:wrap;gap:12px;align-items:flex-start}
+  .brand-section{gap:10px}
+  .brand-title{font-size:16px}
+  .brand-subtitle{font-size:10px}
+  .user-profile{width:100%;justify-content:space-between;padding:6px 10px}
+
+  /* Tab navigation: ยืนยันว่าปุ่มไม่บีบเล็กเกินไปตอน scroll แนวนอน */
+  .tab-btn{min-width:88px;padding:9px 10px;font-size:12px}
+
+  /* Stat cards: ตัวเลขใหญ่เกินไปบนจอแคบ */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-card{padding:12px}
+  .stat-value{font-size:21px}
+
+  /* ตาราง: ลดขนาดตัวอักษร/padding เพื่อลด scroll แนวนอน */
+  table.data-table{font-size:12px}
+  table.data-table th,table.data-table td{padding:10px 12px}
+
+  /* Login card: ลด padding บนจอแคบมาก */
+  .login-card{padding:28px 18px}
+  .role-selector{grid-template-columns:repeat(3,1fr)}
+}
+
+@media (max-width: 400px) {
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .role-selector{grid-template-columns:repeat(2,1fr)}
+}

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>SFC Maintenance Service</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://unpkg.com/ionicons@4.5.10-0/dist/css/ionicons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <link rel="stylesheet" href="styles-base.css">
@@ -26,7 +26,7 @@
     <!-- ════════════════════════════ LOGIN PAGE ════════════════════════════ -->
     <section id="login-page">
       <div class="login-card">
-       <img id="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
+       <img class="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
         <h1 class="login-title" style="margin-bottom:4px">SFC Maintenance Service</h1>
         <p class="login-desc" style="margin-bottom:18px">ระบบแจ้งซ่อมและกำหนดตารางแผนบำรุงรักษา PM</p>
         <div class="login-error" id="login-err-msg">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!
@@ -66,7 +66,7 @@
       <!-- Header -->
       <header class="main-header">
         <div class="brand-section">
-          <img id="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
+          <img class="header-logo-img" alt="SFC Logo" style="height:38px;border-radius:8px;object-fit:contain;background:white;padding:2px">
           <div>
             <h2 class="brand-title">SFC Maintenance Service</h2>
             <div class="brand-subtitle">บูรณาการการแจ้งซ่อมและแผนบำรุงรักษา (PM) ออนไลน์</div>
@@ -79,10 +79,10 @@
           </div>
           <button id="btn-line-connect" onclick="dashConnectLINE()" title="เชื่อมบัญชี LINE"
             style="background:#06C755;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-right:6px">
-            <i class="bi bi-line"></i> เชื่อม LINE
+            <i class="ion-ios-chatbubbles"></i> เชื่อม LINE
           </button>
           <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-            <i class="bi bi-box-arrow-right"></i>
+            <i class="ion-ios-log-out"></i>
           </button>
         </div>
       </header>
@@ -95,7 +95,7 @@
       ══════════════════════════════════════════════════════ -->
       <div id="panel-report-repair" class="view-panel">
         <div class="card">
-          <div class="card-title"><i class="bi bi-plus-circle"></i> แบบฟอร์มแจ้งซ่อมเครื่องจักร</div>
+          <div class="card-title"><i class="ion-ios-add-circle-outline"></i> แบบฟอร์มแจ้งซ่อมเครื่องจักร</div>
          <form id="repair-request-form" onsubmit="submitRepairForm(event)">
   <div class="form-grid-3">
     <div class="form-field">
@@ -151,7 +151,7 @@
             <div class="form-field" style="margin-bottom:20px">
               <label>แนบรูปภาพ (ถ้ามี)</label>
               <div class="dropzone" onclick="triggerFileInput('rep-file-input')">
-                <i class="bi bi-cloud-arrow-up"></i>
+                <i class="ion-ios-cloud-upload"></i>
                 <span style="font-size:13px;color:var(--text2)">คลิกเพื่อเลือกรูปภาพ</span>
               </div>
               <input type="file" id="rep-file-input" accept="image/*" multiple style="display:none"
@@ -159,7 +159,7 @@
               <div class="thumb-grid" id="rep-thumb-grid"></div>
             </div>
             <div class="actions-panel" style="margin-top:0;padding-top:0;border:none">
-              <button type="submit" class="btn btn-accent"><i class="bi bi-send"></i> ส่งใบแจ้งซ่อม</button>
+              <button type="submit" class="btn btn-accent"><i class="ion-ios-send"></i> ส่งใบแจ้งซ่อม</button>
             </div>
           </form>
         </div>
@@ -170,7 +170,7 @@
       ══════════════════════════════════════════════════════ -->
       <div id="panel-track-repairs" class="view-panel">
         <div class="card">
-          <div class="card-title"><i class="bi bi-clock-history"></i> ติดตามสถานะงานซ่อมบำรุง</div>
+          <div class="card-title"><i class="ion-ios-time"></i> ติดตามสถานะงานซ่อมบำรุง</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
            <input type="text" id="track-search" class="input-ctrl"
   style="flex:1;min-width:160px;font-size:13px"
@@ -216,9 +216,9 @@
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-            <div class="card-title" style="margin-bottom:0"><i class="bi bi-list-stars"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
+            <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
             <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openModal('pm-event-modal')">
-              <i class="bi bi-plus-lg"></i> เพิ่มแผน PM
+              <i class="ion-ios-add"></i> เพิ่มแผน PM
             </button>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
@@ -263,8 +263,8 @@
         <div class="calendar-container">
           <div class="calendar-header">
             <div style="display:flex;gap:6px">
-              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(-1)"><i class="bi bi-chevron-left"></i></button>
-              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(1)"><i class="bi bi-chevron-right"></i></button>
+              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(-1)"><i class="ion-ios-arrow-back"></i></button>
+              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(1)"><i class="ion-ios-arrow-forward"></i></button>
             </div>
             <span class="calendar-title" id="calendar-title-txt">—</span>
             <button class="btn btn-sec" style="padding:6px 12px;font-size:12px" onclick="focusCalendarToday()">วันนี้</button>
@@ -278,11 +278,11 @@
           <div class="calendar-grid" id="calendar-body-days"></div>
         </div>
         <div class="day-nav-wrapper" id="cal-day-navigator" style="display:none">
-          <button class="day-nav-btn" onclick="shiftSelectedDay(-1)"><i class="bi bi-chevron-left"></i></button>
-          <div class="day-nav-label"><i class="bi bi-calendar3"></i><span id="cal-selected-day-lbl">—</span></div>
-          <button class="day-nav-btn" onclick="shiftSelectedDay(1)"><i class="bi bi-chevron-right"></i></button>
+          <button class="day-nav-btn" onclick="shiftSelectedDay(-1)"><i class="ion-ios-arrow-back"></i></button>
+          <div class="day-nav-label"><i class="ion-ios-calendar"></i><span id="cal-selected-day-lbl">—</span></div>
+          <button class="day-nav-btn" onclick="shiftSelectedDay(1)"><i class="ion-ios-arrow-forward"></i></button>
           <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="clearSelectedDayNav()">
-            <i class="bi bi-x"></i>
+            <i class="ion-ios-close"></i>
           </button>
         </div>
         <div id="cal-day-detail-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
@@ -297,7 +297,7 @@
       ══════════════════════════════════════════════════════ -->
       <div id="panel-pm-checklist" class="view-panel">
         <div class="card">
-          <div class="card-title"><i class="bi bi-clipboard-check"></i> แบบฟอร์มตรวจสอบเครื่องจักรและบำรุงรักษาเชิงป้องกัน (PM)</div>
+          <div class="card-title"><i class="ion-ios-clipboard"></i> แบบฟอร์มตรวจสอบเครื่องจักรและบำรุงรักษาเชิงป้องกัน (PM)</div>
           <div class="form-grid-3">
             <div class="form-field"><label>รหัสงาน PM</label><input type="text" id="chk-pm-code" class="input-ctrl" readonly></div>
             <div class="form-field"><label>เครื่องจักร</label><input type="text" id="chk-pm-equip" class="input-ctrl" readonly></div>
@@ -320,7 +320,7 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-title"><i class="bi bi-list-check"></i> รายการตรวจสอบ (Checklist)</div>
+          <div class="card-title"><i class="ion-ios-list-box"></i> รายการตรวจสอบ (Checklist)</div>
           <table class="checklist-table">
             <thead class="checklist-hdr">
               <tr>
@@ -333,7 +333,7 @@
           </table>
         </div>
         <div class="card" style="margin-top:20px">
-          <div class="card-title"><i class="bi bi-clipboard-data"></i> รายงานผลการซ่อมบำรุงและสภาพรวม</div>
+          <div class="card-title"><i class="ion-ios-clipboard"></i> รายงานผลการซ่อมบำรุงและสภาพรวม</div>
           <div class="form-grid-3">
             <div class="form-field"><label>ชั่วโมงการทำงาน</label><input type="number" id="chk-running-hr" class="input-ctrl" placeholder="เช่น 4250"></div>
             <div class="form-field"><label>อะไหล่ที่เปลี่ยน (ถ้ามี)</label><input type="text" id="chk-parts-replaced" class="input-ctrl" placeholder="ชื่อชิ้นส่วน หรือ '-'"></div>
@@ -352,7 +352,7 @@
           <div class="form-field" style="max-width:240px"><label>วันที่เสนอแผน PM ครั้งถัดไป</label><input type="date" id="chk-next-pm" class="input-ctrl"></div>
         </div>
         <div class="card">
-          <div class="card-title"><i class="bi bi-shield-check"></i> ระบบยืนยันการตรวจสอบ</div>
+          <div class="card-title"><i class="ion-ios-checkmark-circle"></i> ระบบยืนยันการตรวจสอบ</div>
           <div class="form-grid-2">
             <div class="form-field"><label>ช่างผู้ตรวจ<span class="req">*</span></label><input type="text" id="chk-sign-tech-input" class="input-ctrl" placeholder="ชื่อ-นามสกุล" oninput="updateSignatureBox('tech')"></div>
             <div class="form-field"><label>ผู้อนุมัติ<span class="req">*</span></label><input type="text" id="chk-sign-appr-input" class="input-ctrl" placeholder="ชื่อ-นามสกุล" oninput="updateSignatureBox('appr')"></div>
@@ -372,7 +372,7 @@
         </div>
         <div class="actions-panel">
           <button class="btn btn-sec" onclick="resetPMForm()">ล้างแบบฟอร์ม</button>
-          <button class="btn btn-accent" onclick="submitPMForm()"><i class="bi bi-cloud-arrow-up"></i> ส่งบันทึกเช็กชีต PM</button>
+          <button class="btn btn-accent" onclick="submitPMForm()"><i class="ion-ios-cloud-upload"></i> ส่งบันทึกเช็กชีต PM</button>
         </div>
       </div>
 
@@ -381,7 +381,7 @@
       ══════════════════════════════════════════════════════ -->
       <div id="panel-pm-history" class="view-panel">
         <div class="card">
-          <div class="card-title"><i class="bi bi-journal-check"></i> ประวัติรายงานการตรวจ PM</div>
+          <div class="card-title"><i class="ion-ios-journal"></i> ประวัติรายงานการตรวจ PM</div>
           <div class="table-container">
             <table class="data-table">
               <thead>
@@ -404,22 +404,22 @@
         <div class="eng-wrap">
           <!-- KPI Summary -->
           <div class="eng-summary">
-            <div class="eng-kpi ek-red"><span class="eng-kpi-icon">🔍</span><div class="eng-kpi-val" id="eng-kpi-qc">0</div><div class="eng-kpi-lbl">รอ QC</div></div>
+            <div class="eng-kpi ek-red"><span class="eng-kpi-icon"><i class="ion-ios-search"></i></span><div class="eng-kpi-val" id="eng-kpi-qc">0</div><div class="eng-kpi-lbl">รอ QC</div></div>
             <div class="eng-kpi ek-yellow"><span class="eng-kpi-icon">⏳</span><div class="eng-kpi-val" id="eng-kpi-pmpend">0</div><div class="eng-kpi-lbl">PM รอดำเนินการ</div></div>
-            <div class="eng-kpi ek-green"><span class="eng-kpi-icon">✅</span><div class="eng-kpi-val" id="eng-kpi-pmdone">0</div><div class="eng-kpi-lbl">PM เสร็จแล้ว</div></div>
-            <div class="eng-kpi ek-teal"><span class="eng-kpi-icon">📋</span><div class="eng-kpi-val" id="eng-kpi-pmtotal">0</div><div class="eng-kpi-lbl">PM ทั้งหมด</div></div>
-            <div class="eng-kpi ek-blue"><span class="eng-kpi-icon">🔧</span><div class="eng-kpi-val" id="eng-kpi-repairs">0</div><div class="eng-kpi-lbl">งานแจ้งซ่อม</div></div>
-            <div class="eng-kpi ek-purple"><span class="eng-kpi-icon">📊</span><div class="eng-kpi-val" id="eng-kpi-sla">—%</div><div class="eng-kpi-lbl">SLA เฉลี่ย</div></div>
+            <div class="eng-kpi ek-green"><span class="eng-kpi-icon"><i class="ion-ios-checkmark-circle-outline"></i></span><div class="eng-kpi-val" id="eng-kpi-pmdone">0</div><div class="eng-kpi-lbl">PM เสร็จแล้ว</div></div>
+            <div class="eng-kpi ek-teal"><span class="eng-kpi-icon"><i class="ion-ios-clipboard"></i></span><div class="eng-kpi-val" id="eng-kpi-pmtotal">0</div><div class="eng-kpi-lbl">PM ทั้งหมด</div></div>
+            <div class="eng-kpi ek-blue"><span class="eng-kpi-icon"><i class="ion-ios-construct"></i></span><div class="eng-kpi-val" id="eng-kpi-repairs">0</div><div class="eng-kpi-lbl">งานแจ้งซ่อม</div></div>
+            <div class="eng-kpi ek-purple"><span class="eng-kpi-icon"><i class="ion-ios-stats"></i></span><div class="eng-kpi-val" id="eng-kpi-sla">—%</div><div class="eng-kpi-lbl">SLA เฉลี่ย</div></div>
           </div>
           <!-- Sub-tabs -->
           <div class="eng-tabs">
-            <button class="eng-tab active" id="et-qc"   onclick="swEng('qc',this)">🔍 งาน QC <span class="eng-tab-badge alert" id="eng-badge-qc">0</span></button>
+            <button class="eng-tab active" id="et-qc"   onclick="swEng('qc',this)"><i class="ion-ios-search"></i> งาน QC <span class="eng-tab-badge alert" id="eng-badge-qc">0</span></button>
             <button class="eng-tab"        id="et-dash" onclick="swEng('dash',this)">📊 ภาพรวม</button>
-            <button class="eng-tab"        id="et-pm"   onclick="swEng('pm',this)">📋 กำหนด PM <span class="eng-tab-badge" id="eng-badge-pm">0</span></button>
+            <button class="eng-tab"        id="et-pm"   onclick="swEng('pm',this)"><i class="ion-ios-clipboard"></i> กำหนด PM <span class="eng-tab-badge" id="eng-badge-pm">0</span></button>
             <button class="eng-tab"        id="et-cal"  onclick="swEng('cal',this)">📅 ปฏิทิน PM</button>
-            <button class="eng-tab"        id="et-hist" onclick="swEng('hist',this)">📜 ประวัติ PM</button>
-            <button class="eng-tab"        id="et-rep"  onclick="swEng('rep',this)">🔧 งานแจ้งซ่อม</button>
-            <button class="eng-tab"        id="et-daily" onclick="swEng('daily',this)">📋 Daily PM <span class="eng-tab-badge" id="eng-badge-daily">0</span></button>
+            <button class="eng-tab"        id="et-hist" onclick="swEng('hist',this)"><i class="ion-ios-journal"></i> ประวัติ PM</button>
+            <button class="eng-tab"        id="et-rep"  onclick="swEng('rep',this)"><i class="ion-ios-construct"></i> งานแจ้งซ่อม</button>
+            <button class="eng-tab"        id="et-daily" onclick="swEng('daily',this)"><i class="ion-ios-clipboard"></i> Daily PM <span class="eng-tab-badge" id="eng-badge-daily">0</span></button>
           </div>
 
           <!-- QC Tab -->
@@ -435,9 +435,9 @@
           <!-- Dashboard Tab -->
           <div class="eng-panel" id="ep-dash">
             <div class="eng-dash-grid">
-              <div class="eng-chart-card"><div class="eng-chart-title"><span>📈</span> แนวโน้ม PM รายเดือน</div><div class="trend-list" id="ep-trend-list"></div></div>
-              <div class="eng-chart-card"><div class="eng-chart-title"><span>🕐</span> กิจกรรมล่าสุด</div><div class="recent-list" id="ep-recent-list"></div></div>
-              <div class="eng-chart-card"><div class="eng-chart-title"><span>⚡</span> สัดส่วน PM ตามสถานะ</div><div id="ep-pm-bars" style="display:flex;flex-direction:column;gap:10px"></div></div>
+              <div class="eng-chart-card"><div class="eng-chart-title"><span><i class="ion-ios-trending-up"></i></span> แนวโน้ม PM รายเดือน</div><div class="trend-list" id="ep-trend-list"></div></div>
+              <div class="eng-chart-card"><div class="eng-chart-title"><span><i class="ion-ios-time"></i></span> กิจกรรมล่าสุด</div><div class="recent-list" id="ep-recent-list"></div></div>
+              <div class="eng-chart-card"><div class="eng-chart-title"><span><i class="ion-ios-pie"></i></span> สัดส่วน PM ตามสถานะ</div><div id="ep-pm-bars" style="display:flex;flex-direction:column;gap:10px"></div></div>
             </div>
           </div>
 
@@ -452,7 +452,7 @@
               <select class="pm-sel-eng" id="ep-pm-freq" onchange="engRenderPMTable()">
                 <option value="">ความถี่ทั้งหมด</option><option>รายวัน</option><option>รายเดือน</option>
               </select>
-              <button class="pm-add-btn-eng d-none" id="ep-pm-add-btn" onclick="openModal('pm-event-modal')">➕ เพิ่มแผน PM</button>
+              <button class="pm-add-btn-eng d-none" id="ep-pm-add-btn" onclick="openModal('pm-event-modal')"><i class="ion-ios-add"></i> เพิ่มแผน PM</button>
             </div>
             <div class="pm-table-wrap">
               <table class="pm-table">
@@ -487,10 +487,10 @@
             </div>
             <div id="eng-cal-detail" style="display:none">
               <div style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px">
-                <button class="day-nav-btn" onclick="engCalShiftDay(-1)"><i class="bi bi-chevron-left"></i></button>
+                <button class="day-nav-btn" onclick="engCalShiftDay(-1)"><i class="ion-ios-arrow-back"></i></button>
                 <div style="flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--text)" id="eng-cal-day-lbl">—</div>
-                <button class="day-nav-btn" onclick="engCalShiftDay(1)"><i class="bi bi-chevron-right"></i></button>
-                <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="engCalClear()"><i class="bi bi-x"></i></button>
+                <button class="day-nav-btn" onclick="engCalShiftDay(1)"><i class="ion-ios-arrow-forward"></i></button>
+                <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="engCalClear()"><i class="ion-ios-close"></i></button>
               </div>
               <div class="day-detail-card" id="eng-cal-detail-inner"></div>
             </div>
@@ -517,7 +517,7 @@
                 <thead><tr><th>#</th><th>รหัส PM / เครื่องจักร</th><th>ความถี่</th><th>วันที่ตรวจ</th><th>ผู้ตรวจ</th><th>สภาพรวม</th><th>งานที่ปฏิบัติ</th><th>เอกสาร</th></tr></thead>
                 <tbody id="hist-tbody"></tbody>
               </table>
-              <div id="hist-empty" class="hist-empty" style="display:none">📭 ไม่พบรายการที่ตรงกัน</div>
+              <div id="hist-empty" class="hist-empty" style="display:none"><i class="ion-ios-archive"></i> ไม่พบรายการที่ตรงกัน</div>
             </div>
           </div>
 
@@ -568,40 +568,40 @@
         <!-- KPI Bar v2 -->
         <div class="adm-kpi-bar-v2">
           <div class="adm-kpi-v2 kv-blue kv-clickable" onclick="openDeptBreakdown('total')">
-            <div class="kv-icon"><i class="bi bi-clipboard-list-fill"></i></div>
+            <div class="kv-icon"><i class="ion-ios-clipboard"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-total">0</div><div class="kv-lbl">แจ้งซ่อมทั้งหมด</div><div class="kv-trend" id="adm-trend-total">—</div></div>
           </div>
           <div class="adm-kpi-v2 kv-amber kv-clickable" onclick="openDeptBreakdown('waiting')">
-            <div class="kv-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="kv-icon"><i class="ion-ios-hourglass"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-wait">0</div><div class="kv-lbl">รอซ่อม</div><div class="kv-trend" id="adm-trend-wait">—</div></div>
           </div>
           <div class="adm-kpi-v2 kv-orange kv-clickable" onclick="openDeptBreakdown('working')">
-            <div class="kv-icon"><i class="bi bi-wrench-adjustable"></i></div>
+            <div class="kv-icon"><i class="ion-ios-construct"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-work">0</div><div class="kv-lbl">กำลังซ่อม</div><div class="kv-trend" id="adm-trend-work">—</div></div>
           </div>
           <div class="adm-kpi-v2 kv-green kv-clickable" onclick="openDeptBreakdown('closed')">
-            <div class="kv-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="kv-icon"><i class="ion-ios-checkmark-circle"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-closed">0</div><div class="kv-lbl">ปิดงานเสร็จ</div><div class="kv-trend" id="adm-trend-closed">—</div></div>
           </div>
           <div class="adm-kpi-v2 kv-purple">
-            <div class="kv-icon"><i class="bi bi-bar-chart-fill"></i></div>
+            <div class="kv-icon"><i class="ion-ios-stats"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-pm">0</div><div class="kv-lbl">PM ทั้งหมด</div><div class="kv-trend" id="adm-trend-pm">—</div></div>
           </div>
           <div class="adm-kpi-v2 kv-teal">
-            <div class="kv-icon"><i class="bi bi-star-fill"></i></div>
+            <div class="kv-icon"><i class="ion-ios-star"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-sla">—%</div><div class="kv-lbl">SLA เฉลี่ย</div><div class="kv-trend" id="adm-trend-sla">—</div></div>
           </div>
         </div>
 
         <!-- Filter Row -->
         <div class="adm-filter-row-v2">
-          <div class="adm-filter-title"><i class="bi bi-graph-up-arrow"></i> วิเคราะห์ภาพรวม</div>
+          <div class="adm-filter-title"><i class="ion-ios-trending-up"></i> วิเคราะห์ภาพรวม</div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="adm-export-btn" onclick="exportAdminPDF()"><i class="bi bi-file-earmark-pdf"></i> ส่งออก PDF</button>
+            <button class="adm-export-btn" onclick="exportAdminPDF()"><i class="ion-ios-document"></i> ส่งออก PDF</button>
          <div class="adm-flt-group" style="position:relative">
   <button class="adm-flt active" onclick="changeAdminTimeFilter('all');setFltBtn(this)">ทั้งหมด</button>
   <button class="adm-flt" id="adm-flt-custom-btn" onclick="toggleAdminDatePopover(event)">
-    <i class="bi bi-calendar3"></i> เลือกช่วงวันที่
+    <i class="ion-ios-calendar"></i> เลือกช่วงวันที่
   </button>
   <div class="adm-date-popover" id="adm-date-popover" onclick="event.stopPropagation()">
     <div class="adm-date-popover-title">กำหนดช่วงวันที่</div>
@@ -618,7 +618,7 @@
       </div>
     </div>
     <button class="btn btn-accent" style="width:100%;margin-top:10px" onclick="applyAdminCustomRange()">
-      <i class="bi bi-check2"></i> ใช้ช่วงวันที่นี้
+      <i class="ion-ios-checkmark"></i> ใช้ช่วงวันที่นี้
     </button>
   </div>
 </div>
@@ -628,22 +628,22 @@
         <!-- Charts Row -->
         <div class="adm-charts-row-v2">
           <div class="adm-chart-card-v2">
-            <div class="adm-chart-title-v2"><i class="bi bi-pie-chart-fill"></i> สัดส่วนด้านปัญหา</div>
+            <div class="adm-chart-title-v2"><i class="ion-ios-pie"></i> สัดส่วนด้านปัญหา</div>
             <div style="position:relative;height:200px"><canvas id="chart-side"></canvas></div>
           </div>
           <div class="adm-chart-card-v2">
-            <div class="adm-chart-title-v2"><i class="bi bi-building"></i> แจ้งซ่อมแยกตามแผนก</div>
+            <div class="adm-chart-title-v2"><i class="ion-ios-business"></i> แจ้งซ่อมแยกตามแผนก</div>
             <div style="position:relative;height:200px"><canvas id="chart-dept"></canvas></div>
           </div>
           <div class="adm-chart-card-v2" style="grid-column:span 2">
-            <div class="adm-chart-title-v2"><i class="bi bi-graph-up"></i> แนวโน้มการแจ้งซ่อมรายเดือน</div>
+            <div class="adm-chart-title-v2"><i class="ion-ios-trending-up"></i> แนวโน้มการแจ้งซ่อมรายเดือน</div>
             <div style="position:relative;height:200px"><canvas id="chart-monthly"></canvas></div>
           </div>
         </div>
 
         <!-- Leaderboard -->
         <div class="adm-leader-v2">
-          <div class="adm-leader-hdr-v2"><i class="bi bi-trophy-fill" style="color:var(--yellow)"></i> ประสิทธิภาพช่างซ่อม (Leaderboard)</div>
+          <div class="adm-leader-hdr-v2"><i class="ion-ios-trophy" style="color:var(--yellow)"></i> ประสิทธิภาพช่างซ่อม (Leaderboard)</div>
           <div style="overflow-x:auto">
             <table class="adm-leader-table">
               <thead>
@@ -666,7 +666,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <span class="modal-title" id="dbm-title">รายละเอียดตามแผนก</span>
-            <button class="modal-close" onclick="closeModal('dept-breakdown-modal')"><i class="bi bi-x-lg"></i></button>
+            <button class="modal-close" onclick="closeModal('dept-breakdown-modal')"><i class="ion-ios-close"></i></button>
           </div>
           <div class="modal-body">
             <div id="dbm-body"></div>
@@ -680,19 +680,19 @@
       <div id="panel-admin-repairs" class="view-panel">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-            <div class="card-title" style="margin-bottom:0"><i class="bi bi-sliders"></i> จัดการใบแจ้งซ่อมทั้งหมด</div>
+            <div class="card-title" style="margin-bottom:0"><i class="ion-ios-options"></i> จัดการใบแจ้งซ่อมทั้งหมด</div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-sec" style="font-size:12px" id="admin-rep-export-btn" onclick="exportAdminRepairsExcel()">
-                <i class="bi bi-file-earmark-excel"></i> ส่งออก Excel
+                <i class="ion-ios-document"></i> ส่งออก Excel
               </button>
               <button class="btn btn-sec" style="font-size:12px" onclick="refreshData('กำลังโหลดข้อมูล...')">
-                <i class="bi bi-arrow-clockwise"></i> รีเฟรช
+                <i class="ion-ios-refresh"></i> รีเฟรช
               </button>
             </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center">
             <div style="position:relative;flex:1;min-width:180px">
-              <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"></i>
+              <i class="ion-ios-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none"></i>
               <input type="text" id="admin-search-rep" class="input-ctrl"
                 style="padding-left:32px;font-size:13px"
                 placeholder="ค้นหา JobID / ชื่อ / เครื่องจักร..."
@@ -709,7 +709,7 @@
 </select>
 <div style="position:relative">
   <button class="btn btn-sec" style="font-size:12px" id="admin-rep-date-btn" onclick="toggleAdminRepDatePopover(event)">
-    <i class="bi bi-calendar3"></i> เลือกช่วงวันที่
+    <i class="ion-ios-calendar"></i> เลือกช่วงวันที่
   </button>
   <div class="adm-date-popover" id="admin-rep-date-popover" onclick="event.stopPropagation()">
     <div class="adm-date-popover-title">กำหนดช่วงวันที่</div>
@@ -727,7 +727,7 @@
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn btn-sec" style="flex:1" onclick="clearAdminRepDateFilter()">ล้างวันที่</button>
-      <button class="btn btn-accent" style="flex:1" onclick="applyAdminRepDateFilter()"><i class="bi bi-check2"></i> ใช้ช่วงวันที่</button>
+      <button class="btn btn-accent" style="flex:1" onclick="applyAdminRepDateFilter()"><i class="ion-ios-checkmark"></i> ใช้ช่วงวันที่</button>
     </div>
   </div>
 </div>
@@ -754,7 +754,7 @@
       ══════════════════════════════════════════════════════ -->
       <div id="panel-ins-daily-pm" class="view-panel">
         <div class="card pm-daily-wrap">
-          <div class="card-title"><i class="bi bi-clipboard-check"></i> ฟอร์มตรวจสอบ PM รายวัน</div>
+          <div class="card-title"><i class="ion-ios-clipboard"></i> ฟอร์มตรวจสอบ PM รายวัน</div>
           <div class="pm-meta-grid">
             <div class="form-field"><label>รหัสงาน PM</label><input type="text" id="ins-pm-code" class="input-ctrl" readonly placeholder="สร้างอัตโนมัติ"></div>
             <div class="form-field"><label>วันที่ตรวจ<span class="pm-req">*</span></label><input type="date" id="ins-pm-date" class="input-ctrl"></div>
@@ -776,7 +776,7 @@
         </div>
         <div id="ins-checklist-container"></div>
         <div class="card pm-daily-wrap">
-          <div class="card-title"><i class="bi bi-clipboard-data"></i> สรุปผลและรายงาน</div>
+          <div class="card-title"><i class="ion-ios-clipboard"></i> สรุปผลและรายงาน</div>
           <div class="form-grid-2" style="margin-bottom:12px">
             <div class="form-field">
               <label>สภาพโดยรวม<span class="pm-req">*</span></label>
@@ -793,17 +793,17 @@
           <div class="form-field"><label>ข้อสังเกตและงานติดตาม</label><textarea id="ins-pm-remark" class="textarea-ctrl" placeholder="ตรวจพบอาการสั่นเบาบาง..."></textarea></div>
         </div>
         <div class="actions-panel">
-          <button class="btn btn-sec" onclick="insResetForm()"><i class="bi bi-arrow-counterclockwise"></i> ล้างแบบฟอร์ม</button>
-          <button class="btn btn-accent" onclick="insSubmitForm()"><i class="bi bi-cloud-arrow-up"></i> บันทึกผล PM รายวัน</button>
+          <button class="btn btn-sec" onclick="insResetForm()"><i class="ion-ios-undo"></i> ล้างแบบฟอร์ม</button>
+          <button class="btn btn-accent" onclick="insSubmitForm()"><i class="ion-ios-cloud-upload"></i> บันทึกผล PM รายวัน</button>
         </div>
         <div class="card pm-daily-wrap" style="margin-top:8px;padding:0;overflow:hidden">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg2);border-bottom:1px solid var(--border)">
-            <div class="card-title" style="margin-bottom:0"><i class="bi bi-history"></i> ประวัติการตรวจ PM รายวัน</div>
+            <div class="card-title" style="margin-bottom:0"><i class="ion-ios-time"></i> ประวัติการตรวจ PM รายวัน</div>
             <span id="ins-hist-count" style="font-size:12px;color:var(--text2)">0 รายการ</span>
           </div>
           <div id="ins-hist-body">
             <div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">
-              <i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ
+              <i class="ion-ios-archive" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ
             </div>
           </div>
         </div>
@@ -812,11 +812,11 @@
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
     <button class="people-subtab active" id="pst-users" onclick="switchPeopleSubTab('users',this)"
       style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-      <i class="bi bi-people"></i> บัญชี Login
+      <i class="ion-ios-people"></i> บัญชี Login
     </button>
     <button class="people-subtab" id="pst-tech" onclick="switchPeopleSubTab('tech',this)"
       style="padding:8px 16px;border-radius:8px;border:none;background:var(--bg2);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-      <i class="bi bi-person-badge"></i> โปรไฟล์ช่าง/วิศวกร
+      <i class="ion-ios-contact"></i> โปรไฟล์ช่าง/วิศวกร
     </button>
   </div>
   <div id="panel-admin-users"></div>
@@ -827,7 +827,7 @@
 <div id="panel-qc-panel" class="view-panel">
   <div class="card">
     <div class="card-title">
-      <i class="bi bi-patch-check"></i> ตรวจรับงานซ่อม (QC)
+      <i class="ion-ios-ribbon"></i> ตรวจรับงานซ่อม (QC)
     </div>
     <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
       งานที่ช่างซ่อมเสร็จแล้ว รอการตรวจรับจากผู้แจ้งซ่อม
@@ -859,7 +859,7 @@
         </div>
       </div>
       <button id="te-identify-btn" onclick="openTechIdentifySelf()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--teal,#14b8a6);background:rgba(20,184,166,.1);color:var(--teal,#14b8a6);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">
-        <i class="bi bi-person-badge"></i> ระบุตัวตน
+        <i class="ion-ios-contact"></i> ระบุตัวตน
       </button>
     </div>
 
@@ -870,9 +870,9 @@
     </div>
 
     <div class="tp-tabs">
-      <button class="tp-tab te-tab active" id="te-t-queue" onclick="teSw('queue',this)">📥 คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
-      <button class="tp-tab te-tab"        id="te-t-mine"  onclick="teSw('mine',this)">🔧 งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
-      <button class="tp-tab te-tab"        id="te-t-pm"    onclick="teSw('pm',this)">📋 PM <span class="tp-tbadge teal" id="te-badge-pm">0</span></button>
+      <button class="tp-tab te-tab active" id="te-t-queue" onclick="teSw('queue',this)"><i class="ion-ios-archive"></i> คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
+      <button class="tp-tab te-tab"        id="te-t-mine"  onclick="teSw('mine',this)"><i class="ion-ios-construct"></i> งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
+      <button class="tp-tab te-tab"        id="te-t-pm"    onclick="teSw('pm',this)"><i class="ion-ios-clipboard"></i> PM <span class="tp-tbadge teal" id="te-badge-pm">0</span></button>
       <button class="tp-tab te-tab"        id="te-t-cal"   onclick="teSw('cal',this)">📅 ปฏิทิน</button>
       <button class="tp-tab te-tab"        id="te-t-hist"  onclick="teSw('hist',this)">📜 ประวัติ</button>
       <button class="tp-tab te-tab"        id="te-t-daily" onclick="teSw('daily',this)">📋 Daily PM</button>
@@ -939,7 +939,7 @@
     <!-- Header -->
     <div style="background:var(--accent);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div style="color:#fff;font-size:16px;font-weight:700;"><i class="bi bi-person-plus-fill"></i> ลงทะเบียนใช้งาน</div>
+        <div style="color:#fff;font-size:16px;font-weight:700;"><i class="ion-ios-person-add"></i> ลงทะเบียนใช้งาน</div>
         <div style="color:rgba(255,255,255,.82);font-size:12px;margin-top:2px;">สร้างบัญชีสำหรับ SFC Maintenance Service</div>
       </div>
       <button onclick="closeRegisterModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
@@ -956,7 +956,7 @@
           <div id="reg-avatar-preview"
             onclick="document.getElementById('reg-avatar-file').click()"
             style="width:72px;height:72px;border-radius:50%;border:2px dashed var(--border2,#cbd5e1);background:var(--bg2,#eff1f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer;transition:.2s;">
-            <i class="bi bi-person-fill" id="reg-avatar-icon" style="font-size:32px;color:var(--text3,#98a2b8);pointer-events:none;"></i>
+            <i class="ion-ios-person" id="reg-avatar-icon" style="font-size:32px;color:var(--text3,#98a2b8);pointer-events:none;"></i>
             <img id="reg-avatar-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
           </div>
           <!-- ข้อความ + ปุ่ม -->
@@ -968,12 +968,12 @@
               <button type="button"
                 onclick="document.getElementById('reg-avatar-file').click()"
                 style="padding:6px 14px;border-radius:6px;border:1.5px solid var(--border,#e9edf3);background:transparent;color:var(--text2,#5d6b84);font-size:12px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap;">
-                <i class="bi bi-camera"></i> เลือกรูป
+                <i class="ion-ios-camera"></i> เลือกรูป
               </button>
               <button type="button" id="reg-avatar-clear-btn"
                 onclick="clearRegAvatar()"
                 style="display:none;padding:6px 10px;border-radius:6px;border:1.5px solid var(--red-bg,#fee2e2);background:transparent;color:var(--red,#dc2626);font-size:12px;font-family:inherit;cursor:pointer;">
-                <i class="bi bi-x"></i>
+                <i class="ion-ios-close"></i>
               </button>
             </div>
             <div id="reg-avatar-filename" style="font-size:10px;color:var(--text3,#98a2b8);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;"></div>
@@ -1045,7 +1045,7 @@
         </button>
         <button type="button" id="reg-submit-btn" onclick="submitRegister()"
           style="flex:2;padding:12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
-          <i class="bi bi-person-check-fill"></i> ลงทะเบียน
+          <i class="ion-ios-person"></i> ลงทะเบียน
         </button>
       </div>
 
@@ -1063,7 +1063,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-title" id="jdm-title">รายละเอียดใบแจ้งซ่อม</span>
-        <button class="modal-close" onclick="closeModal('job-detail-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('job-detail-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body">
         <div class="spec-list" id="jdm-spec-body"></div>
@@ -1071,7 +1071,7 @@
         <!-- Tech: Accept -->
         <div id="tech-action-accept" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <button class="btn btn-accent" style="width:100%" onclick="techAcceptSelectedJob()">
-            <i class="bi bi-check2-square"></i> กดรับใบแจ้งซ่อมชิ้นนี้
+            <i class="ion-ios-checkbox-outline"></i> กดรับใบแจ้งซ่อมชิ้นนี้
           </button>
         </div>
         <!-- Tech: Update -->
@@ -1095,7 +1095,7 @@
           </div>
           <div class="form-field" style="margin-top:12px"><label>หมายเหตุการซ่อม</label><input type="text" id="tup-note" class="input-ctrl" placeholder="รายละเอียดเพิ่มเติม..."></div>
           <button class="btn btn-accent" style="width:100%;margin-top:16px" onclick="techSubmitUpdate()">
-            <i class="bi bi-cloud-arrow-up"></i> บันทึกความคืบหน้า
+            <i class="ion-ios-cloud-upload"></i> บันทึกความคืบหน้า
           </button>
         </div>
         <!-- Engineer: QC -->
@@ -1113,7 +1113,7 @@
           </div>
           <div class="form-field" style="margin:12px 0 16px"><label>ข้อสังเกต / เหตุผล</label><textarea id="eqc-note" class="textarea-ctrl" placeholder="ระบุเหตุผล..."></textarea></div>
           <button class="btn btn-accent" style="width:100%" onclick="engSubmitQC()">
-            <i class="bi bi-patch-check-fill"></i> บันทึกใบรับรอง QC
+            <i class="ion-ios-ribbon"></i> บันทึกใบรับรอง QC
           </button>
         </div>
         <!-- Admin: Edit -->
@@ -1141,8 +1141,8 @@
           </div>
           <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
           <div style="display:flex;justify-content:space-between;gap:10px">
-            <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="bi bi-trash"></i> ลบ</button>
-            <button class="btn btn-accent" onclick="adminSubmitUpdateJob()"><i class="bi bi-check-lg"></i> อัปเดต</button>
+            <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="ion-ios-trash"></i> ลบ</button>
+            <button class="btn btn-accent" onclick="adminSubmitUpdateJob()"><i class="ion-ios-checkmark"></i> อัปเดต</button>
           </div>
         </div>
       </div>
@@ -1154,7 +1154,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-title">ยืนยันตัวตนก่อนรับงาน</span>
-        <button class="modal-close" onclick="closeTechIdentifyModal()"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeTechIdentifyModal()"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:13px;color:var(--text2);margin-bottom:16px">เลือกชื่อของคุณและกรอกรหัสพนักงานเพื่อรับงานนี้</p>
@@ -1168,7 +1168,7 @@
         </div>
         <div id="tim-error" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626)"></div>
         <button id="tim-confirm-btn" class="btn btn-accent" style="width:100%" onclick="submitTechIdentify()">
-          <i class="bi bi-check2-square"></i> ยืนยันและรับงาน
+          <i class="ion-ios-checkbox-outline"></i> ยืนยันและรับงาน
         </button>
       </div>
     </div>
@@ -1179,7 +1179,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-title" id="tpm-modal-title">เพิ่มโปรไฟล์ช่างใหม่</span>
-        <button class="modal-close" onclick="closeModal('tech-profile-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('tech-profile-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-field" style="margin-bottom:14px">
@@ -1200,7 +1200,7 @@
         <div class="form-field" style="margin-bottom:14px">
           <label>บัญชี login ที่สังกัด</label>
           <div class="input-ctrl" style="background:var(--bg-muted,#f3f4f6);color:var(--text-muted,#6b7280);display:flex;align-items:center;gap:6px">
-            <i class="bi bi-lock-fill" style="font-size:12px"></i>
+            <i class="ion-ios-lock" style="font-size:12px"></i>
             <span id="tpm-parent-account-display">eng_team</span>
           </div>
         </div>
@@ -1210,7 +1210,7 @@
         </div>
         <div id="tpm-error" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626)"></div>
         <button id="tpm-submit-btn" class="btn btn-accent" style="width:100%" onclick="submitTechProfileForm()">
-          <i class="bi bi-check2-square"></i> บันทึก
+          <i class="ion-ios-checkbox-outline"></i> บันทึก
         </button>
       </div>
     </div>
@@ -1221,7 +1221,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-title">เพิ่มกำหนดการ PM</span>
-        <button class="modal-close" onclick="closeModal('pm-event-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('pm-event-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body">
         <form id="pm-event-form" onsubmit="submitPMEventForm(event)">
@@ -1251,7 +1251,7 @@
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px">
             <button type="button" class="btn btn-sec" onclick="closeModal('pm-event-modal')">ยกเลิก</button>
-            <button type="submit" class="btn btn-accent"><i class="bi bi-floppy"></i> บันทึก</button>
+            <button type="submit" class="btn btn-accent"><i class="ion-ios-save"></i> บันทึก</button>
           </div>
         </form>
       </div>
@@ -1263,7 +1263,7 @@
     <div class="modal-content" style="max-width:750px">
       <div class="modal-header">
         <span class="modal-title">รายงานการตรวจ PM</span>
-        <button class="modal-close" onclick="closeModal('pm-view-doc-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('pm-view-doc-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body" id="pm-view-doc-body"></div>
     </div>
@@ -1274,7 +1274,7 @@
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
         <span class="modal-title" id="ins-modal-title">รายละเอียด PM รายวัน</span>
-        <button class="modal-close" onclick="closeModal('ins-pm-detail-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('ins-pm-detail-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body" id="ins-modal-body"></div>
     </div>
@@ -1285,13 +1285,13 @@
     <div class="modal-content" style="max-width:680px">
       <div class="modal-header">
         <span class="modal-title" id="daily-pm-modal-title">รายละเอียด Daily PM</span>
-        <button class="modal-close" onclick="closeModal('daily-pm-detail-modal')"><i class="bi bi-x-lg"></i></button>
+        <button class="modal-close" onclick="closeModal('daily-pm-detail-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body" id="daily-pm-modal-body"></div>
       <div style="padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
         <button class="btn btn-sec" onclick="closeModal('daily-pm-detail-modal')">ปิด</button>
         <button class="btn btn-accent" id="daily-pm-ack-btn" onclick="engAckDailyPM()">
-          <i class="bi bi-check-circle"></i> รับทราบ
+          <i class="ion-ios-checkmark-circle-outline"></i> รับทราบ
         </button>
       </div>
     </div>
@@ -1300,7 +1300,7 @@
   <!-- Success Modal -->
   <div class="modal" id="success-modal">
     <div class="modal-content" style="max-width:450px;text-align:center;padding:30px;border:1px solid var(--border2)">
-      <div style="font-size:55px;color:var(--green);margin-bottom:15px"><i class="bi bi-check-circle-fill"></i></div>
+      <div style="font-size:55px;color:var(--green);margin-bottom:15px"><i class="ion-ios-checkmark-circle"></i></div>
       <h3 style="font-size:22px;font-weight:700;margin-bottom:8px">แจ้งซ่อมสำเร็จเรียบร้อย!</h3>
       <p style="color:var(--text2);font-size:13.5px;margin-bottom:22px">กรุณาแจ้งรหัสงานซ่อมนี้ให้กับทีมช่างเทคนิค</p>
       <div style="background:rgba(46,92,230,0.06);border:1.5px dashed var(--accent);padding:18px;border-radius:var(--r);margin-bottom:25px">
@@ -1308,7 +1308,7 @@
         <span id="success-job-id" style="font-family:var(--font-mono);font-size:26px;font-weight:700">REP-XXXXXXXX-XXX</span>
       </div>
       <div style="display:flex;gap:12px;justify-content:center">
-        <button class="btn btn-sec" onclick="copyJobIdToClipboard()"><i class="bi bi-copy"></i> คัดลอก</button>
+        <button class="btn btn-sec" onclick="copyJobIdToClipboard()"><i class="ion-ios-copy"></i> คัดลอก</button>
         <button class="btn btn-accent" onclick="closeModal('success-modal')">ตกลง</button>
       </div>
     </div>
