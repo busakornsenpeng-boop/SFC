@@ -3,8 +3,6 @@ const express = require('express');
 const router  = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 
-const PRIVILEGED_DEPTS = ['MTN', 'ENG'];
-
 const ADMIN_ACCOUNT = {
   username:   process.env.ADMIN_USERNAME,
   password:   process.env.ADMIN_PASSWORD,
@@ -25,8 +23,8 @@ const ADMIN_ACCOUNT = {
 // ระบบจะใช้ค่าจาก Render ก่อนเสมอ (ไม่ใช้ default)
 // ⚠️ แนะนำให้เปลี่ยนไปตั้งค่าจริงผ่าน Render แทนการพึ่ง default นี้ในระยะยาว
 const TE_SHARED_ACCOUNT = {
-  username:   process.env.TE_SHARED_USERNAME || 'eng_team',
-  password:   process.env.TE_SHARED_PASSWORD || 'Sfca2026',
+  username:   (process.env.TE_SHARED_USERNAME || 'eng_team').trim(),
+  password:   (process.env.TE_SHARED_PASSWORD || 'Sfca2026').trim(),
   role:       'engineer',
   fullname:   'ทีมช่าง/วิศวกร',
   dept:       'ENG',
@@ -35,11 +33,12 @@ const TE_SHARED_ACCOUNT = {
   avatar_url: '',
 };
 
-// รวม role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ให้เป็น role เดียวกันคือ 'engineer'
-// เพื่อให้ทั้งสองกลุ่มเข้า TE Panel เดียวกัน แต่ยังคงมีหลาย username/ID แยกกันตามปกติ
+// เดิม: รวม role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ให้เป็น role เดียวกันคือ 'engineer'
+// ตอนนี้: ปิดการอัปสิทธิ์อัตโนมัติจากแผนกแล้ว — role 'engineer' มอบให้เฉพาะบัญชีกลาง
+// TE_SHARED_ACCOUNT เท่านั้น ใครสมัครสมาชิกเอง (ไม่ว่าจะเลือกแผนกไหน) จะได้ role 'user' เสมอ
 function resolveRole(role, dept, username) {
   if (username === ADMIN_ACCOUNT.username) return 'admin';
-  if (PRIVILEGED_DEPTS.includes(dept)) return 'engineer';
+  if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) return 'engineer';
   return 'user';
 }
 
@@ -68,7 +67,8 @@ async function getAllUsers() {
 // ─────────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
 
     if (username === ADMIN_ACCOUNT.username) {
       if (password !== ADMIN_ACCOUNT.password) {
@@ -140,8 +140,13 @@ router.post('/register', async (req, res) => {
     if (username.toLowerCase() === ADMIN_ACCOUNT.username.toLowerCase()) {
       return res.json({ success: false, message: 'ไม่สามารถใช้ username นี้ได้' });
     }
+    if (TE_SHARED_ACCOUNT.username && username.toLowerCase() === TE_SHARED_ACCOUNT.username.toLowerCase()) {
+      return res.json({ success: false, message: 'ไม่สามารถใช้ username นี้ได้' });
+    }
 
-    const role   = resolveRole('user', dept, username);
+    // สมัครสมาชิกได้เฉพาะ role 'user' (ผู้แจ้งซ่อม) เท่านั้น
+    // ช่าง/วิศวกร ใช้บัญชีกลาง (TE_SHARED_ACCOUNT) ที่กำหนดไว้ล่วงหน้าเท่านั้น ไม่เปิดให้สมัครเอง
+    const role   = 'user';
     const users  = await getAllUsers();
     const exists = users.find(u => u.username === username);
     if (exists) {
