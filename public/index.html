@@ -838,13 +838,17 @@
       </div>
       <div class="tp-logout" onclick="handleLogout()">⏻</div>
     </div>
-
-    <div class="tp-profile">
-      <div class="tp-avatar" id="te-avatar-initials">--</div>
-      <div>
-        <div class="tp-pname" id="te-display-name">—</div>
-        <div class="tp-prole">TECH & ENGINEER · SFC</div>
+<div class="tp-profile" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="tp-avatar" id="te-avatar-initials">--</div>
+        <div>
+          <div class="tp-pname" id="te-display-name">—</div>
+          <div class="tp-prole">TECH & ENGINEER · SFC</div>
+        </div>
       </div>
+      <button id="te-identify-btn" onclick="openTechIdentifySelf()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--teal,#14b8a6);background:rgba(20,184,166,.1);color:var(--teal,#14b8a6);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">
+        <i class="bi bi-person-badge"></i> ระบุตัวตน
+      </button>
     </div>
 
     <div class="tp-stats">

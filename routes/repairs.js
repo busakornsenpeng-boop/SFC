@@ -70,11 +70,10 @@ async function processImages(images, prefix = 'img') {
   );
   return urls.filter(Boolean);
 }
-
 async function getAllRepairs() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:T1000',
+    range: 'Repairs!A2:U1000',
   });
   const rows = res.data.values || [];
   return rows.map(row => ({
@@ -98,6 +97,7 @@ async function getAllRepairs() {
     date:       row[17] || '',
     jobType:    row[18] || 'ซ่อมปกติ',
     approval:   row[19] || '',
+    actionBy:   row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
   }));
 }
 
@@ -200,11 +200,12 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
     const machine       = rows[rowIndex][3] || '';
     const sheetRow      = rowIndex + 2;
 
-    await sheets.spreadsheets.values.batchUpdate({
+   await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: { valueInputOption: 'USER_ENTERED', data: [
         { range: `Repairs!J${sheetRow}`, values: [['กำลังซ่อม']] },
         { range: `Repairs!K${sheetRow}`, values: [[technician]] },
+        { range: `Repairs!U${sheetRow}`, values: [[technician]] },
       ]},
     });
 
@@ -222,8 +223,7 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
 router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, imgAfter } = req.body;
-
+    const { status, note, eta, imgAfter, updatedBy } = req.body;
     const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
@@ -247,7 +247,7 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
     const imgAfterUrls = await processImages(imgAfterArr, `${id}_after`);
     const imgAfterStr  = JSON.stringify(imgAfterUrls);
 
-    const sheetRow   = rowIndex + 2;
+  const sheetRow   = rowIndex + 2;
     const updateData = [
       { range: `Repairs!I${sheetRow}`, values: [[imgAfterStr]] },
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
@@ -256,6 +256,8 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
     ];
     if (status === 'ซ่อมเสร็จ' || status === 'รอ QC' || status === 'ซ่อมเสร็จแล้ว')
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    if (updatedBy)
+      updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -399,7 +401,7 @@ router.post('/:id/approval', requireRole('admin'), async (req, res) => {
 router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, rejectedBy } = req.body;
     if (!reason || !reason.trim())
       return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลที่ตีกลับ' });
 
@@ -417,12 +419,16 @@ router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) =>
     const rejectNote    = `[ตีกลับ ${new Date().toLocaleString('th-TH')}] ${reason}`;
     const sheetRow      = rowIndex + 2;
 
+  const rejectData = [
+      { range: `Repairs!J${sheetRow}`, values: [['ตีกลับ']] },
+      { range: `Repairs!N${sheetRow}`, values: [[rejectNote]] },
+    ];
+    if (rejectedBy)
+      rejectData.push({ range: `Repairs!U${sheetRow}`, values: [[rejectedBy]] });
+
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
-      requestBody: { valueInputOption: 'USER_ENTERED', data: [
-        { range: `Repairs!J${sheetRow}`, values: [['ตีกลับ']] },
-        { range: `Repairs!N${sheetRow}`, values: [[rejectNote]] },
-      ]},
+      requestBody: { valueInputOption: 'USER_ENTERED', data: rejectData },
     });
 
     // แจ้ง requester ให้รู้ว่าต้องแก้ไขข้อมูล

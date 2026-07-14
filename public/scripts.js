@@ -749,6 +749,7 @@ function engCalToday(){const t=new Date();engCalM=t.getMonth();engCalY=t.getFull
 // TECH PANEL LOGIC
 // ============================================================
 let ME='';
+let myIdentifiedName = null;
 let tpPmSearch='',tpPmStatusFilter='';
 let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
@@ -759,12 +760,11 @@ function mapJobToTechPanel(j) {
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
 function tpFmt(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-
 function tpUpdateStats(){
   const jobs=tpGetAllJobs();const pmList=getPMData();
   const waiting=jobs.filter(j=>j.status==='รอซ่อม').length;
-  const mine=jobs.filter(j=>j.status==='กำลังซ่อม'&&j.assignee===ME).length;
-  const done=jobs.filter(j=>j.status==='เสร็จแล้ว'&&j.assignee===ME).length;
+  const mine=jobs.filter(j=>j.status==='กำลังซ่อม'&&j.assignee===(myIdentifiedName||ME)).length;
+  const done=jobs.filter(j=>j.status==='เสร็จแล้ว'&&j.assignee===(myIdentifiedName||ME)).length;
   const pmPend=pmList.filter(p=>p.status!=='เสร็จแล้ว').length;
   document.getElementById('tp-stat-wait').textContent=waiting;
   document.getElementById('tp-stat-mine').textContent=mine;
@@ -788,7 +788,7 @@ function tpRenderQueue(){
 }
 function tpRenderMine(){
   const el=document.getElementById('tp-v-m');
-  const jobs=tpGetAllJobs().filter(j=>j.assignee===ME&&j.status!=='รอซ่อม');
+  const jobs=tpGetAllJobs().filter(j=>j.assignee===(myIdentifiedName||ME)&&j.status!=='รอซ่อม');
   if(!jobs.length){el.innerHTML=`<div class="tp-sdiv">งานที่รับไว้</div><div class="tp-empty">📭 ยังไม่มีงานที่รับไว้</div>`;return;}
   el.innerHTML=`<div class="tp-sdiv">งานที่รับไว้ • ${jobs.length} รายการ</div>`+jobs.map(j=>tpJobCardHTML(j,'mine')).join('');
 }
@@ -896,7 +896,7 @@ function tpSubmitReject(id) {
     authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason })
+      body: JSON.stringify({ reason, rejectedBy: myIdentifiedName || ME })
     })
     .then(r => r.json())
     .then(res => {
@@ -958,11 +958,7 @@ ${(() => {
   if (!imgs.length) return '';
   return `<div class="tp-mrow-lbl" style="margin:10px 0 8px">✅ รูปหลังซ่อม</div>
     ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
-})()}
-  ${raw&&raw.imgAfter&&raw.imgAfter.length>10?`
-    <div class="tp-mrow-lbl" style="margin:10px 0 8px">✅ รูปหลังซ่อม</div>
-    <img src="${raw.imgAfter}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">
-  `:''}`;
+})()}`;
   let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()">✕ ปิด</button>`;
   if(j.status==='รอซ่อม') acts+=`<button class="tp-mact-btn tp-mact-accept" onclick="tpAcceptJob('${j.id}');tpCloseModal()">✋ รับงาน</button>`;
   document.getElementById('tp-modal-actions').innerHTML=acts;
@@ -1077,10 +1073,10 @@ function tpSaveUpdate(id) {
   const upd = { status: finalStatus, note, eta, planStopDate: stopDate };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก...');
-    authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
+ authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ ...upd, imgAfter: uploadedFilesBase64 || [] 
+   body: JSON.stringify({ ...upd, imgAfter: uploadedFilesBase64 || [], updatedBy: myIdentifiedName || ME 
 })
     })
     .then(r => r.json())
@@ -1466,7 +1462,7 @@ function techSubmitUpdate(){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, note, eta })
+      body: JSON.stringify({ status, note, eta, updatedBy: myIdentifiedName || ME })
     })
     .then(r => r.json())
     .then(res => {
@@ -2493,25 +2489,44 @@ let teCalY, teCalM, teCalSel = null;
 
 function initTEPanel() {
   ME = currentUser.name;
-  loadTechProfilesIfShared();
+  myIdentifiedName = sessionStorage.getItem('identified_tech_' + currentUser.username) || null;
+  loadTechProfilesIfShared().then(refreshIdentifyBadge);
   const avatarEl = document.getElementById('te-avatar-initials');
   if (currentUser.avatar && currentUser.avatar.length > 10) {
     avatarEl.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
   } else {
     avatarEl.textContent = (ME || '--').slice(0, 2);
   }
-  document.getElementById('te-display-name').textContent = ME;
+  document.getElementById('te-display-name').textContent = myIdentifiedName || ME;
   const now = new Date();
   if (!teCalY) { teCalY = now.getFullYear(); teCalM = now.getMonth(); }
   teUpdateStats();
   teSw('queue', document.getElementById('te-t-queue'));
 }
 
+// ── แสดง/ซ่อนปุ่ม "ระบุตัวตน" ตามว่าเป็นบัญชีกลางหรือไม่ ──
+function refreshIdentifyBadge() {
+  const btn = document.getElementById('te-identify-btn');
+  if (!btn) return;
+  if (TECH_PROFILES.length > 0) {
+    btn.style.display = 'inline-flex';
+    btn.innerHTML = myIdentifiedName
+      ? `<i class="bi bi-person-check-fill"></i> ${myIdentifiedName}`
+      : `<i class="bi bi-person-badge"></i> ระบุตัวตน`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function openTechIdentifySelf() {
+  _pendingAcceptJobId = null; // ไม่ใช่ flow รับงาน — แค่ยืนยันตัวตนล่วงหน้า
+  openTechIdentifyModal();
+}
 function teUpdateStats() {
   const jobs   = getRepairJobsData();
   const pmList = getPMData();
   const waiting = jobs.filter(j => j.status === 'รอซ่อม').length;
-  const mine    = jobs.filter(j => j.status === 'กำลังซ่อม' && (j.technician === ME || j.technician === ME_IDENTIFIED)).length;
+  const mine    = jobs.filter(j => j.status === 'กำลังซ่อม' && j.technician === (myIdentifiedName || ME)).length;
   const qcJobs  = jobs.filter(j => j.status === 'ซ่อมเสร็จแล้ว').length;
   const pmPend  = pmList.filter(p => p.status !== 'เสร็จแล้ว').length;
   const sv = id => document.getElementById(id);
@@ -2548,7 +2563,7 @@ function teRenderQueue() {
 
 function teRenderMine() {
   const el   = document.getElementById('te-v-mine');
-  const jobs = getRepairJobsData().filter(j => j.technician === ME && j.status !== 'รอซ่อม');
+  const jobs = getRepairJobsData().filter(j => j.technician === (myIdentifiedName || ME) && j.status !== 'รอซ่อม');
   if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">งานที่รับไว้</div><div class="tp-empty">📭 ยังไม่มีงานที่รับไว้</div>`; return; }
   el.innerHTML = `<div class="tp-sdiv">งานที่รับไว้ • ${jobs.length} รายการ</div>` +
     jobs.map(j => tpJobCardHTML(mapJobToTechPanel(j), 'mine')).join('');
@@ -2946,7 +2961,6 @@ function closeTechIdentifyModal() {
   closeModal('tech-id-modal');
   _pendingAcceptJobId = null;
 }
-
 async function submitTechIdentify() {
   const id   = document.getElementById('tim-profile-select')?.value || '';
   const code = document.getElementById('tim-employee-code')?.value.trim() || '';
@@ -2968,16 +2982,28 @@ async function submitTechIdentify() {
 
     if (!res.success) { showErr(res.message || 'ยืนยันตัวตนไม่สำเร็จ'); return; }
 
-    const jobId = _pendingAcceptJobId;
+    // ── บันทึกตัวตนที่ยืนยันแล้ว จำไว้ตลอด session แม้ refresh หน้า ──
+    myIdentifiedName = res.profile.fullname;
+    sessionStorage.setItem('identified_tech_' + currentUser.username, myIdentifiedName);
+
+   const jobId = _pendingAcceptJobId;
     closeTechIdentifyModal();
-    if (jobId) doAcceptJob(jobId, res.profile.fullname);
+    const nameDisp = document.getElementById('te-display-name');
+    if (nameDisp) nameDisp.textContent = myIdentifiedName;
+    refreshIdentifyBadge();
+    if (jobId) {
+      doAcceptJob(jobId, myIdentifiedName);
+    } else {
+      // กรณี identify เฉยๆ ไม่ได้มาจากการรับงาน
+      showToast(`✅ ยืนยันตัวตนสำเร็จ — ${myIdentifiedName}`, 'success');
+      teUpdateStats(); teRenderMine();
+    }
   } catch (err) {
     showErr('เชื่อมต่อ server ไม่ได้ กรุณาลองใหม่อีกครั้ง');
   } finally {
     if (btn) btn.disabled = false;
   }
 }
-
 // ============================================================
 // ACCEPT JOB
 // ============================================================
