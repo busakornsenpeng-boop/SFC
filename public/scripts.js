@@ -293,6 +293,13 @@ function showLoginError() {
 }
 // ใหม่
 function handleLogout() {
+  // ── ล้างการระบุตัวตนของบัญชีกลาง กันชื่อคนก่อนหน้าค้างข้ามคน ──
+  if (currentUser?.username) {
+    sessionStorage.removeItem('identified_tech_' + currentUser.username);
+  }
+  myIdentifiedName = null;
+  ME = '';
+
   currentAdminTimeFilter = 'all';
   currentUser = null;
   authToken = null;
