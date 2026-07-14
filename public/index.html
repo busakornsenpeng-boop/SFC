@@ -809,6 +809,7 @@
         </div>
       </div><!-- /panel-ins-daily-pm -->
 <div id="panel-admin-users" class="view-panel"></div>
+<div id="panel-admin-techprofiles" class="view-panel"></div>
     </section>
     <!-- PANEL: QC พนักงาน -->
 <div id="panel-qc-panel" class="view-panel">
@@ -1156,6 +1157,44 @@
         <div id="tim-error" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626)"></div>
         <button id="tim-confirm-btn" class="btn btn-accent" style="width:100%" onclick="submitTechIdentify()">
           <i class="bi bi-check2-square"></i> ยืนยันและรับงาน
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: Add/Edit Tech Profile Modal -->
+  <div class="modal" id="tech-profile-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="tpm-modal-title">เพิ่มโปรไฟล์ช่างใหม่</span>
+        <button class="modal-close" onclick="closeModal('tech-profile-modal')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field" style="margin-bottom:14px">
+          <label>ชื่อ-สกุล</label>
+          <input type="text" id="tpm-fullname" class="input-ctrl" placeholder="เช่น สมจิต ใจงาม">
+        </div>
+        <div class="form-grid-2" style="margin-bottom:14px">
+          <div class="form-field">
+            <label>รหัสพนักงาน</label>
+            <input type="text" id="tpm-employee-code" class="input-ctrl" placeholder="เช่น 29856">
+          </div>
+          <div class="form-field">
+            <label>เบอร์โทร</label>
+            <input type="text" id="tpm-phone" class="input-ctrl" placeholder="081-xxx-xxxx">
+          </div>
+        </div>
+        <div class="form-field" style="margin-bottom:14px">
+          <label>บัญชี login ที่สังกัด (parent_account)</label>
+          <input type="text" id="tpm-parent-account" class="input-ctrl" placeholder="เช่น eng_team">
+        </div>
+        <div class="form-field" style="margin-bottom:14px;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="tpm-is-chief" style="width:16px;height:16px">
+          <label for="tpm-is-chief" style="margin:0">เป็นหัวหน้าช่าง (สิทธิ์แก้ไขแผน PM)</label>
+        </div>
+        <div id="tpm-error" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626)"></div>
+        <button id="tpm-submit-btn" class="btn btn-accent" style="width:100%" onclick="submitTechProfileForm()">
+          <i class="bi bi-check2-square"></i> บันทึก
         </button>
       </div>
     </div>

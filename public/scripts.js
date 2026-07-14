@@ -327,9 +327,10 @@ function setupDashboard() {
     // แท็บสำหรับวิศวกร
   ],
   admin: [
-    {panel:'admin-dashboard', label:'Dashboard ภาพรวม', icon:'bi-pie-chart'},
-    {panel:'admin-repairs',   label:'จัดการใบแจ้งซ่อม', icon:'bi-sliders'},
-    {panel:'admin-users',     label:'จัดการ Users',     icon:'bi-people'}
+    {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'bi-pie-chart'},
+    {panel:'admin-repairs',      label:'จัดการใบแจ้งซ่อม',   icon:'bi-sliders'},
+    {panel:'admin-users',        label:'จัดการ Users',        icon:'bi-people'},
+    {panel:'admin-techprofiles', label:'โปรไฟล์ช่าง/วิศวกร', icon:'bi-person-badge'}
   ]
 };
 
@@ -371,6 +372,7 @@ function switchViewPanel(panelId, tabBtn) {
   if(panelId==='admin-dashboard') initAdminDashboard();
   if(panelId==='admin-repairs')   renderAdminRepairsTable();
   if(panelId==='admin-users')     renderAdminUsersTable();
+  if(panelId==='admin-techprofiles') renderAdminTechProfiles();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
 };
@@ -2060,6 +2062,154 @@ function adminDeleteUserConfirm(username) {
     else showToast((res&&res.message)||'เกิดข้อผิดพลาด','error');
   })
   .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
+}
+
+// ============================================================
+// ADMIN — TECH PROFILES (โปรไฟล์ช่าง/วิศวกร ในบัญชีกลาง)
+// ============================================================
+let _allTechProfilesCache = [];
+let _editingTechProfileId = null;
+
+function renderAdminTechProfiles() {
+  const panel = document.getElementById('panel-admin-techprofiles');
+  if (!panel) return;
+  if (!document.getElementById('admin-techprofiles-tbody')) {
+    panel.innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div class="card-title" style="margin-bottom:0"><i class="bi bi-person-badge"></i> โปรไฟล์ช่าง/วิศวกร (บัญชีกลาง)</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sec" style="font-size:12px" onclick="renderAdminTechProfiles()"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+            <button class="btn btn-accent" style="font-size:12px" onclick="openTechProfileModal()"><i class="bi bi-plus-lg"></i> เพิ่มช่างใหม่</button>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px">
+          รายชื่อคนที่ผูกอยู่กับบัญชี login กลาง (เช่น <code>eng_team</code>) — ใช้ตอนเลือกชื่อ+กรอกรหัสพนักงานก่อนรับงาน
+        </p>
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>ชื่อ-สกุล</th><th>รหัสพนักงาน</th><th>เบอร์โทร</th><th>บัญชีที่สังกัด</th><th>หัวหน้า</th><th>สถานะ</th><th>ดำเนินการ</th></tr></thead>
+            <tbody id="admin-techprofiles-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+  showLoading('กำลังโหลดข้อมูลโปรไฟล์ช่าง...');
+  fetch(`${API_URL}/tech-profiles?requestedBy=admin`)
+    .then(r => r.json())
+    .then(data => {
+      hideLoading();
+      _allTechProfilesCache = (data.success && data.data) ? data.data : [];
+      _renderTechProfileRows(_allTechProfilesCache);
+    })
+    .catch(() => { hideLoading(); showToast('โหลดข้อมูลโปรไฟล์ช่างไม่สำเร็จ','error'); });
+}
+
+function _renderTechProfileRows(profiles) {
+  const tbody = document.getElementById('admin-techprofiles-tbody');
+  if (!tbody) return;
+  if (!profiles.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">ยังไม่มีโปรไฟล์ช่าง — กด "เพิ่มช่างใหม่" เพื่อเริ่มต้น</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = profiles.map((p, i) => {
+    const isChief = p.is_chief === 'TRUE' || p.is_chief === true;
+    const isActive = p.status === 'active';
+    return `<tr>
+      <td style="color:var(--text3);font-size:11px">${i + 1}</td>
+      <td style="font-weight:600">${p.fullname || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${p.employee_code || '—'}</td>
+      <td style="color:var(--text2);font-size:12px">${p.phone || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${p.parent_account || '—'}</td>
+      <td>${isChief ? '<span class="badge badge-green">หัวหน้า</span>' : '—'}</td>
+      <td>${isActive ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sec" style="font-size:11px;padding:4px 10px" onclick="openTechProfileModal('${p.id}')">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn ${isActive ? 'btn-danger' : 'btn-sec'}" style="font-size:11px;padding:4px 10px"
+            onclick="toggleTechProfileStatus('${p.id}','${isActive ? 'inactive' : 'active'}')">
+            ${isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openTechProfileModal(id) {
+  _editingTechProfileId = id || null;
+  const p = id ? _allTechProfilesCache.find(x => x.id === id) : null;
+
+  document.getElementById('tpm-modal-title').textContent = id ? 'แก้ไขโปรไฟล์ช่าง' : 'เพิ่มโปรไฟล์ช่างใหม่';
+  document.getElementById('tpm-fullname').value      = p?.fullname      || '';
+  document.getElementById('tpm-employee-code').value = p?.employee_code || '';
+  document.getElementById('tpm-phone').value         = p?.phone         || '';
+  document.getElementById('tpm-parent-account').value= p?.parent_account|| '';
+  document.getElementById('tpm-is-chief').checked    = p ? (p.is_chief === 'TRUE' || p.is_chief === true) : false;
+  document.getElementById('tpm-error').style.display = 'none';
+
+  openModal('tech-profile-modal');
+}
+
+function submitTechProfileForm() {
+  const fullname      = document.getElementById('tpm-fullname').value.trim();
+  const employee_code = document.getElementById('tpm-employee-code').value.trim();
+  const phone         = document.getElementById('tpm-phone').value.trim();
+  const parent_account= document.getElementById('tpm-parent-account').value.trim();
+  const is_chief      = document.getElementById('tpm-is-chief').checked;
+  const errEl = document.getElementById('tpm-error');
+  const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+
+  if (!fullname)       return showErr('กรุณากรอกชื่อ-สกุล');
+  if (!employee_code)  return showErr('กรุณากรอกรหัสพนักงาน');
+  if (!parent_account) return showErr('กรุณากรอกชื่อบัญชีที่สังกัด (เช่น eng_team)');
+
+  const btn = document.getElementById('tpm-submit-btn');
+  if (btn) btn.disabled = true;
+
+  const payload = { fullname, employee_code, phone, parent_account, is_chief, requestedBy: 'admin' };
+  const req = _editingTechProfileId
+    ? fetch(`${API_URL}/tech-profiles/${encodeURIComponent(_editingTechProfileId)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+    : fetch(`${API_URL}/tech-profiles`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+
+  req.then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(_editingTechProfileId ? 'แก้ไขโปรไฟล์สำเร็จ' : 'เพิ่มโปรไฟล์ช่างสำเร็จ', 'success');
+        closeModal('tech-profile-modal');
+        renderAdminTechProfiles();
+      } else {
+        showErr(res.message || 'เกิดข้อผิดพลาด');
+      }
+    })
+    .catch(() => showErr('เชื่อมต่อ server ไม่ได้'))
+    .finally(() => { if (btn) btn.disabled = false; });
+}
+
+function toggleTechProfileStatus(id, newStatus) {
+  showLoading('กำลังอัปเดต...');
+  const req = newStatus === 'inactive'
+    ? fetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestedBy: 'admin' }),
+      })
+    : fetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active', requestedBy: 'admin' }),
+      });
+
+  req.then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if (res.success) { showToast('อัปเดตสถานะสำเร็จ', 'success'); renderAdminTechProfiles(); }
+      else showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
 }
 // ============================================================
 // MODAL HELPERS
