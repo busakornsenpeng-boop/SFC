@@ -808,8 +808,20 @@
           </div>
         </div>
       </div><!-- /panel-ins-daily-pm -->
-<div id="panel-admin-users" class="view-panel"></div>
-<div id="panel-admin-techprofiles" class="view-panel"></div>
+<div id="panel-admin-people" class="view-panel">
+  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+    <button class="people-subtab active" id="pst-users" onclick="switchPeopleSubTab('users',this)"
+      style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+      <i class="bi bi-people"></i> บัญชี Login
+    </button>
+    <button class="people-subtab" id="pst-tech" onclick="switchPeopleSubTab('tech',this)"
+      style="padding:8px 16px;border-radius:8px;border:none;background:var(--bg2);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+      <i class="bi bi-person-badge"></i> โปรไฟล์ช่าง/วิศวกร
+    </button>
+  </div>
+  <div id="panel-admin-users"></div>
+  <div id="panel-admin-techprofiles" style="display:none"></div>
+</div>
     </section>
     <!-- PANEL: QC พนักงาน -->
 <div id="panel-qc-panel" class="view-panel">

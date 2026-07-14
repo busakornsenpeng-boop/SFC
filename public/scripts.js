@@ -371,11 +371,10 @@ function setupDashboard() {
   engineer: [
     // แท็บสำหรับวิศวกร
   ],
-  admin: [
+ admin: [
     {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'bi-pie-chart'},
     {panel:'admin-repairs',      label:'จัดการใบแจ้งซ่อม',   icon:'bi-sliders'},
-    {panel:'admin-users',        label:'จัดการ Users',        icon:'bi-people'},
-    {panel:'admin-techprofiles', label:'โปรไฟล์ช่าง/วิศวกร', icon:'bi-person-badge'}
+    {panel:'admin-people',       label:'จัดการผู้ใช้งาน',    icon:'bi-people'}
   ]
 };
 
@@ -416,8 +415,7 @@ function switchViewPanel(panelId, tabBtn) {
   if(panelId==='eng-main')        initEngPanel();
   if(panelId==='admin-dashboard') initAdminDashboard();
   if(panelId==='admin-repairs')   renderAdminRepairsTable();
-  if(panelId==='admin-users')     renderAdminUsersTable();
-  if(panelId==='admin-techprofiles') renderAdminTechProfiles();
+if(panelId==='admin-people')    initAdminPeoplePanel();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
 };
