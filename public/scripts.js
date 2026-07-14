@@ -2310,6 +2310,7 @@ let teCalY, teCalM, teCalSel = null;
 
 function initTEPanel() {
   ME = currentUser.name;
+  loadTechProfilesIfShared();
   const avatarEl = document.getElementById('te-avatar-initials');
   if (currentUser.avatar && currentUser.avatar.length > 10) {
     avatarEl.innerHTML = `<img src="${currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
@@ -2725,9 +2726,91 @@ grid.innerHTML = myJobs.map(j => `
     </div>`).join('');
 }
 // ============================================================
+// TECH PROFILE IDENTIFY (บัญชี login ร่วม + เลือกชื่อ + รหัสพนักงาน)
+// ============================================================
+// TECH_PROFILES จะมีข้อมูลก็ต่อเมื่อบัญชี login นี้ถูกตั้งเป็นบัญชีกลาง
+// (แอดมินเพิ่มโปรไฟล์ช่างไว้ใน TechProfiles sheet) — ถ้าเป็นบัญชีส่วนตัว
+// ของแต่ละคนตามปกติ ลิสต์นี้จะว่าง แล้วระบบจะรับงานด้วยชื่อบัญชี (ME) ตามเดิม
+let TECH_PROFILES = [];
+let _pendingAcceptJobId = null;
+
+async function loadTechProfilesIfShared() {
+  if (!currentUser?.username) { TECH_PROFILES = []; return; }
+  try {
+    const res = await fetch(`${API_URL}/tech-profiles?account=${encodeURIComponent(currentUser.username)}`)
+      .then(r => r.json());
+    TECH_PROFILES = (res.success && Array.isArray(res.data)) ? res.data : [];
+  } catch (err) {
+    console.error('[loadTechProfilesIfShared] error:', err.message);
+    TECH_PROFILES = [];
+  }
+}
+
+function openTechIdentifyModal() {
+  const sel = document.getElementById('tim-profile-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— เลือกชื่อของคุณ —</option>' +
+      TECH_PROFILES.map(p => `<option value="${p.id}">${p.fullname}</option>`).join('');
+  }
+  const codeInput = document.getElementById('tim-employee-code');
+  if (codeInput) codeInput.value = '';
+  const errEl = document.getElementById('tim-error');
+  if (errEl) errEl.style.display = 'none';
+  openModal('tech-id-modal');
+}
+
+function closeTechIdentifyModal() {
+  closeModal('tech-id-modal');
+  _pendingAcceptJobId = null;
+}
+
+async function submitTechIdentify() {
+  const id   = document.getElementById('tim-profile-select')?.value || '';
+  const code = document.getElementById('tim-employee-code')?.value.trim() || '';
+  const errEl = document.getElementById('tim-error');
+  const showErr = (msg) => { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } };
+  if (errEl) errEl.style.display = 'none';
+
+  if (!id)   return showErr('กรุณาเลือกชื่อของคุณ');
+  if (!code) return showErr('กรุณากรอกรหัสพนักงาน');
+
+  const btn = document.getElementById('tim-confirm-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${API_URL}/tech-profiles/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, employee_code: code }),
+    }).then(r => r.json());
+
+    if (!res.success) { showErr(res.message || 'ยืนยันตัวตนไม่สำเร็จ'); return; }
+
+    const jobId = _pendingAcceptJobId;
+    closeTechIdentifyModal();
+    if (jobId) doAcceptJob(jobId, res.profile.fullname);
+  } catch (err) {
+    showErr('เชื่อมต่อ server ไม่ได้ กรุณาลองใหม่อีกครั้ง');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ============================================================
 // ACCEPT JOB
 // ============================================================
+// ทางเข้าเดิมทั้งหมด (การ์ดคิวงาน, list มือถือ, modal รายละเอียดงาน) เรียกฟังก์ชันนี้
+// ถ้าเป็นบัญชีกลางที่มีหลายโปรไฟล์ → เด้งให้เลือกชื่อ+กรอกรหัสก่อน ถึงจะรับงานจริง
+// ถ้าเป็นบัญชีส่วนตัวปกติ (ไม่มีโปรไฟล์) → รับงานทันทีด้วยชื่อบัญชีเหมือนเดิม
 function tpAcceptJob(id) {
+  if (TECH_PROFILES.length > 0) {
+    _pendingAcceptJobId = id;
+    openTechIdentifyModal();
+    return;
+  }
+  doAcceptJob(id, ME);
+}
+
+function doAcceptJob(id, technicianName) {
   const j = getRepairJobsData().find(j => j.id === id);
   if (!j) return;
 
@@ -2736,14 +2819,14 @@ function tpAcceptJob(id) {
     fetch(`${API_URL}/repairs/${encodeURIComponent(id)}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ technician: ME })
+      body: JSON.stringify({ technician: technicianName })
     })
     .then(r => r.json())
     .then(res => {
       hideLoading();
       if (res.success) {
         j.status = 'กำลังซ่อม';
-        j.technician = ME;
+        j.technician = technicianName;
         showToast(`✋ รับงาน ${j.machine} สำเร็จ`, 'success');
         teUpdateStats(); teRenderQueue(); teRenderMine();
         tpUpdateStats(); tpRenderQueue(); tpRenderMine();
@@ -2757,7 +2840,7 @@ function tpAcceptJob(id) {
 
   // Local Mode
   j.status = 'กำลังซ่อม';
-  j.technician = ME;
+  j.technician = technicianName;
   showToast(`✋ รับงาน ${j.machine} สำเร็จ`, 'success');
   teUpdateStats(); teRenderQueue(); teRenderMine();
   tpUpdateStats(); tpRenderQueue(); tpRenderMine();
