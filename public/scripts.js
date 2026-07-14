@@ -3669,3 +3669,37 @@ function setSearchableSelectValue(selectId, value) {
 function resetSearchableSelect(selectId) {
   setSearchableSelectValue(selectId, '');
 }
+// ============================================================
+// ADMIN — PEOPLE PANEL (รวม "จัดการ Users" + "โปรไฟล์ช่าง/วิศวกร")
+// ============================================================
+let _peopleSubTab = 'users';
+
+function initAdminPeoplePanel() {
+  const btn = document.getElementById(_peopleSubTab === 'users' ? 'pst-users' : 'pst-tech');
+  switchPeopleSubTab(_peopleSubTab, btn);
+}
+
+function switchPeopleSubTab(tab, btn) {
+  _peopleSubTab = tab;
+  document.querySelectorAll('.people-subtab').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--bg2)';
+    b.style.color = 'var(--text2)';
+  });
+  if (btn) {
+    btn.classList.add('active');
+    btn.style.background = 'var(--accent)';
+    btn.style.color = '#fff';
+  }
+  const usersView = document.getElementById('panel-admin-users');
+  const techView  = document.getElementById('panel-admin-techprofiles');
+  if (tab === 'users') {
+    usersView.style.display = 'block';
+    techView.style.display  = 'none';
+    renderAdminUsersTable();
+  } else {
+    techView.style.display  = 'block';
+    usersView.style.display = 'none';
+    renderAdminTechProfiles();
+  }
+}
