@@ -240,23 +240,28 @@ function handleLoginSubmit(event) {
   })
   .then(res => res.json())
   .then(res => {
-    hideLoading();
-    if (res.success) {
+  hideLoading();
+  if (res.success) {
     currentUser = {
-        username: res.username,
-        name:     res.name,
-        role:     res.role,
-        avatar:  res.avatar,
-        isChief: res.isChief,
-        dept :    res.dept,
-      };
-      authToken = res.token || null;
-      autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
-      setupDashboard();
-    } else {
-      showLoginError();
-    }
-  })
+      username: res.username,
+      name:     res.name,
+      role:     res.role,
+      avatar:  res.avatar,
+      isChief: res.isChief,
+      dept :    res.dept,
+    };
+    authToken = res.token || null;
+
+    // ── ล้างตัวตนที่เคยระบุไว้ ทุกครั้งที่ login สำเร็จ กันชื่อคนก่อนหน้าค้างข้ามรอบ ──
+    sessionStorage.removeItem('identified_tech_' + currentUser.username);
+    myIdentifiedName = null;
+
+    autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
+    setupDashboard();
+  } else {
+    showLoginError();
+  }
+})
   .catch(() => { hideLoading(); showLoginError(); });
 }
 
