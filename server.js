@@ -20,6 +20,7 @@ const masterDataRoutes  = require('./routes/masterdata');
 const dailyPMRoutes     = require('./routes/dailypm');
 const adminRoutes       = require('./routes/admin');
 const lineWebhookRoutes = require('./routes/linewebhook'); // ✅ เพิ่ม
+const techProfileRoutes = require('./routes/techprofiles'); // ✅ เพิ่ม
 
 app.use('/api/repairs',      repairRoutes);
 app.use('/api/users',        userRoutes);
@@ -28,6 +29,7 @@ app.use('/api/masterdata',   masterDataRoutes);
 app.use('/api/daily-pm',     dailyPMRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/line/webhook', lineWebhookRoutes); // ✅ เพิ่ม
+app.use('/api/tech-profiles', techProfileRoutes); // ✅ เพิ่ม
 
 // ── LINE Callback ──
 const {

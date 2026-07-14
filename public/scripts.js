@@ -22,6 +22,10 @@ let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = n
 let insDailyHistory = [];
 let authToken = null; // JWT ที่ได้จาก /api/users/login — เก็บไว้ใน memory เท่านั้น (ไม่ใส่ localStorage เพื่อลดความเสี่ยง XSS-token-theft)
 
+// ── บัญชี login กลางของทีมช่าง/วิศวกร — ต้องตรงกับ TE_SHARED_USERNAME ที่ตั้งไว้ใน Render ──
+// (ถ้าไม่ได้ตั้งค่า TE_SHARED_USERNAME ใน Render ระบบฝั่ง backend จะ default เป็น 'eng_team')
+const TECH_PROFILE_PARENT_ACCOUNT = 'eng_team';
+
 // ── ใช้แทน fetch() ธรรมดาสำหรับ endpoint ที่ต้อง login (แนบ Authorization header ให้อัตโนมัติ) ──
 function authFetch(url, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -2124,7 +2128,7 @@ function renderAdminTechProfiles() {
       </div>`;
   }
   showLoading('กำลังโหลดข้อมูลโปรไฟล์ช่าง...');
-  fetch(`${API_URL}/tech-profiles?requestedBy=admin`)
+  authFetch(`${API_URL}/tech-profiles`)
     .then(r => r.json())
     .then(data => {
       hideLoading();
@@ -2175,7 +2179,8 @@ function openTechProfileModal(id) {
   document.getElementById('tpm-fullname').value      = p?.fullname      || '';
   document.getElementById('tpm-employee-code').value = p?.employee_code || '';
   document.getElementById('tpm-phone').value         = p?.phone         || '';
-  document.getElementById('tpm-parent-account').value= p?.parent_account|| '';
+  document.getElementById('tpm-parent-account').value= TECH_PROFILE_PARENT_ACCOUNT;
+  document.getElementById('tpm-parent-account-display').textContent = TECH_PROFILE_PARENT_ACCOUNT;
   document.getElementById('tpm-is-chief').checked    = p ? (p.is_chief === 'TRUE' || p.is_chief === true) : false;
   document.getElementById('tpm-error').style.display = 'none';
 
@@ -2186,7 +2191,7 @@ function submitTechProfileForm() {
   const fullname      = document.getElementById('tpm-fullname').value.trim();
   const employee_code = document.getElementById('tpm-employee-code').value.trim();
   const phone         = document.getElementById('tpm-phone').value.trim();
-  const parent_account= document.getElementById('tpm-parent-account').value.trim();
+  const parent_account= TECH_PROFILE_PARENT_ACCOUNT; // auto-fill — ผูกกับบัญชี login กลางของทีมช่างเสมอ
   const is_chief      = document.getElementById('tpm-is-chief').checked;
   const errEl = document.getElementById('tpm-error');
   const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
@@ -2194,17 +2199,16 @@ function submitTechProfileForm() {
 
   if (!fullname)       return showErr('กรุณากรอกชื่อ-สกุล');
   if (!employee_code)  return showErr('กรุณากรอกรหัสพนักงาน');
-  if (!parent_account) return showErr('กรุณากรอกชื่อบัญชีที่สังกัด (เช่น eng_team)');
 
   const btn = document.getElementById('tpm-submit-btn');
   if (btn) btn.disabled = true;
 
-  const payload = { fullname, employee_code, phone, parent_account, is_chief, requestedBy: 'admin' };
+  const payload = { fullname, employee_code, phone, parent_account, is_chief };
   const req = _editingTechProfileId
-    ? fetch(`${API_URL}/tech-profiles/${encodeURIComponent(_editingTechProfileId)}`, {
+    ? authFetch(`${API_URL}/tech-profiles/${encodeURIComponent(_editingTechProfileId)}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
-    : fetch(`${API_URL}/tech-profiles`, {
+    : authFetch(`${API_URL}/tech-profiles`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
 
@@ -2225,11 +2229,11 @@ function submitTechProfileForm() {
 function toggleTechProfileStatus(id, newStatus) {
   showLoading('กำลังอัปเดต...');
   const req = newStatus === 'inactive'
-    ? fetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestedBy: 'admin' }),
+    ? authFetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       })
-    : fetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active', requestedBy: 'admin' }),
+    : authFetch(`${API_URL}/tech-profiles/${encodeURIComponent(id)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active' }),
       });
 
   req.then(r => r.json())

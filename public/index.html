@@ -1184,9 +1184,13 @@
             <input type="text" id="tpm-phone" class="input-ctrl" placeholder="081-xxx-xxxx">
           </div>
         </div>
+        <input type="hidden" id="tpm-parent-account">
         <div class="form-field" style="margin-bottom:14px">
-          <label>บัญชี login ที่สังกัด (parent_account)</label>
-          <input type="text" id="tpm-parent-account" class="input-ctrl" placeholder="เช่น eng_team">
+          <label>บัญชี login ที่สังกัด</label>
+          <div class="input-ctrl" style="background:var(--bg-muted,#f3f4f6);color:var(--text-muted,#6b7280);display:flex;align-items:center;gap:6px">
+            <i class="bi bi-lock-fill" style="font-size:12px"></i>
+            <span id="tpm-parent-account-display">eng_team</span>
+          </div>
         </div>
         <div class="form-field" style="margin-bottom:14px;display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="tpm-is-chief" style="width:16px;height:16px">
