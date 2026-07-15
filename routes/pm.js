@@ -76,10 +76,11 @@ router.post('/', requireRole('admin'), async (req, res) => {
       if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบแผน PM นี้' });
 
       const sheetRow = rowIndex + 2;
+      // RAW แทน USER_ENTERED — กันไม่ให้ Sheets ตีความวันที่เป็น date serial number แล้วโชว์เป็นตัวเลขดิบ
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `PM_Calendar!B${sheetRow}:G${sheetRow}`,
-        valueInputOption: 'USER_ENTERED',
+        valueInputOption: 'RAW',
         requestBody: {
           values: [[title, machine, date, type, assignee || '', status || 'รอดำเนินการ']],
         },
@@ -92,7 +93,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'PM_Calendar!A:G',
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [[pmId, title, machine, date, type, assignee || '', status || 'รอดำเนินการ']],
       },

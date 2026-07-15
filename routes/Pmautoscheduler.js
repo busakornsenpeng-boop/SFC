@@ -217,10 +217,12 @@ async function runMonthlyPMAutoSchedule() {
   });
 
   if (newRows.length) {
+    // RAW แทน USER_ENTERED — กันไม่ให้ Sheets ตีความ date string ("YYYY-MM-DD") เป็น date serial number
+    // แล้วโชว์เป็นตัวเลขดิบ (เช่น 46024) ถ้าคอลัมน์ดันมี number format เป็น "Number" อยู่ก่อนแล้ว
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'PM_Calendar!A:G',
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: newRows },
     });
@@ -291,10 +293,11 @@ async function runAnnualPMSchedule(targetYear) {
     });
 
     if (newRows.length) {
+      // RAW แทน USER_ENTERED — เหตุผลเดียวกับใน runMonthlyPMAutoSchedule ด้านบน
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: 'PM_Calendar!A:G',
-        valueInputOption: 'USER_ENTERED',
+        valueInputOption: 'RAW',
         insertDataOption: 'INSERT_ROWS',
         requestBody: { values: newRows },
       });
