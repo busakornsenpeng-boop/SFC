@@ -445,8 +445,6 @@ function initEngPanel() {
   document.getElementById('eng-kpi-pmdone').textContent=pmDone;
   document.getElementById('eng-kpi-pmtotal').textContent=pmList.length;
   document.getElementById('eng-kpi-repairs').textContent=jobs.length;
-  const engAvgHrs=calculateAvgRepairHours(jobs.filter(j=>j.doneDate));
-  document.getElementById('eng-kpi-sla').textContent=engAvgHrs!==null?engAvgHrs.toFixed(1)+' ชม.':'—';
   document.getElementById('eng-badge-qc').textContent=qcJobs.length;
   document.getElementById('eng-badge-pm').textContent=pmList.length;
   document.getElementById('eng-badge-daily').textContent=0;
@@ -1782,40 +1780,6 @@ function viewPMDoc(pmCode,arrIdx){
 // ADMIN DASHBOARD
 // ============================================================
 function parseJobDate(str){if(!str)return null;try{const parts=str.split(',')[0].trim().split('/');if(parts.length!==3)return null;let y=parseInt(parts[2]);if(y>2400)y-=543;return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]));}catch(e){return null;}}
-// เหมือน parseJobDate แต่รวมเวลา (ชม./นาที/วินาที) ด้วย — ใช้คำนวณระยะเวลาซ่อมจริง
-function parseJobDateTime(str){
-  if(!str)return null;
-  try{
-    const[dPart,tPart]=str.split(',').map(s=>(s||'').trim());
-    const parts=dPart.split('/');
-    if(parts.length!==3)return null;
-    let y=parseInt(parts[2]);if(y>2400)y-=543; // แปลง พ.ศ.→ค.ศ. ถ้าจำเป็น
-    const[hh,mm,ss]=(tPart||'0:0:0').split(':').map(n=>parseInt(n)||0);
-    return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]),hh,mm,ss);
-  }catch(e){return null;}
-}
-// เวลาซ่อมเฉลี่ย (ชม.) จากงานที่มีทั้ง date (แจ้ง) และ doneDate (เสร็จ) จริง — คืนค่า null ถ้าไม่มีงานที่คำนวณได้
-function calculateAvgRepairHours(jobs){
-  const durations=jobs.map(j=>{
-    if(!j.doneDate||!j.date)return null;
-    const start=parseJobDateTime(j.date), end=parseJobDateTime(j.doneDate);
-    if(!start||!end)return null;
-    const hrs=(end-start)/3600000;
-    return hrs>=0?hrs:null;
-  }).filter(h=>h!==null);
-  if(!durations.length)return null;
-  return durations.reduce((a,b)=>a+b,0)/durations.length;
-}
-// เทียบเวลาซ่อมเฉลี่ยเดือนนี้กับเดือนก่อน (อิง doneDate) — ใช้ทำ trend จริงแทนเลข hardcode
-function calculateAvgRepairTrend(){
-  const jobs=getRepairJobsData();
-  const now=new Date();
-  const thisMonthStart=new Date(now.getFullYear(),now.getMonth(),1);
-  const lastMonthStart=new Date(now.getFullYear(),now.getMonth()-1,1);
-  const thisMonthJobs=jobs.filter(j=>{const d=parseJobDateTime(j.doneDate);return d&&d>=thisMonthStart;});
-  const lastMonthJobs=jobs.filter(j=>{const d=parseJobDateTime(j.doneDate);return d&&d>=lastMonthStart&&d<thisMonthStart;});
-  return{avgThis:calculateAvgRepairHours(thisMonthJobs),avgLast:calculateAvgRepairHours(lastMonthJobs)};
-}
 function filterJobsByTimeRange(jobs,ft){
   if(ft==='all')return jobs;
   const today=new Date();today.setHours(0,0,0,0);
@@ -1839,26 +1803,12 @@ function initAdminDashboard(){
   const filtered=filterJobsByTimeRange(getRepairJobsData(),currentAdminTimeFilter);
   const stats=calculateAdminStats(filtered);const pm=getPMData();const sv=id=>document.getElementById(id);
   if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
-  const adminAvgHrs=calculateAvgRepairHours(filtered.filter(j=>j.doneDate));
-  if(sv('adm-stat-sla'))sv('adm-stat-sla').textContent=adminAvgHrs!==null?adminAvgHrs.toFixed(1)+' ชม.':'—';
   const overdue=getRepairJobsData().filter(j=>j.slaOverdue).length;const pmToday=pm.filter(p=>p.date===new Date().toISOString().split('T')[0]).length;
   if(sv('adm-trend-total'))sv('adm-trend-total').innerHTML=buildTrend('+12','%','↑','kv-trend up','จากเดือนก่อน');
   if(sv('adm-trend-wait'))sv('adm-trend-wait').innerHTML=overdue>0?buildTrend(overdue,' งาน','<i class="ion-ios-warning"></i>','kv-trend warn','เกิน 24 ชม.'):'<span class="kv-trend up">✓ ทุกงานยังในกำหนด</span>';
   if(sv('adm-trend-work'))sv('adm-trend-work').innerHTML=buildTrend(stats.working,' งาน','<i class="ion-ios-construct"></i>','kv-trend','กำลังดำเนินการ');
   if(sv('adm-trend-closed'))sv('adm-trend-closed').innerHTML=buildTrend('+5',' งาน','↑','kv-trend up','สัปดาห์นี้');
   if(sv('adm-trend-pm'))sv('adm-trend-pm').innerHTML=buildTrend(pmToday,' กำหนดวันนี้','<i class="ion-ios-calendar"></i>','kv-trend','');
-  if(sv('adm-trend-sla')){
-    const{avgThis,avgLast}=calculateAvgRepairTrend();
-    if(avgThis===null){
-      sv('adm-trend-sla').innerHTML='<span class="kv-trend">ยังไม่มีงานที่ปิดเดือนนี้</span>';
-    }else if(avgLast===null||avgLast===0){
-      sv('adm-trend-sla').innerHTML='<span class="kv-trend">— ไม่มีข้อมูลเดือนก่อนเทียบ</span>';
-    }else{
-      const diffPct=Math.round(((avgThis-avgLast)/avgLast)*100);
-      const better=diffPct<=0; // เวลาซ่อมน้อยลง = ดีขึ้น
-      sv('adm-trend-sla').innerHTML=buildTrend(Math.abs(diffPct),'%',better?'↓':'↑',better?'kv-trend up':'kv-trend warn','จากเดือนก่อน');
-    }
-  }
   const palette=['#ef4444','#3b82f6','#10b981','#f59e0b','#a855f7','#14b8a6'];
   const chartCfg=(type,data,extra={})=>({type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a1a1aa',font:{size:11},boxWidth:10}}},scales:type==='bar'||type==='line'?{x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}:undefined,...extra}});
   if(chartSideInstance)chartSideInstance.destroy();const sc=sv('chart-side');if(sc)chartSideInstance=new Chart(sc,chartCfg('doughnut',{labels:Object.keys(stats.sideData),datasets:[{data:Object.values(stats.sideData),backgroundColor:palette,borderColor:'#18181b',borderWidth:2,hoverOffset:4}]},{plugins:{legend:{position:'bottom',labels:{color:'#a1a1aa',font:{size:10},boxWidth:8,padding:10}}}}));
@@ -1971,7 +1921,6 @@ async function exportAdminDashboardExcel(){
     const pm       = getPMData();
     const overdue  = getRepairJobsData().filter(j => j.slaOverdue).length;
     const leaders  = calculateTechPerformance(filtered);
-    const exportAvgHrs = calculateAvgRepairHours(filtered.filter(j => j.doneDate));
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'SFC Maintenance Service';
@@ -1992,7 +1941,6 @@ async function exportAdminDashboardExcel(){
       ['ปิดงานเสร็จ', stats.closed],
       ['เกิน SLA (24 ชม.)', overdue],
       ['PM ทั้งหมด', pm.length],
-      ['เวลาซ่อมเฉลี่ย', exportAvgHrs !== null ? exportAvgHrs.toFixed(1) + ' ชม.' : '—'],
     ].forEach(([k,v]) => sSummary.addRow({ k, v }));
     sSummary.getColumn('v').alignment = { horizontal:'center' };
 
@@ -3518,7 +3466,7 @@ function populateMachineDropdown(machines) {
 function populateTechDropdown(technicians) {
   const selectors = ['#adm-job-tech', '#chk-pm-tech'];
   selectors.forEach(sel => {
-    const el = document.getElementById(sel);
+    const el = document.querySelector(sel);
     if (!el) return;
     el.innerHTML = '<option value="">เลือกช่าง</option>';
     (technicians || []).forEach(tech => {
