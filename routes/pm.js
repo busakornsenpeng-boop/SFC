@@ -104,6 +104,22 @@ router.post('/', requireRole('admin'), async (req, res) => {
   }
 });
 
+// DELETE /api/pm/clear-all (เฉพาะแอดมิน) — ล้างแผน PM ทั้งหมดในตาราง PM_Calendar
+// ใช้ตอนข้อมูลปนกันมั่วจากการทดสอบปุ่มจัดตารางอัตโนมัติ/ทั้งปี — ไม่แตะ PM_History (ประวัติงานที่ทำจริงแล้ว)
+// วางไว้ "ก่อน" route DELETE /:id เพื่อกัน Express จับ 'clear-all' เป็นค่า :id
+router.delete('/clear-all', requireRole('admin'), async (req, res) => {
+  try {
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'PM_Calendar!A2:G100000',
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[PM] clear-all error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // DELETE /api/pm/:id (เฉพาะแอดมิน) — เคลียร์ค่าทั้งแถว (soft delete เหมือนแพทเทิร์นที่ใช้กับ TechProfiles)
 router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
