@@ -225,8 +225,9 @@
 
   /* ── Modal ── */
   .modal{position:fixed;inset:0;background:rgba(16,24,40,0.42);backdrop-filter:blur(8px);z-index:5000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s ease;padding:16px}
-  .modal.active{opacity:1;pointer-events:auto}
-  .modal-content{background:var(--surface);border:1px solid var(--border);border-radius:8px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:modalScale 0.22s ease-out}
+  .modal.active{opacity:1}
+  .modal-content{background:var(--surface);border:1px solid var(--border);border-radius:8px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:modalScale 0.22s ease-out;pointer-events:none}
+  .modal.active .modal-content{pointer-events:auto}
   @keyframes modalScale{from{transform:scale(0.96);opacity:.6}to{transform:scale(1);opacity:1}}
   .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2)}
   .modal-title{font-size:16px;font-weight:700;color:var(--text)}

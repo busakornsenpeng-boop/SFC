@@ -670,8 +670,8 @@
       <!-- ══════════════════════════════════════════════════════
            MODAL: Dept Breakdown (คลิกจาก KPI card)
       ══════════════════════════════════════════════════════ -->
-      <div class="modal" id="dept-breakdown-modal" onmouseenter="cancelCloseDeptBreakdown()" onmouseleave="scheduleCloseDeptBreakdown()">
-        <div class="modal-content">
+      <div class="modal" id="dept-breakdown-modal">
+        <div class="modal-content" onmouseenter="cancelCloseDeptBreakdown()" onmouseleave="scheduleCloseDeptBreakdown()">
           <div class="modal-header">
             <span class="modal-title" id="dbm-title">รายละเอียดตามแผนก</span>
             <button class="modal-close" onclick="closeModal('dept-breakdown-modal')"><i class="ion-ios-close"></i></button>
