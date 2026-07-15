@@ -10,15 +10,17 @@ async function getAllPM() {
     range: 'PM_Calendar!A2:G1000',
   });
   const rows = res.data.values || [];
-  return rows.map(row => ({
-    id:       row[0] || '',
-    title:    row[1] || '',
-    machine:  row[2] || '',
-    date:     row[3] || '',
-    type:     row[4] || '',
-    assignee: row[5] || '',
-    status:   row[6] || '',
-  }));
+  return rows
+    .filter(row => row[0]) // ตัดแถวที่ถูก "ลบ" แล้ว (เคลียร์ค่าออกหมด — ดูฟังก์ชัน DELETE ด้านล่าง)
+    .map(row => ({
+      id:       row[0] || '',
+      title:    row[1] || '',
+      machine:  row[2] || '',
+      date:     row[3] || '',
+      type:     row[4] || '',
+      assignee: row[5] || '',
+      status:   row[6] || '',
+    }));
 }
 
 // GET /api/pm
@@ -60,10 +62,32 @@ router.get('/history', async (req, res) => {
   }
 });
 
-// POST /api/pm (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/', requireRole('engineer', 'admin'), async (req, res) => {
+// POST /api/pm — สร้างแผน PM ใหม่ หรือแก้ไข/เลื่อนวันแผนเดิม (ถ้าส่ง id มาด้วย)
+// เฉพาะแอดมินเท่านั้นที่จัดตาราง PM ได้ — ช่าง/วิศวกรมีแค่หน้าไปทำ (ดู PM_Calendar ผ่าน GET เท่านั้น)
+router.post('/', requireRole('admin'), async (req, res) => {
   try {
-    const { title, machine, date, type, assignee, status } = req.body;
+    const { id, title, machine, date, type, assignee, status } = req.body;
+
+    if (id) {
+      // ── แก้ไข/เลื่อนวันแผนเดิม ──
+      const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'PM_Calendar!A2:G1000' });
+      const rows     = getRes.data.values || [];
+      const rowIndex = rows.findIndex(r => r[0] === id);
+      if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบแผน PM นี้' });
+
+      const sheetRow = rowIndex + 2;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `PM_Calendar!B${sheetRow}:G${sheetRow}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[title, machine, date, type, assignee || '', status || 'รอดำเนินการ']],
+        },
+      });
+      return res.json({ success: true, pmId: id });
+    }
+
+    // ── สร้างใหม่ ──
     const pmId = 'PM-' + Date.now();
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -76,6 +100,43 @@ router.post('/', requireRole('engineer', 'admin'), async (req, res) => {
     res.json({ success: true, pmId });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/pm/:id (เฉพาะแอดมิน) — เคลียร์ค่าทั้งแถว (soft delete เหมือนแพทเทิร์นที่ใช้กับ TechProfiles)
+router.delete('/:id', requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'PM_Calendar!A2:G1000' });
+    const rows     = getRes.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === id);
+    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบแผน PM นี้' });
+
+    const sheetRow = rowIndex + 2;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `PM_Calendar!A${sheetRow}:G${sheetRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [['', '', '', '', '', '', '']] },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/pm/auto-schedule/run (เฉพาะแอดมิน) — สั่งรันตัวจัดตาราง PM รายเดือนแบบทดสอบ/ฉุกเฉิน
+// ตามปกติระบบจะรันเองอัตโนมัติทุกวันที่ 1 ของเดือนผ่าน cron (ดู routes/pmAutoScheduler.js)
+router.post('/auto-schedule/run', requireRole('admin'), async (req, res) => {
+  try {
+    const { runMonthlyPMAutoSchedule } = require('./Pmautoscheduler');
+    const result = await runMonthlyPMAutoSchedule();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[PM Auto-Schedule] manual run error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

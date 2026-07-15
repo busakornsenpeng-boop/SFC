@@ -217,9 +217,14 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
             <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
-            <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openModal('pm-event-modal')">
-              <i class="ion-ios-add"></i> เพิ่มแผน PM
-            </button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sec d-none" id="btn-auto-schedule-pm" onclick="runPMAutoSchedule()">
+                <i class="ion-ios-refresh"></i> จัดตารางอัตโนมัติ
+              </button>
+              <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openAddPMModal()">
+                <i class="ion-ios-add"></i> เพิ่มแผน PM
+              </button>
+            </div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
             <input type="text" id="pm-search" class="input-ctrl"
@@ -452,7 +457,7 @@
               <select class="pm-sel-eng" id="ep-pm-freq" onchange="engRenderPMTable()">
                 <option value="">ความถี่ทั้งหมด</option><option>รายวัน</option><option>รายเดือน</option>
               </select>
-              <button class="pm-add-btn-eng d-none" id="ep-pm-add-btn" onclick="openModal('pm-event-modal')"><i class="ion-ios-add"></i> เพิ่มแผน PM</button>
+              <button class="pm-add-btn-eng d-none" id="ep-pm-add-btn" onclick="openAddPMModal()"><i class="ion-ios-add"></i> เพิ่มแผน PM</button>
             </div>
             <div class="pm-table-wrap">
               <table class="pm-table">
@@ -1233,7 +1238,7 @@
   <div class="modal" id="pm-event-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title">เพิ่มกำหนดการ PM</span>
+        <span class="modal-title" id="pmem-modal-title">เพิ่มกำหนดการ PM</span>
         <button class="modal-close" onclick="closeModal('pm-event-modal')"><i class="ion-ios-close"></i></button>
       </div>
       <div class="modal-body">
@@ -1262,9 +1267,12 @@
               <option>เสร็จแล้ว</option><option>เกินกำหนด</option>
             </select>
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:10px">
-            <button type="button" class="btn btn-sec" onclick="closeModal('pm-event-modal')">ยกเลิก</button>
-            <button type="submit" class="btn btn-accent"><i class="ion-ios-save"></i> บันทึก</button>
+          <div style="display:flex;justify-content:space-between;gap:10px">
+            <button type="button" class="btn btn-sec" id="pmem-delete-btn" style="display:none;border-color:var(--red);color:var(--red)" onclick="deletePMEventItem()"><i class="ion-ios-trash"></i> ลบแผนนี้</button>
+            <div style="display:flex;gap:10px;margin-left:auto">
+              <button type="button" class="btn btn-sec" onclick="closeModal('pm-event-modal')">ยกเลิก</button>
+              <button type="submit" class="btn btn-accent"><i class="ion-ios-save"></i> บันทึก</button>
+            </div>
           </div>
         </form>
       </div>

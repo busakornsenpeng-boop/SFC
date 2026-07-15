@@ -374,6 +374,8 @@ function setupDashboard() {
  admin: [
     {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'ion-ios-pie'},
     {panel:'admin-repairs',      label:'จัดการใบแจ้งซ่อม',   icon:'ion-ios-options'},
+    {panel:'pm-table',           label:'จัดการ PM',          icon:'ion-ios-clipboard'},
+    {panel:'pm-calendar',        label:'ปฏิทิน PM',          icon:'ion-ios-calendar'},
     {panel:'admin-people',       label:'จัดการผู้ใช้งาน',    icon:'ion-ios-people'}
   ]
 };
@@ -388,7 +390,9 @@ function setupDashboard() {
   });
 
   const addPmBtn = document.getElementById('btn-add-pm-item');
-  if (addPmBtn) addPmBtn.classList.add('d-none');
+  if (addPmBtn) addPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
+  const autoSchedBtn = document.getElementById('btn-auto-schedule-pm');
+  if (autoSchedBtn) autoSchedBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const epPmAddBtn = document.getElementById('ep-pm-add-btn');
   if (epPmAddBtn) epPmAddBtn.classList.add('d-none');
 
@@ -613,7 +617,7 @@ function engRenderPMTable() {
     (p.machine.toLowerCase().includes(q)||p.title.toLowerCase().includes(q))&&
     (!statusF||p.status===statusF)&&(!freqF||p.type===freqF));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">ไม่พบข้อมูล</td></tr>`;return;}
-  const canEdit=currentUser&&(currentUser.role==='admin'||(currentUser.role==='engineer'&&currentUser.isChief));
+  const canEdit=currentUser&&currentUser.role==='admin';
   tbody.innerHTML=filtered.map((p,i)=>`
     <tr>
       <td style="color:var(--text3);font-family:var(--font-mono);font-size:11px">${i+1}</td>
@@ -1298,7 +1302,7 @@ function renderPMTable(){
   const tbody=document.getElementById('pm-list-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getPMData().filter(p=>(p.machine.toLowerCase().includes(search)||p.title.toLowerCase().includes(search))&&(!statusF||p.status===statusF)&&(!freqF||p.type===freqF));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลตาราง PM</td></tr>`;return;}
-  filtered.forEach((p,idx)=>{const sc={รอดำเนินการ:'sp-pend',กำลังดำเนินการ:'sp-prog',เสร็จแล้ว:'sp-done',เกินกำหนด:'sp-over'}[p.status]||'sp-pend';const canEdit=currentUser&&(currentUser.role==='admin'||(currentUser.role==='engineer'&&currentUser.isChief));const btn=canEdit?`<button class="btn-action" style="border-color:var(--purple);color:var(--purple)" onclick="openEditPMModal('${p.id}')">แก้ไขแผน</button>`:`<button class="btn-action" onclick="openPMChecklistForm('${p.id}','${p.machine}')">ตรวจเช็ก</button>`;const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--text3);font-size:11px">${idx+1}</td><td style="font-weight:600">${p.machine}</td><td>${p.title}</td><td style="color:var(--text2);font-size:12px">${p.type}</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${p.date}</td><td><span class="spill ${sc}">${p.status}</span></td><td>${p.status==='เสร็จแล้ว'?'<span class="pill pill-closed">เสร็จสิ้น</span>':btn}</td>`;tbody.appendChild(tr);});
+  filtered.forEach((p,idx)=>{const sc={รอดำเนินการ:'sp-pend',กำลังดำเนินการ:'sp-prog',เสร็จแล้ว:'sp-done',เกินกำหนด:'sp-over'}[p.status]||'sp-pend';const canEdit=currentUser&&currentUser.role==='admin';const btn=canEdit?`<button class="btn-action" style="border-color:var(--purple);color:var(--purple)" onclick="openEditPMModal('${p.id}')">แก้ไขแผน</button>`:`<button class="btn-action" onclick="openPMChecklistForm('${p.id}','${p.machine}')">ตรวจเช็ก</button>`;const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--text3);font-size:11px">${idx+1}</td><td style="font-weight:600">${p.machine}</td><td>${p.title}</td><td style="color:var(--text2);font-size:12px">${p.type}</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${p.date}</td><td><span class="spill ${sc}">${p.status}</span></td><td>${p.status==='เสร็จแล้ว'?'<span class="pill pill-closed">เสร็จสิ้น</span>':btn}</td>`;tbody.appendChild(tr);});
 }
 
 function renderCalendar(){
@@ -1331,7 +1335,7 @@ function showDayEventsDetail(ds){
   if(!evts.length){listDiv.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">ไม่มีกำหนดการเช็ก PM</div>';return;}
   evts.forEach(e=>{
     const sc={รอดำเนินการ:'sp-pend',กำลังดำเนินการ:'sp-prog',เสร็จแล้ว:'sp-done',เกินกำหนด:'sp-over'}[e.status]||'sp-pend';
-    const canEdit=currentUser&&(currentUser.role==='admin'||(currentUser.role==='engineer'&&currentUser.isChief));
+    const canEdit=currentUser&&currentUser.role==='admin';
     const btn=canEdit?`<button class="btn-action" style="border-color:var(--purple);color:var(--purple)" onclick="openEditPMModal('${e.id}')">แก้ไขแผน</button>`:`<button class="btn-action" onclick="openPMChecklistForm('${e.id}','${e.machine}')">เปิดตรวจเช็ก</button>`;
     const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)';
     row.innerHTML=`<div><div style="font-weight:600;font-size:13.5px">${e.machine}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">${e.title}</div></div><div style="display:flex;align-items:center;gap:10px"><span class="spill ${sc}">${e.status}</span>${e.status==='เสร็จแล้ว'?'<span class="pill pill-closed">เสร็จสิ้น</span>':btn}</div>`;
@@ -1578,9 +1582,30 @@ function submitPMEventForm(event){
   closeModal('pm-event-modal'); showToast('บันทึกแผน PM สำเร็จ!','success'); renderPMTable(); updatePMStats(); renderCalendar();
 }
 
+// runPMAutoSchedule — เรียกตัวจัดตาราง PM อัตโนมัติด้วยมือ (ปกติระบบรันเองทุกวันที่ 1 ของเดือนอยู่แล้ว
+// ปุ่มนี้ไว้ใช้ตอนทดสอบ หรือกรณีฉุกเฉินที่ cron ไม่ทำงานตามกำหนด)
+function runPMAutoSchedule(){
+  if(isLocalMode){ showToast('ฟีเจอร์นี้ใช้ได้เฉพาะตอนเชื่อมต่อ server จริง', 'warning'); return; }
+  if(!confirm('จัดตาราง PM ประจำเดือนนี้อัตโนมัติจากข้อมูลแจ้งซ่อม? (เครื่องที่มีแผนของเดือนนี้อยู่แล้วจะไม่ถูกสร้างซ้ำ)')) return;
+  showLoading('กำลังวิเคราะห์ข้อมูลแจ้งซ่อมและจัดตาราง...');
+  authFetch(`${API_URL}/pm/auto-schedule/run`, { method:'POST' })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if(res.success){
+        showToast(`จัดตาราง PM สำเร็จ! สร้างใหม่ ${res.created} รายการ (ข้าม ${res.skipped} รายการที่มีอยู่แล้ว)`, 'success');
+        refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
+      } else {
+        showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+      }
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+}
+
 // deletePMEventItem
 function deletePMEventItem(){
   const id = document.getElementById('pmem-id').value; if(!id) return;
+  if(!confirm('ยืนยันการลบแผน PM นี้?')) return;
   if(!isLocalMode){
     showLoading('กำลังลบ...');
     fetch(`${API_URL}/pm/${encodeURIComponent(id)}`, { method:'DELETE' })
@@ -3330,6 +3355,16 @@ function engSubmitQC() {
   renderRepairsTable(); renderUserQCPanel();
 }
 
+function openAddPMModal() {
+  document.getElementById('pm-event-form').reset();
+  document.getElementById('pmem-id').value = '';
+  const titleEl = document.getElementById('pmem-modal-title');
+  if (titleEl) titleEl.textContent = 'เพิ่มกำหนดการ PM';
+  const delBtn = document.getElementById('pmem-delete-btn');
+  if (delBtn) delBtn.style.display = 'none';
+  openModal('pm-event-modal');
+}
+
 function openEditPMModal(pmId) {
   const p = getPMData().find(x => x.id === pmId);
   if (!p) return;
@@ -3339,6 +3374,10 @@ function openEditPMModal(pmId) {
  setSearchableSelectValue('pmem-machine', p.machine);
   document.getElementById('pmem-type').value        = p.type;
   document.getElementById('pmem-status').value      = p.status;
+  const titleEl = document.getElementById('pmem-modal-title');
+  if (titleEl) titleEl.textContent = 'แก้ไข / เลื่อนวัน PM';
+  const delBtn = document.getElementById('pmem-delete-btn');
+  if (delBtn) delBtn.style.display = 'inline-flex';
   openModal('pm-event-modal');
 }
 
