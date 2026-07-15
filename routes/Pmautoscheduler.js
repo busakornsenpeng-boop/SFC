@@ -1,13 +1,13 @@
-// services/pmAutoScheduler.js
+// routes/pmAutoScheduler.js
 // ─────────────────────────────────────────────────────────────
 // จัดตาราง PM รายเดือนอัตโนมัติ โดยวิเคราะห์ความถี่การแจ้งซ่อม
 // ของแต่ละเครื่องจักร (ข้อมูลทั้งหมดตั้งแต่เริ่มระบบ):
 //   - เครื่องที่แจ้งซ่อมบ่อยที่สุด (Top 5-10) → จัด PM ไว้ต้นเดือน
 //   - เครื่องที่เหลือทั้งหมด → กระจาย PM ไว้ท้ายเดือน
-// รันอัตโนมัติทุกวันที่ 1 ของเดือน ผ่าน node-cron (ดู startPMAutoScheduler)
+// รันอัตโนมัติทุกวันที่ 1 ของเดือน (ดู startPMAutoScheduler ด้านล่าง — ใช้
+// setInterval + Intl.DateTimeFormat เช็คเวลาไทยเอง ไม่ต้องพึ่ง library ภายนอก)
 // รันด้วยมือได้ผ่าน POST /api/pm/auto-schedule/run (แอดมินเท่านั้น — ดู routes/pm.js)
 // ─────────────────────────────────────────────────────────────
-const cron = require('node-cron');
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 
 const TOP_N          = 8;                                   // จำนวนเครื่อง "ซ่อมบ่อยสุด" ที่จัดไว้ต้นเดือน (อยู่ในช่วง 5-10 ที่ตกลงกันไว้)
@@ -128,13 +128,39 @@ async function runMonthlyPMAutoSchedule() {
   return result;
 }
 
-// เรียกครั้งเดียวตอน start server เพื่อตั้งเวลาให้รันอัตโนมัติทุกวันที่ 1 ของเดือน เวลา 00:30 (เวลาไทย)
+// เรียกครั้งเดียวตอน start server — ตั้ง interval เช็คทุกชั่วโมงว่าเข้าวันที่ 1 ของเดือน (เวลาไทย) หรือยัง
+// ใช้ Intl.DateTimeFormat แทน timezone ของเครื่อง server เอง (ปกติ hosting อย่าง Render รันเวลา UTC)
+// กันรันซ้ำในเดือนเดียวกันด้วย _lastAutoRunKey ที่เก็บไว้ใน memory
+let _lastAutoRunKey = null;
+
+function getBangkokDateParts() {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
+  return { year: parts.year, month: parts.month, day: parts.day };
+}
+
+function checkAndRunIfDue() {
+  const { year, month, day } = getBangkokDateParts();
+  if (day !== '01') return; // ไม่ใช่วันที่ 1 ของเดือน (เวลาไทย)
+
+  const key = `${year}-${month}`;
+  if (_lastAutoRunKey === key) return; // เดือนนี้รันไปแล้ว ไม่ต้องรันซ้ำ
+
+  _lastAutoRunKey = key;
+  console.log(`[PM Auto-Schedule] เริ่มจัดตาราง PM ประจำเดือนอัตโนมัติ (${key})...`);
+  runMonthlyPMAutoSchedule().catch(err => {
+    console.error('[PM Auto-Schedule] error:', err);
+    _lastAutoRunKey = null; // รันไม่สำเร็จ — เปิดให้ลองใหม่ได้ในรอบเช็คถัดไป
+  });
+}
+
 function startPMAutoScheduler() {
-  cron.schedule('30 0 1 * *', () => {
-    console.log('[PM Auto-Schedule] เริ่มจัดตาราง PM ประจำเดือนอัตโนมัติ...');
-    runMonthlyPMAutoSchedule().catch(err => console.error('[PM Auto-Schedule] error:', err));
-  }, { timezone: 'Asia/Bangkok' });
-  console.log('[PM Auto-Schedule] ตั้งเวลาทำงานอัตโนมัติแล้ว (ทุกวันที่ 1 ของเดือน เวลา 00:30 น.)');
+  checkAndRunIfDue();                            // เผื่อ server เพิ่ง start ตรงกับวันที่ 1 พอดี
+  setInterval(checkAndRunIfDue, 60 * 60 * 1000);  // เช็คทุก 1 ชั่วโมง
+  console.log('[PM Auto-Schedule] ตั้งเวลาทำงานอัตโนมัติแล้ว (เช็คทุกชั่วโมง — จะรันตอนเข้าวันที่ 1 ของเดือน เวลาไทย)');
 }
 
 module.exports = { runMonthlyPMAutoSchedule, startPMAutoScheduler };
