@@ -1527,15 +1527,19 @@ function techSubmitUpdate(){
 function adminSubmitUpdateJob(){
   if(!selectedJobForAction) return;
   const j = getRepairJobsData().find(x => x.id===selectedJobForAction); if(!j) return;
-  const status = document.getElementById('adm-job-status')?.value;
-  const tech   = document.getElementById('adm-job-tech')?.value;
-  const eta    = document.getElementById('adm-job-eta')?.value;
-  const note   = document.getElementById('adm-job-note')?.value;
+  const status   = document.getElementById('adm-job-status')?.value;
+  const tech     = document.getElementById('adm-job-tech')?.value;
+  const eta      = document.getElementById('adm-job-eta')?.value;
+  const note     = document.getElementById('adm-job-note')?.value;
+  // ค่าจาก <input type="datetime-local"> เช่น "2026-07-08T14:30" — ส่งตรงๆ ให้ backend แปลงเป็น
+  // รูปแบบเดียวกับที่ระบบใช้เก็บอยู่แล้ว เว้นว่างไว้ = ไม่แก้ค่าเดิม (ฝั่ง backend จะไม่ทับคอลัมน์นั้น)
+  const dateVal     = document.getElementById('adm-job-date')?.value;
+  const doneDateVal = document.getElementById('adm-job-donedate')?.value;
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, technician: tech, eta, note })
+      body: JSON.stringify({ status, technician: tech, eta, note, date: dateVal || undefined, doneDate: doneDateVal || undefined })
     })
     .then(r => r.json())
     .then(res => {
@@ -1780,6 +1784,21 @@ function viewPMDoc(pmCode,arrIdx){
 // ADMIN DASHBOARD
 // ============================================================
 function parseJobDate(str){if(!str)return null;try{const parts=str.split(',')[0].trim().split('/');if(parts.length!==3)return null;let y=parseInt(parts[2]);if(y>2400)y-=543;return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]));}catch(e){return null;}}
+// แปลงข้อความวันที่แบบที่ระบบเก็บ "D/M/YYYY, HH:mm:ss" (รองรับทั้งปี พ.ศ./ค.ศ.) ให้เป็นค่าที่ใช้กับ <input type="datetime-local">
+// ใช้ตอนเปิดพาเนลแก้ไข (Admin) เพื่อโชว์ค่าวันที่แจ้ง/วันที่ปิดงานเดิมของงานนั้น
+function thaiDateToInputValue(str){
+  if(!str)return '';
+  try{
+    const[dPart,tPart]=str.split(',').map(s=>(s||'').trim());
+    const parts=dPart.split('/');
+    if(parts.length!==3)return '';
+    let y=parseInt(parts[2]);if(y>2400)y-=543;
+    const mo=String(parts[1]).padStart(2,'0');
+    const da=String(parts[0]).padStart(2,'0');
+    const[hh,mm]=(tPart||'00:00').split(':');
+    return `${y}-${mo}-${da}T${(hh||'00').padStart(2,'0')}:${(mm||'00').padStart(2,'0')}`;
+  }catch(e){return '';}
+}
 function filterJobsByTimeRange(jobs,ft){
   if(ft==='all')return jobs;
   const today=new Date();today.setHours(0,0,0,0);
@@ -3588,6 +3607,8 @@ function viewJobDetail(id) {
     const s = document.getElementById('adm-job-status'); if(s) s.value = j.status;
     const t = document.getElementById('adm-job-tech');   if(t && j.technician) t.value = j.technician;
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
+    const d = document.getElementById('adm-job-date');     if(d) d.value = thaiDateToInputValue(j.date);
+    const dd = document.getElementById('adm-job-donedate'); if(dd) dd.value = thaiDateToInputValue(j.doneDate);
   }
   openModal('job-detail-modal');
 }

@@ -457,7 +457,7 @@ router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) =>
 router.post('/:id/status', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, technician, imgAfter } = req.body;
+    const { status, note, eta, technician, imgAfter, date, doneDate } = req.body;
 
     const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
     const rows     = getRes.data.values || [];
@@ -465,8 +465,10 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
 
     const currentStatus = rows[rowIndex][9] || '';
-    if (LOCKED_STATUSES.includes(currentStatus))
-      return res.json({ success: false, message: `งานถูกปิดแล้ว (${currentStatus})` });
+    // งานที่ปิด/ตีกลับแล้ว ห้าม "เปลี่ยนสถานะ" ซ้ำ แต่ยังแก้วันที่/หมายเหตุ/ช่างย้อนหลังได้ตามปกติ
+    // (เผื่อกรอกผิดตอนแรก หรือแอดมินต้องแก้ข้อมูลย้อนหลังให้ตรงกับที่เกิดขึ้นจริง)
+    if (LOCKED_STATUSES.includes(currentStatus) && status && status !== currentStatus)
+      return res.json({ success: false, message: `งานถูกปิดแล้ว (${currentStatus}) ไม่สามารถเปลี่ยนสถานะได้ — แก้ไขวันที่/หมายเหตุยังทำได้ปกติ` });
 
     let imgAfterArr = [];
     if (Array.isArray(imgAfter)) imgAfterArr = imgAfter;
@@ -488,8 +490,23 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       { range: `Repairs!M${sheetRow}`, values: [[eta    || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
-    if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status))
+
+    // แอดมินแก้ "วันที่แจ้งซ่อม" เองได้ (เผื่อกรอกผิด/ต้องแก้ย้อนหลัง) — ส่งมาเป็นค่าจาก
+    // <input type="datetime-local"> เช่น "2026-07-08T14:30" แล้ว format ให้ตรงรูปแบบเดียวกับที่
+    // ระบบเขียนอัตโนมัติทุกที่ (new Date().toLocaleString('th-TH')) เพื่อไม่ให้รูปแบบข้อมูลเพี้ยน
+    if (date) {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate)) updateData.push({ range: `Repairs!R${sheetRow}`, values: [[parsedDate.toLocaleString('th-TH')]] });
+    }
+
+    // แอดมินแก้ "วันที่ปิดงาน" เองได้เช่นกัน — ถ้าไม่ได้ส่งมา (เว้นว่างในฟอร์ม) ใช้ตรรกะเดิม
+    // คือ auto-set เป็นเวลาปัจจุบันตอนสถานะเปลี่ยนเป็นเสร็จ/รอ QC เหมือนเดิมทุกประการ
+    if (doneDate) {
+      const parsedDone = new Date(doneDate);
+      if (!isNaN(parsedDone)) updateData.push({ range: `Repairs!L${sheetRow}`, values: [[parsedDone.toLocaleString('th-TH')]] });
+    } else if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status)) {
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    }
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,

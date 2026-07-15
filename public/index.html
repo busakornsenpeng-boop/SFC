@@ -1173,6 +1173,16 @@
               <input type="date" id="adm-job-eta" class="input-ctrl">
             </div>
           </div>
+          <div class="form-grid-2" style="margin-top:12px">
+            <div class="form-field">
+              <label>วันที่แจ้งซ่อม <span style="font-weight:400;color:var(--text3)">(แก้ได้ถ้ากรอกผิด)</span></label>
+              <input type="datetime-local" id="adm-job-date" class="input-ctrl">
+            </div>
+            <div class="form-field">
+              <label>วันที่ปิดงาน <span style="font-weight:400;color:var(--text3)">(เว้นว่าง = ให้ระบบตั้งเองตามสถานะ)</span></label>
+              <input type="datetime-local" id="adm-job-donedate" class="input-ctrl">
+            </div>
+          </div>
           <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
           <div style="display:flex;justify-content:space-between;gap:10px">
             <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="ion-ios-trash"></i> ลบ</button>
