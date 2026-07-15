@@ -393,6 +393,8 @@ function setupDashboard() {
   if (addPmBtn) addPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const autoSchedBtn = document.getElementById('btn-auto-schedule-pm');
   if (autoSchedBtn) autoSchedBtn.classList.toggle('d-none', currentUser.role !== 'admin');
+  const autoSchedYearBtn = document.getElementById('btn-auto-schedule-year');
+  if (autoSchedYearBtn) autoSchedYearBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const epPmAddBtn = document.getElementById('ep-pm-add-btn');
   if (epPmAddBtn) epPmAddBtn.classList.add('d-none');
 
@@ -1594,6 +1596,27 @@ function runPMAutoSchedule(){
       hideLoading();
       if(res.success){
         showToast(`จัดตาราง PM สำเร็จ! สร้างใหม่ ${res.created} รายการ (ข้าม ${res.skipped} รายการที่มีอยู่แล้ว)`, 'success');
+        refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
+      } else {
+        showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+      }
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+}
+
+// runPMAutoScheduleYear — สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน) ตามรอบ Tier
+// ใช้ตอนต้นปี/ต้องการวางแผนล่วงหน้าทั้งปี ไม่ชนกับแผนที่มีอยู่แล้ว (เช็คผ่าน PM ID เดิม)
+function runPMAutoScheduleYear(){
+  if(isLocalMode){ showToast('ฟีเจอร์นี้ใช้ได้เฉพาะตอนเชื่อมต่อ server จริง', 'warning'); return; }
+  const year = new Date().getFullYear();
+  if(!confirm(`สร้างแผน PM ล่วงหน้าทั้งปี ${year} (12 เดือน) ตามรอบ Tier ของแต่ละเครื่อง?\n(เดือนที่มีแผนอยู่แล้วจะไม่ถูกสร้างซ้ำ)`)) return;
+  showLoading('กำลังจัดตาราง PM ล่วงหน้าทั้งปี...');
+  authFetch(`${API_URL}/pm/auto-schedule/run-year`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ year }) })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if(res.success){
+        showToast(`จัดตารางทั้งปี ${res.year} สำเร็จ! สร้างใหม่ ${res.createdTotal} รายการ`, 'success');
         refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
       } else {
         showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
