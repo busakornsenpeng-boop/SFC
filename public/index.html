@@ -575,19 +575,19 @@
       <div id="panel-admin-dashboard" class="view-panel">
         <!-- KPI Bar v2 -->
         <div class="adm-kpi-bar-v2">
-          <div class="adm-kpi-v2 kv-blue kv-clickable" onclick="openDeptBreakdown('total')">
+          <div class="adm-kpi-v2 kv-blue kv-clickable" onclick="openDeptBreakdown('total')" onmouseenter="openDeptBreakdown('total')" onmouseleave="scheduleCloseDeptBreakdown()">
             <div class="kv-icon"><i class="ion-ios-clipboard"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-total">0</div><div class="kv-lbl">แจ้งซ่อมทั้งหมด</div><div class="kv-trend" id="adm-trend-total">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-amber kv-clickable" onclick="openDeptBreakdown('waiting')">
+          <div class="adm-kpi-v2 kv-amber kv-clickable" onclick="openDeptBreakdown('waiting')" onmouseenter="openDeptBreakdown('waiting')" onmouseleave="scheduleCloseDeptBreakdown()">
             <div class="kv-icon"><i class="ion-ios-hourglass"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-wait">0</div><div class="kv-lbl">รอซ่อม</div><div class="kv-trend" id="adm-trend-wait">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-orange kv-clickable" onclick="openDeptBreakdown('working')">
+          <div class="adm-kpi-v2 kv-orange kv-clickable" onclick="openDeptBreakdown('working')" onmouseenter="openDeptBreakdown('working')" onmouseleave="scheduleCloseDeptBreakdown()">
             <div class="kv-icon"><i class="ion-ios-construct"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-work">0</div><div class="kv-lbl">กำลังซ่อม</div><div class="kv-trend" id="adm-trend-work">—</div></div>
           </div>
-          <div class="adm-kpi-v2 kv-green kv-clickable" onclick="openDeptBreakdown('closed')">
+          <div class="adm-kpi-v2 kv-green kv-clickable" onclick="openDeptBreakdown('closed')" onmouseenter="openDeptBreakdown('closed')" onmouseleave="scheduleCloseDeptBreakdown()">
             <div class="kv-icon"><i class="ion-ios-checkmark-circle"></i></div>
             <div class="kv-body"><div class="kv-val" id="adm-stat-closed">0</div><div class="kv-lbl">ปิดงานเสร็จ</div><div class="kv-trend" id="adm-trend-closed">—</div></div>
           </div>
@@ -670,7 +670,7 @@
       <!-- ══════════════════════════════════════════════════════
            MODAL: Dept Breakdown (คลิกจาก KPI card)
       ══════════════════════════════════════════════════════ -->
-      <div class="modal" id="dept-breakdown-modal">
+      <div class="modal" id="dept-breakdown-modal" onmouseenter="cancelCloseDeptBreakdown()" onmouseleave="scheduleCloseDeptBreakdown()">
         <div class="modal-content">
           <div class="modal-header">
             <span class="modal-title" id="dbm-title">รายละเอียดตามแผนก</span>
