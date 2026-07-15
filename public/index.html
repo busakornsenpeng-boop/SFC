@@ -225,16 +225,24 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
               <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn btn-sec" id="btn-pm-template" onclick="downloadPMMasterTemplate()">
-                  <i class="ion-ios-download"></i> เทมเพลตไฟล์มาสเตอร์
-                </button>
-                <button class="btn btn-sec d-none" id="btn-import-pm-master" onclick="document.getElementById('pm-master-file-input').click()">
-                  <i class="ion-ios-cloud-upload"></i> อัปโหลดไฟล์มาสเตอร์ PM
-                </button>
+                <div style="position:relative">
+                  <button class="btn btn-sec d-none" id="btn-pm-file-menu" onclick="togglePMFileMenu(event)">
+                    <i class="ion-ios-folder"></i> ไฟล์มาสเตอร์ <i class="ion-ios-arrow-down" style="font-size:10px;margin-left:2px"></i>
+                  </button>
+                  <div class="adm-date-popover pm-file-menu" id="pm-file-menu" onclick="event.stopPropagation()">
+                    <button type="button" class="pm-file-menu-item" onclick="downloadPMMasterTemplate();closePMFileMenu();">
+                      <i class="ion-ios-download"></i> เทมเพลตไฟล์มาสเตอร์
+                    </button>
+                    <button type="button" class="pm-file-menu-item" onclick="document.getElementById('pm-master-file-input').click();closePMFileMenu();">
+                      <i class="ion-ios-cloud-upload"></i> อัปโหลดไฟล์มาสเตอร์ PM
+                    </button>
+                    <div class="pm-file-menu-divider"></div>
+                    <button type="button" class="pm-file-menu-item danger" onclick="clearAllPM();closePMFileMenu();">
+                      <i class="ion-ios-trash"></i> ล้างแผน PM ทั้งหมด
+                    </button>
+                  </div>
+                </div>
                 <input type="file" id="pm-master-file-input" accept=".xlsx,.xls" style="display:none" onchange="handlePMMasterFileUpload(event)">
-                <button class="btn btn-danger d-none" id="btn-clear-all-pm" onclick="clearAllPM()">
-                  <i class="ion-ios-trash"></i> ล้างแผน PM ทั้งหมด
-                </button>
                 <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openAddPMModal()">
                   <i class="ion-ios-add"></i> เพิ่มแผน PM
                 </button>

@@ -669,6 +669,15 @@
 .adm-date-popover-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .thai-date-hint { font-size: 11.5px; color: var(--teal); margin-top: 4px; min-height: 15px; font-weight: 600; }
 
+.pm-file-menu{ width:230px; padding:6px; left:0; right:auto; }
+.pm-file-menu-item{ display:flex; align-items:center; gap:9px; width:100%; text-align:left; background:transparent; border:none; padding:10px 10px; border-radius:var(--r-sm,6px); font-size:13px; color:var(--text); cursor:pointer; font-family:inherit; transition:.15s; }
+.pm-file-menu-item i{ font-size:15px; width:16px; text-align:center; color:var(--text2); }
+.pm-file-menu-item:hover{ background:var(--bg2); }
+.pm-file-menu-item.danger{ color:var(--red); }
+.pm-file-menu-item.danger i{ color:var(--red); }
+.pm-file-menu-item.danger:hover{ background:var(--red-bg); }
+.pm-file-menu-divider{ height:1px; background:var(--border); margin:5px 4px; }
+
 .kv-val {
   font-size: 26px;
   font-weight: 700;

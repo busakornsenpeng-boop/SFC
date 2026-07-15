@@ -391,10 +391,8 @@ function setupDashboard() {
 
   const addPmBtn = document.getElementById('btn-add-pm-item');
   if (addPmBtn) addPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
-  const importPmBtn = document.getElementById('btn-import-pm-master');
-  if (importPmBtn) importPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
-  const clearAllPmBtn = document.getElementById('btn-clear-all-pm');
-  if (clearAllPmBtn) clearAllPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
+  const pmFileMenuBtn = document.getElementById('btn-pm-file-menu');
+  if (pmFileMenuBtn) pmFileMenuBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const epPmAddBtn = document.getElementById('ep-pm-add-btn');
   if (epPmAddBtn) epPmAddBtn.classList.add('d-none');
 
@@ -1598,6 +1596,30 @@ function submitPMEventForm(event){
 
 // downloadPMMasterTemplate — สร้างไฟล์ Excel ตัวอย่าง (เทมเพลต) ให้แอดมินกรอกแผน PM
 // แล้วอัปโหลดกลับเข้าระบบผ่านปุ่ม "อัปโหลดไฟล์มาสเตอร์ PM"
+
+// togglePMFileMenu / closePMFileMenu — เมนู dropdown รวมปุ่ม "เทมเพลต / อัปโหลด / ล้างแผน PM"
+// ไว้ในที่เดียว (แทนที่จะเรียงปุ่มแยกกัน 3-4 ปุ่มจนแน่นแถบเครื่องมือ)
+function togglePMFileMenu(ev){
+  if(ev) ev.stopPropagation();
+  const menu = document.getElementById('pm-file-menu');
+  if(!menu) return;
+  const willOpen = !menu.classList.contains('open');
+  menu.classList.toggle('open', willOpen);
+  if(willOpen) document.addEventListener('click', closePMFileMenuOutside);
+}
+function closePMFileMenuOutside(ev){
+  const menu = document.getElementById('pm-file-menu');
+  const btn  = document.getElementById('btn-pm-file-menu');
+  if(!menu) return;
+  if(menu.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  closePMFileMenu();
+}
+function closePMFileMenu(){
+  const menu = document.getElementById('pm-file-menu');
+  if(menu) menu.classList.remove('open');
+  document.removeEventListener('click', closePMFileMenuOutside);
+}
+
 async function downloadPMMasterTemplate(){
   if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
   try{
