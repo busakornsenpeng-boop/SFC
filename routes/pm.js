@@ -3,6 +3,10 @@ const router = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { sendLineMessage, getLineUserIdByName, broadcastToAdmins } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
+// require แบบ top-level (ไม่ใช่ lazy ในฟังก์ชัน route แล้ว) เพราะไฟล์นี้มีการลงทะเบียน cron
+// อัตโนมัติทุกต้นเดือนไว้ด้วย (ดู routes/Pmautoscheduler.js) — ต้อง require ตอน server
+// เริ่มทำงานครั้งเดียว cron ถึงจะถูกตั้งเวลาไว้ ไม่ใช่รอจนกว่าแอดมินจะกดปุ่มมือครั้งแรก
+const { runAnnualPMSchedule } = require('./Pmautoscheduler');
 
 async function getAllPM() {
   const res = await sheets.spreadsheets.values.get({
@@ -146,14 +150,14 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
 });
 
 // POST /api/pm/auto-schedule/run-year (เฉพาะแอดมิน) — จัดตาราง PM ล่วงหน้า 12 เดือน
-// (ตัวจัดตารางเดียวของระบบ — ไม่มีตัวรายเดือน/cron แยกแล้ว ยุบรวมเป็นตัวนี้ตัวเดียว)
+// ตัวจัดตารางเดียวของระบบ เรียกได้ทั้งกดมือ (route นี้) และอัตโนมัติผ่าน cron ทุกวันที่ 1
+// ของเดือน (ดู routes/Pmautoscheduler.js ท้ายไฟล์ — ลงทะเบียนตอน server เริ่มทำงาน)
 // body: { year }  ← ไม่ส่งมา/ส่งปีปัจจุบัน = rolling 12 เดือนถัดไปนับจากเดือนนี้ (ไหลข้ามปีได้)
 //                   ← ส่งปีอื่น = จัดเต็ม ม.ค.-ธ.ค. ของปีนั้นตรงๆ (วางแผนล่วงหน้าปีถัดไป)
 // หมายเหตุ: ตรรกะ "แจ้งซ่อมเดือนก่อน" ใช้ได้เฉพาะเดือนปัจจุบันเท่านั้น (เดือนอนาคตยังไม่มีข้อมูลจริง)
-// ถ้าอยากให้ตรรกะนี้ทำงานทันเดือนถัดๆ ไป ต้องกลับมากดปุ่มนี้ซ้ำตอนเข้าเดือนนั้นจริง (ไม่มี cron แล้ว)
+// cron ที่รันซ้ำทุกต้นเดือนทำให้ตรรกะนี้ทำงานทันเดือนปัจจุบันเรื่อยๆ เอง — กดปุ่มนี้ไว้เผื่อรันนอกรอบ
 router.post('/auto-schedule/run-year', requireRole('admin'), async (req, res) => {
   try {
-    const { runAnnualPMSchedule } = require('./Pmautoscheduler');
     const { year } = req.body;
     const result = await runAnnualPMSchedule(year ? Number(year) : undefined);
     res.json({ success: true, ...result });
