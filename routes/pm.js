@@ -3,10 +3,10 @@ const router = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { sendLineMessage, getLineUserIdByName, broadcastToAdmins } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
-// require แบบ top-level (ไม่ใช่ lazy ในฟังก์ชัน route แล้ว) เพราะไฟล์นี้มีการลงทะเบียน cron
-// อัตโนมัติทุกต้นเดือนไว้ด้วย (ดู routes/Pmautoscheduler.js) — ต้อง require ตอน server
-// เริ่มทำงานครั้งเดียว cron ถึงจะถูกตั้งเวลาไว้ ไม่ใช่รอจนกว่าแอดมินจะกดปุ่มมือครั้งแรก
-const { runAnnualPMSchedule } = require('./Pmautoscheduler');
+// หมายเหตุ: เดิมไฟล์นี้ require routes/Pmautoscheduler.js (ตัวจัดตาราง PM อัตโนมัติแบบ Tier
+// + cron รายเดือน) แต่ทีมงานแจ้งว่าไม่ต้องการจัดตารางอัตโนมัติแล้ว ให้แอดมินอัปโหลด
+// "ไฟล์มาสเตอร์" เพื่อกำหนดแผน PM เองแทน (ดู route POST /import ด้านล่าง) — จึงตัด require
+// ออกเพื่อปิดทั้งปุ่มมือเดิมและ cron รายเดือนไปพร้อมกัน
 
 async function getAllPM() {
   const res = await sheets.spreadsheets.values.get({
@@ -149,20 +149,65 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// POST /api/pm/auto-schedule/run-year (เฉพาะแอดมิน) — จัดตาราง PM ล่วงหน้า 12 เดือน
-// ตัวจัดตารางเดียวของระบบ เรียกได้ทั้งกดมือ (route นี้) และอัตโนมัติผ่าน cron ทุกวันที่ 1
-// ของเดือน (ดู routes/Pmautoscheduler.js ท้ายไฟล์ — ลงทะเบียนตอน server เริ่มทำงาน)
-// body: { year }  ← ไม่ส่งมา/ส่งปีปัจจุบัน = rolling 12 เดือนถัดไปนับจากเดือนนี้ (ไหลข้ามปีได้)
-//                   ← ส่งปีอื่น = จัดเต็ม ม.ค.-ธ.ค. ของปีนั้นตรงๆ (วางแผนล่วงหน้าปีถัดไป)
-// หมายเหตุ: ตรรกะ "แจ้งซ่อมเดือนก่อน" ใช้ได้เฉพาะเดือนปัจจุบันเท่านั้น (เดือนอนาคตยังไม่มีข้อมูลจริง)
-// cron ที่รันซ้ำทุกต้นเดือนทำให้ตรรกะนี้ทำงานทันเดือนปัจจุบันเรื่อยๆ เอง — กดปุ่มนี้ไว้เผื่อรันนอกรอบ
-router.post('/auto-schedule/run-year', requireRole('admin'), async (req, res) => {
+// POST /api/pm/import (เฉพาะแอดมิน) — นำเข้าแผน PM จาก "ไฟล์มาสเตอร์" ที่แอดมินอัปโหลด
+// (แทนที่ตัวจัดตารางอัตโนมัติแบบ Tier/cron เดิม — ทีมงานแจ้งว่าไม่ต้องการจัดตารางอัตโนมัติแล้ว
+// ให้สร้างแผนตรงตามที่ระบุในไฟล์แทน ดู routes/Pmautoscheduler.js เดิมที่เลิกใช้แล้ว)
+// body: { rows: [{ machine, title, type, date, status }, ...] } — ฝั่ง frontend เป็นคนอ่านไฟล์
+// Excel และแปลงเป็น JSON มาให้แล้ว (ดู handlePMMasterFileUpload ใน scripts.js)
+// กันแถวซ้ำ: ข้ามแถวที่ (machine + date + title) ตรงกับแผนที่มีอยู่แล้วในตาราง ป้องกันข้อมูลซ้ำ
+// ถ้าอัปโหลดไฟล์เดิมซ้ำ หรืออัปโหลดไฟล์ที่มีบางแถวซ้ำกับที่เคยนำเข้าไปแล้ว
+router.post('/import', requireRole('admin'), async (req, res) => {
   try {
-    const { year } = req.body;
-    const result = await runAnnualPMSchedule(year ? Number(year) : undefined);
-    res.json({ success: true, ...result });
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || !rows.length) {
+      return res.json({ success: false, message: 'ไม่พบข้อมูลแผน PM ในไฟล์ที่อัปโหลด' });
+    }
+
+    const getRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'PM_Calendar!A2:G1000',
+    });
+    const existingRows = getRes.data.values || [];
+    const existingKeys = new Set(
+      existingRows
+        .filter(r => r[0])
+        .map(r => `${r[2] || ''}|${r[3] || ''}|${r[1] || ''}`) // machine|date|title
+    );
+
+    const newRows = [];
+    let skipped = 0;
+    let seq = 0;
+
+    rows.forEach(r => {
+      const machine = String(r.machine || '').trim();
+      const title   = String(r.title   || '').trim();
+      const date    = String(r.date    || '').trim();
+      const type    = String(r.type    || '').trim() || 'รายเดือน';
+      const status  = String(r.status  || '').trim() || 'รอดำเนินการ';
+      if (!machine || !title || !date) { skipped++; return; }
+
+      const key = `${machine}|${date}|${title}`;
+      if (existingKeys.has(key)) { skipped++; return; }
+      existingKeys.add(key); // กันแถวซ้ำกันเองภายในไฟล์เดียวกันด้วย
+
+      seq++;
+      const id = `PM-${Date.now()}-${seq}`;
+      newRows.push([id, title, machine, date, type, '', status]);
+    });
+
+    if (newRows.length) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'PM_Calendar!A:G',
+        valueInputOption: 'RAW', // กันไม่ให้ Sheets ตีความวันที่เป็น date serial number
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: newRows },
+      });
+    }
+
+    res.json({ success: true, createdTotal: newRows.length, skipped });
   } catch (err) {
-    console.error('[PM Auto-Schedule] annual run error:', err);
+    console.error('[PM Import] error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -224,10 +224,14 @@
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
               <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
-              <div style="display:flex;gap:8px">
-                <button class="btn btn-sec d-none" id="btn-auto-schedule-year" onclick="runPMAutoScheduleYear()">
-                  <i class="ion-ios-calendar-outline"></i> จัดตารางล่วงหน้า 12 เดือน
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-sec" id="btn-pm-template" onclick="downloadPMMasterTemplate()">
+                  <i class="ion-ios-download"></i> เทมเพลตไฟล์มาสเตอร์
                 </button>
+                <button class="btn btn-sec d-none" id="btn-import-pm-master" onclick="document.getElementById('pm-master-file-input').click()">
+                  <i class="ion-ios-cloud-upload"></i> อัปโหลดไฟล์มาสเตอร์ PM
+                </button>
+                <input type="file" id="pm-master-file-input" accept=".xlsx,.xls" style="display:none" onchange="handlePMMasterFileUpload(event)">
                 <button class="btn btn-danger d-none" id="btn-clear-all-pm" onclick="clearAllPM()">
                   <i class="ion-ios-trash"></i> ล้างแผน PM ทั้งหมด
                 </button>

@@ -391,8 +391,8 @@ function setupDashboard() {
 
   const addPmBtn = document.getElementById('btn-add-pm-item');
   if (addPmBtn) addPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
-  const autoSchedYearBtn = document.getElementById('btn-auto-schedule-year');
-  if (autoSchedYearBtn) autoSchedYearBtn.classList.toggle('d-none', currentUser.role !== 'admin');
+  const importPmBtn = document.getElementById('btn-import-pm-master');
+  if (importPmBtn) importPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const clearAllPmBtn = document.getElementById('btn-clear-all-pm');
   if (clearAllPmBtn) clearAllPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const epPmAddBtn = document.getElementById('ep-pm-add-btn');
@@ -1596,26 +1596,113 @@ function submitPMEventForm(event){
   closeModal('pm-event-modal'); showToast('บันทึกแผน PM สำเร็จ!','success'); renderPMTable(); updatePMStats(); renderCalendar();
 }
 
-// runPMAutoScheduleYear — จัดตาราง PM ล่วงหน้า 12 เดือน (ตัวจัดตารางเดียวของระบบ — ยุบรวม
-// ตัวรายเดือน/cron เดิมเข้ามาแล้ว) rolling จากเดือนนี้ไปข้างหน้า 12 เดือน (ไหลข้ามปีได้) และดึง
-// เครื่องที่เพิ่งแจ้งซ่อมเดือนก่อนเข้าคิว PM เดือนนี้ทันทีด้วย — ไม่มี cron แล้ว ถ้าอยากให้ตรรกะ
-// "แจ้งซ่อมเดือนก่อน" ทำงานทันเดือนถัดๆ ไป ต้องกลับมากดปุ่มนี้ซ้ำเป็นระยะ (เช่น ต้นเดือน)
-function runPMAutoScheduleYear(){
+// downloadPMMasterTemplate — สร้างไฟล์ Excel ตัวอย่าง (เทมเพลต) ให้แอดมินกรอกแผน PM
+// แล้วอัปโหลดกลับเข้าระบบผ่านปุ่ม "อัปโหลดไฟล์มาสเตอร์ PM"
+async function downloadPMMasterTemplate(){
+  if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
+  try{
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SFC Maintenance Service';
+    workbook.created = new Date();
+    const sheet = workbook.addWorksheet('แผน PM');
+    sheet.columns = [
+      { header:'เครื่องจักร',                key:'machine', width:34 },
+      { header:'ชื่องาน PM',                  key:'title',   width:34 },
+      { header:'ความถี่',                     key:'type',    width:16 },
+      { header:'วันที่กำหนด (YYYY-MM-DD)',     key:'date',    width:22 },
+      { header:'สถานะ (ไม่บังคับ)',            key:'status',  width:18 },
+    ];
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold:true, color:{ argb:'FFFFFFFF' }, name:'Arial' };
+    headerRow.eachCell(cell => {
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF0D9488' } };
+      cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+    });
+    headerRow.height = 22;
+    sheet.addRow({ machine:'LIQUID CONTROL 150 SN (LQT01 - WRM)', title:'PM ประจำเดือน - LIQUID CONTROL 150 SN', type:'รายเดือน', date:'2026-08-15', status:'รอดำเนินการ' });
+    sheet.addRow({ machine:'เครื่องบรรจุน้ำมัน',                    title:'PM ประจำเดือน - เครื่องบรรจุน้ำมัน',     type:'รายเดือน', date:'2026-08-16', status:'' });
+    sheet.getRow(1).commit();
+
+    const buf = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'เทมเพลตแผน_PM.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(err){
+    console.error('[PM Template] error:', err);
+    showToast('เกิดข้อผิดพลาดในการสร้างไฟล์เทมเพลต', 'error');
+  }
+}
+
+// แปลงค่าวันที่จากเซลล์ Excel (อาจเป็น Date object, string "YYYY-MM-DD", หรือ "DD/MM/YYYY") ให้เป็น "YYYY-MM-DD"
+function parsePMExcelDate(val){
+  if(!val) return '';
+  if(val instanceof Date && !isNaN(val)) return val.toISOString().split('T')[0];
+  const s = String(val).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(dmy){ const [,d,m,y] = dmy; return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+  const parsed = new Date(s);
+  return !isNaN(parsed) ? parsed.toISOString().split('T')[0] : '';
+}
+
+// handlePMMasterFileUpload — อ่านไฟล์มาสเตอร์ PM ที่แอดมินอัปโหลด (.xlsx) แล้วส่งเข้าระบบ
+// เพื่อสร้างแผน PM ตามที่ระบุในไฟล์ตรงๆ (ไม่มีการคำนวณ Tier/จัดตารางอัตโนมัติแล้ว)
+async function handlePMMasterFileUpload(event){
+  const file = event.target.files?.[0];
+  event.target.value = ''; // เคลียร์ input ไว้ก่อน กันเลือกไฟล์เดิมซ้ำแล้ว onchange ไม่ทำงาน
+  if(!file) return;
+  if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
   if(isLocalMode){ showToast('ฟีเจอร์นี้ใช้ได้เฉพาะตอนเชื่อมต่อ server จริง', 'warning'); return; }
-  if(!confirm('จัดตาราง PM ล่วงหน้า 12 เดือนจากเดือนนี้ ตามรอบ Tier ของแต่ละเครื่อง (รวมเครื่องที่เพิ่งแจ้งซ่อมเดือนก่อนด้วย)?\n(แผนที่มีอยู่แล้วจะไม่ถูกสร้างซ้ำ)')) return;
-  showLoading('กำลังจัดตาราง PM ล่วงหน้า 12 เดือน...');
-  authFetch(`${API_URL}/pm/auto-schedule/run-year`, { method:'POST', headers:{'Content-Type':'application/json'} })
-    .then(r => r.json())
-    .then(res => {
+
+  showLoading('กำลังอ่านไฟล์มาสเตอร์ PM...');
+  try{
+    const buf = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buf);
+    const sheet = workbook.worksheets[0];
+    if(!sheet){ hideLoading(); showToast('ไม่พบชีตข้อมูลในไฟล์ที่อัปโหลด', 'error'); return; }
+
+    const rows = [];
+    let skippedEmpty = 0;
+    sheet.eachRow((row, rowNumber) => {
+      if(rowNumber === 1) return; // แถวหัวตาราง
+      const machine = String(row.getCell(1).value ?? '').trim();
+      const title   = String(row.getCell(2).value ?? '').trim();
+      const type    = String(row.getCell(3).value ?? '').trim();
+      const date    = parsePMExcelDate(row.getCell(4).value);
+      const status  = String(row.getCell(5).value ?? '').trim();
+      if(!machine && !title && !date) return; // แถวว่างล้วน — ข้ามเงียบๆ
+      if(!machine || !title || !date){ skippedEmpty++; return; } // ข้อมูลไม่ครบ — ข้าม
+      rows.push({ machine, title, type: type || 'รายเดือน', date, status: status || 'รอดำเนินการ' });
+    });
+
+    if(!rows.length){
       hideLoading();
-      if(res.success){
-        showToast(`จัดตาราง PM ล่วงหน้า 12 เดือนสำเร็จ! สร้างใหม่ ${res.createdTotal} รายการ`, 'success');
-        refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
-      } else {
-        showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
-      }
-    })
-    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+      showToast(skippedEmpty ? `ไม่พบแถวข้อมูลที่ครบถ้วน (ข้าม ${skippedEmpty} แถวที่กรอกไม่ครบ)` : 'ไม่พบข้อมูลในไฟล์', 'error');
+      return;
+    }
+
+    showLoading(`กำลังนำเข้าแผน PM (${rows.length} รายการ)...`);
+    const res = await authFetch(`${API_URL}/pm/import`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows })
+    }).then(r => r.json());
+
+    hideLoading();
+    if(res.success){
+      const skipMsg = (res.skipped || skippedEmpty) ? ` (ข้าม ${res.skipped || skippedEmpty} รายการซ้ำ/ไม่ครบ)` : '';
+      showToast(`นำเข้าแผน PM สำเร็จ! สร้างใหม่ ${res.createdTotal} รายการ${skipMsg}`, 'success');
+      refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
+    } else {
+      showToast(res.message || 'เกิดข้อผิดพลาดในการนำเข้าแผน PM', 'error');
+    }
+  }catch(err){
+    console.error('[PM Master Import] error:', err);
+    hideLoading();
+    showToast('เกิดข้อผิดพลาดในการอ่าน/นำเข้าไฟล์ กรุณาตรวจสอบรูปแบบไฟล์', 'error');
+  }
 }
 
 // clearAllPM — ล้างแผน PM ทั้งหมดในตาราง (ไม่แตะประวัติ PM ที่ทำเสร็จแล้ว)
