@@ -391,8 +391,6 @@ function setupDashboard() {
 
   const addPmBtn = document.getElementById('btn-add-pm-item');
   if (addPmBtn) addPmBtn.classList.toggle('d-none', currentUser.role !== 'admin');
-  const autoSchedBtn = document.getElementById('btn-auto-schedule-pm');
-  if (autoSchedBtn) autoSchedBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const autoSchedYearBtn = document.getElementById('btn-auto-schedule-year');
   if (autoSchedYearBtn) autoSchedYearBtn.classList.toggle('d-none', currentUser.role !== 'admin');
   const clearAllPmBtn = document.getElementById('btn-clear-all-pm');
@@ -1586,39 +1584,20 @@ function submitPMEventForm(event){
   closeModal('pm-event-modal'); showToast('บันทึกแผน PM สำเร็จ!','success'); renderPMTable(); updatePMStats(); renderCalendar();
 }
 
-// runPMAutoSchedule — เรียกตัวจัดตาราง PM อัตโนมัติด้วยมือ (ปกติระบบรันเองทุกวันที่ 1 ของเดือนอยู่แล้ว
-// ปุ่มนี้ไว้ใช้ตอนทดสอบ หรือกรณีฉุกเฉินที่ cron ไม่ทำงานตามกำหนด)
-function runPMAutoSchedule(){
-  if(isLocalMode){ showToast('ฟีเจอร์นี้ใช้ได้เฉพาะตอนเชื่อมต่อ server จริง', 'warning'); return; }
-  if(!confirm('จัดตาราง PM ประจำเดือนนี้อัตโนมัติจากข้อมูลแจ้งซ่อม? (เครื่องที่มีแผนของเดือนนี้อยู่แล้วจะไม่ถูกสร้างซ้ำ)')) return;
-  showLoading('กำลังวิเคราะห์ข้อมูลแจ้งซ่อมและจัดตาราง...');
-  authFetch(`${API_URL}/pm/auto-schedule/run`, { method:'POST' })
-    .then(r => r.json())
-    .then(res => {
-      hideLoading();
-      if(res.success){
-        showToast(`จัดตาราง PM สำเร็จ! สร้างใหม่ ${res.created} รายการ (ข้าม ${res.skipped} รายการที่มีอยู่แล้ว)`, 'success');
-        refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
-      } else {
-        showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
-      }
-    })
-    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
-}
-
-// runPMAutoScheduleYear — สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน) ตามรอบ Tier
-// ใช้ตอนต้นปี/ต้องการวางแผนล่วงหน้าทั้งปี ไม่ชนกับแผนที่มีอยู่แล้ว (เช็คผ่าน PM ID เดิม)
+// runPMAutoScheduleYear — จัดตาราง PM ล่วงหน้า 12 เดือน (ตัวจัดตารางเดียวของระบบ — ยุบรวม
+// ตัวรายเดือน/cron เดิมเข้ามาแล้ว) rolling จากเดือนนี้ไปข้างหน้า 12 เดือน (ไหลข้ามปีได้) และดึง
+// เครื่องที่เพิ่งแจ้งซ่อมเดือนก่อนเข้าคิว PM เดือนนี้ทันทีด้วย — ไม่มี cron แล้ว ถ้าอยากให้ตรรกะ
+// "แจ้งซ่อมเดือนก่อน" ทำงานทันเดือนถัดๆ ไป ต้องกลับมากดปุ่มนี้ซ้ำเป็นระยะ (เช่น ต้นเดือน)
 function runPMAutoScheduleYear(){
   if(isLocalMode){ showToast('ฟีเจอร์นี้ใช้ได้เฉพาะตอนเชื่อมต่อ server จริง', 'warning'); return; }
-  const year = new Date().getFullYear();
-  if(!confirm(`สร้างแผน PM ล่วงหน้าทั้งปี ${year} (12 เดือน) ตามรอบ Tier ของแต่ละเครื่อง?\n(เดือนที่มีแผนอยู่แล้วจะไม่ถูกสร้างซ้ำ)`)) return;
-  showLoading('กำลังจัดตาราง PM ล่วงหน้าทั้งปี...');
-  authFetch(`${API_URL}/pm/auto-schedule/run-year`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ year }) })
+  if(!confirm('จัดตาราง PM ล่วงหน้า 12 เดือนจากเดือนนี้ ตามรอบ Tier ของแต่ละเครื่อง (รวมเครื่องที่เพิ่งแจ้งซ่อมเดือนก่อนด้วย)?\n(แผนที่มีอยู่แล้วจะไม่ถูกสร้างซ้ำ)')) return;
+  showLoading('กำลังจัดตาราง PM ล่วงหน้า 12 เดือน...');
+  authFetch(`${API_URL}/pm/auto-schedule/run-year`, { method:'POST', headers:{'Content-Type':'application/json'} })
     .then(r => r.json())
     .then(res => {
       hideLoading();
       if(res.success){
-        showToast(`จัดตารางทั้งปี ${res.year} สำเร็จ! สร้างใหม่ ${res.createdTotal} รายการ`, 'success');
+        showToast(`จัดตาราง PM ล่วงหน้า 12 เดือนสำเร็จ! สร้างใหม่ ${res.createdTotal} รายการ`, 'success');
         refreshData(); renderPMTable(); updatePMStats(); renderCalendar();
       } else {
         showToast(res.message || 'เกิดข้อผิดพลาด', 'error');

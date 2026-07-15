@@ -145,23 +145,12 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// POST /api/pm/auto-schedule/run (เฉพาะแอดมิน) — สั่งรันตัวจัดตาราง PM รายเดือนแบบทดสอบ/ฉุกเฉิน
-// ตามปกติระบบจะรันเองอัตโนมัติทุกวันที่ 1 ของเดือนผ่าน cron (ดู routes/pmAutoScheduler.js)
-router.post('/auto-schedule/run', requireRole('admin'), async (req, res) => {
-  try {
-    const { runMonthlyPMAutoSchedule } = require('./Pmautoscheduler');
-    const result = await runMonthlyPMAutoSchedule();
-    res.json({ success: true, ...result });
-  } catch (err) {
-    console.error('[PM Auto-Schedule] manual run error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// POST /api/pm/auto-schedule/run-year (เฉพาะแอดมิน) — สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน)
-// body: { year }  ← ไม่ส่งมา = ใช้ปีปัจจุบัน
-// หมายเหตุ: สร้างเฉพาะ "ตามรอบ Tier" เท่านั้น เดือนอนาคตยังไม่มีข้อมูลแจ้งซ่อมจริง
-// ส่วน "เหตุแจ้งซ่อม" จะถูกเพิ่มให้อัตโนมัติทีหลังตอนถึงเดือนนั้นจริงผ่าน cron รายเดือน
+// POST /api/pm/auto-schedule/run-year (เฉพาะแอดมิน) — จัดตาราง PM ล่วงหน้า 12 เดือน
+// (ตัวจัดตารางเดียวของระบบ — ไม่มีตัวรายเดือน/cron แยกแล้ว ยุบรวมเป็นตัวนี้ตัวเดียว)
+// body: { year }  ← ไม่ส่งมา/ส่งปีปัจจุบัน = rolling 12 เดือนถัดไปนับจากเดือนนี้ (ไหลข้ามปีได้)
+//                   ← ส่งปีอื่น = จัดเต็ม ม.ค.-ธ.ค. ของปีนั้นตรงๆ (วางแผนล่วงหน้าปีถัดไป)
+// หมายเหตุ: ตรรกะ "แจ้งซ่อมเดือนก่อน" ใช้ได้เฉพาะเดือนปัจจุบันเท่านั้น (เดือนอนาคตยังไม่มีข้อมูลจริง)
+// ถ้าอยากให้ตรรกะนี้ทำงานทันเดือนถัดๆ ไป ต้องกลับมากดปุ่มนี้ซ้ำตอนเข้าเดือนนั้นจริง (ไม่มี cron แล้ว)
 router.post('/auto-schedule/run-year', requireRole('admin'), async (req, res) => {
   try {
     const { runAnnualPMSchedule } = require('./Pmautoscheduler');

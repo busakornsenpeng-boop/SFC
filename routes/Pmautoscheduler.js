@@ -1,6 +1,6 @@
 // routes/pmAutoScheduler.js
 // ─────────────────────────────────────────────────────────────
-// จัดตาราง PM แบบกระจายทั้งปี (ไม่ใช่ทุกเครื่องทุกเดือนเหมือนเดิม)
+// จัดตาราง PM แบบกระจายล่วงหน้า 12 เดือน (ไม่ใช่ทุกเครื่องทุกเดือนเหมือนเดิม)
 //
 // หลักการ:
 //   1) แบ่งเครื่องจักรเป็น 3 ระดับ (Tier) ตามความถี่การแจ้งซ่อมทั้งหมดตั้งแต่เริ่มระบบ
@@ -9,17 +9,20 @@
 //        Tier C (ที่เหลือ ~50%)             → PM ปีละครั้ง    (1 ครั้ง/ปี)
 //      แต่ละเครื่องมีเดือน "ที่ต้องตรวจ" คงที่ ไม่สุ่มใหม่ทุกเดือน (คำนวณจาก hash ชื่อเครื่อง
 //      เพื่อกระจายเครื่องในแต่ละ Tier ให้ไม่ไปกระจุกเดือนเดียวกันหมด)
-//   2) เครื่องที่มีการแจ้งซ่อมใน "เดือนก่อนหน้า" จะถูกดึงเข้าคิว PM เดือนนี้ทันทีเป็นพิเศษ
-//      (เหตุ) แม้จะยังไม่ถึงรอบ Tier ของตัวเอง — เพิ่มอัตโนมัติ ไม่ต้องรอแอดมินเลือก
+//   2) เครื่องที่มีการแจ้งซ่อมใน "เดือนก่อนหน้า" จะถูกดึงเข้าคิว PM ของเดือนปัจจุบันทันทีเป็นพิเศษ
+//      (เหตุ) แม้จะยังไม่ถึงรอบ Tier ของตัวเอง — ใช้ได้เฉพาะ "เดือนปัจจุบัน" เท่านั้น เพราะเดือนอนาคต
+//      ยังไม่มีข้อมูลแจ้งซ่อมจริง (ดูฟังก์ชัน runAnnualPMSchedule ด้านล่าง)
 //   3) วันที่ในเดือนกระจายทั่วทั้งเดือนจริง (ไม่ hardcode 28) และ "เว้นวันอาทิตย์"
+//      และไม่มีวันที่ที่ผ่านมาแล้วของเดือนปัจจุบันเด็ดขาด
 //
-// รันอัตโนมัติทุกวันที่ 1 ของเดือน (ดู startPMAutoScheduler ด้านล่าง — ใช้
-// setInterval + Intl.DateTimeFormat เช็คเวลาไทยเอง ไม่ต้องพึ่ง library ภายนอก)
-// รันด้วยมือได้ผ่าน POST /api/pm/auto-schedule/run (แอดมินเท่านั้น — ดู routes/pm.js)
+// ไม่มี cron อัตโนมัติแล้ว — ยุบระบบจัดตารางรายเดือนทิ้ง เหลือแค่ตัวเดียวคือฟังก์ชันนี้
+// เรียกด้วยมือผ่าน POST /api/pm/auto-schedule/run-year (แอดมินเท่านั้น — ดู routes/pm.js)
+// เพราะฟังก์ชันนี้ rolling ล่วงหน้า 12 เดือนเสมอ (ไหลข้ามปีได้) แนะนำให้แอดมินกดซ้ำเป็นระยะ
+// (เช่น ต้นเดือน) เพื่อให้ตรรกะ "แจ้งซ่อมเดือนก่อน" ในข้อ 2 ทำงานทันเดือนปัจจุบันเรื่อยๆ
 // ─────────────────────────────────────────────────────────────
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 
-const START_DAY = 2; // เริ่มจัดวันที่ 2 (เว้นวันที่ 1 ไว้เพราะเป็นวันที่ job auto-schedule รันเอง)
+const START_DAY = 2; // เริ่มจัดวันที่ 2 เป็นค่าเริ่มต้น (เดือนปัจจุบันจะถูกขยับเป็น "วันนี้" แทน ดู minDay ด้านล่าง)
 
 // สัดส่วนแบ่ง Tier ตามอันดับความถี่แจ้งซ่อม (เรียงมาก→น้อยแล้ว)
 const TIER_A_PERCENTILE = 0.15; // ~15% แรก
@@ -130,16 +133,19 @@ async function getExistingPMIds() {
   return new Set(rows.map(r => r[0]).filter(Boolean));
 }
 
-// สร้าง pool วันที่ครอบคลุมทั้งเดือน (วันที่ START_DAY ถึงวันสุดท้ายจริงของเดือนนั้น)
+// สร้าง pool วันที่ครอบคลุมทั้งเดือน เริ่มจาก minDay (ปกติ START_DAY=2, แต่ถ้าเป็นเดือนปัจจุบัน
+// ผู้เรียกจะส่ง "วันนี้" เข้ามาแทน กันไม่ให้สุ่มได้วันที่ผ่านมาแล้วของเดือนนี้) ถึงวันสุดท้ายจริงของเดือน
 // เว้นวันอาทิตย์ออก
-function buildDayPool(year, month /* 0-indexed */) {
+function buildDayPool(year, month /* 0-indexed */, minDay = START_DAY) {
   const daysInMonth = getDaysInMonth(year, month);
+  const start = Math.min(minDay, daysInMonth); // กันกรณี minDay เกินจำนวนวันจริงของเดือน
   const pool = [];
-  for (let d = START_DAY; d <= daysInMonth; d++) {
+  for (let d = start; d <= daysInMonth; d++) {
     const dayOfWeek = new Date(year, month, d).getDay(); // 0 = อาทิตย์
     if (dayOfWeek === 0) continue;
     pool.push(d);
   }
+  if (!pool.length) pool.push(daysInMonth); // กันพูลว่าง (เช่นเหลือวันเดียวในเดือนแล้วดันเป็นอาทิตย์)
   return pool;
 }
 
@@ -150,15 +156,34 @@ function pickDate(year, month /* 0-indexed */, dayPool, i) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-async function runMonthlyPMAutoSchedule() {
-  const now   = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed
-  const yyyymm = `${year}${String(month + 1).padStart(2, '0')}`;
-  const monthIndex = year * 12 + month;
+// ─────────────────────────────────────────────────────────────
+// สร้างแผน PM ล่วงหน้า 12 เดือน (ตัวจัดตารางเดียวของระบบ — ไม่มีตัวรายเดือนแยกแล้ว)
+//
+// ถ้าไม่ระบุ targetYear (หรือระบุเป็นปีปัจจุบัน) → rolling 12 เดือนถัดไปนับจาก "เดือนนี้"
+//   ไหลข้ามปีได้ เช่น กดเดือน ก.ค. 2569 → จัด ก.ค. 2569 ถึง มิ.ย. 2570 (ครบ 12 เดือนเสมอ)
+// ถ้าระบุปีอื่นที่ไม่ใช่ปีปัจจุบัน (วางแผนล่วงหน้าเต็มปีอนาคต) → จัดเต็ม ม.ค.-ธ.ค. ของปีนั้นตรงๆ
+//
+// เดือน "ปัจจุบัน" เท่านั้นที่จะรวมตรรกะ "แจ้งซ่อมเดือนก่อน" (ดึงเครื่องที่เพิ่งแจ้งซ่อมเข้าคิวทันที
+// แม้ยังไม่ถึงรอบ Tier) เพราะเดือนอื่นๆ ที่เหลือเป็นอนาคต ยังไม่มีข้อมูลแจ้งซ่อมจริงให้เช็ค —
+// ถ้าอยากให้ตรรกะนี้ทำงานทันเดือนถัดๆ ไป ต้องกลับมากดปุ่มนี้ซ้ำอีกครั้งตอนเข้าเดือนนั้นจริง
+// (ไม่มี cron อัตโนมัติแล้ว ต้องกดมือ)
+//
+// เรียกผ่าน POST /api/pm/auto-schedule/run-year (แอดมินเท่านั้น — ดู routes/pm.js)
+// ─────────────────────────────────────────────────────────────
+async function runAnnualPMSchedule(targetYear) {
+  const now        = new Date();
+  const todayYear  = now.getFullYear();
+  const todayMonth = now.getMonth(); // 0-indexed
+  const todayDay   = now.getDate();
+  const year = targetYear || todayYear;
 
-  // เดือนก่อนหน้า (สำหรับเช็คเครื่องที่เพิ่งแจ้งซ่อม)
-  const prevMonthDate = new Date(year, month - 1, 1);
+  // ปีที่ผ่านไปแล้วทั้งปี — ไม่มีประโยชน์ที่จะจัดตารางย้อนหลัง
+  if (year < todayYear) {
+    return { year, createdTotal: 0, months: [], note: `ปี ${year} ผ่านไปแล้วทั้งปี ไม่สามารถจัดตารางย้อนหลังได้` };
+  }
+
+  // เดือนก่อนหน้าของ "วันนี้" — ใช้เช็คเครื่องที่เพิ่งแจ้งซ่อม ดึงเข้าคิว PM เดือนปัจจุบันทันที
+  const prevMonthDate = new Date(todayYear, todayMonth - 1, 1);
   const prevYear  = prevMonthDate.getFullYear();
   const prevMonth = prevMonthDate.getMonth();
 
@@ -167,93 +192,6 @@ async function runMonthlyPMAutoSchedule() {
     getRepairCountsByMachine(),
     getExistingPMIds(),
     getMachinesRepairedInMonth(prevYear, prevMonth),
-  ]);
-
-  if (!machines.length) {
-    return { created: 0, skipped: 0, month: `${year}-${String(month + 1).padStart(2, '0')}`, ranking: [], note: 'ไม่พบรายชื่อเครื่องจักรใน MasterData' };
-  }
-
-  // จัดอันดับเครื่องจักรตามความถี่การแจ้งซ่อม (มาก → น้อย) แล้วแบ่ง Tier ตามสัดส่วน
-  const ranked = machines
-    .map(m => ({ machine: m, repairCount: repairCounts[m] || 0 }))
-    .sort((a, b) => b.repairCount - a.repairCount)
-    .map((item, i, arr) => ({ ...item, tier: assignTier(i, arr.length) }));
-
-  // ── คัดเครื่องที่ต้องจัด PM เดือนนี้ ──
-  // (1) ตามรอบ Tier ของตัวเอง  (2) ตามเหตุ — แจ้งซ่อมเดือนก่อน (ถึงยังไม่ถึงรอบก็เพิ่มให้)
-  const dueList = [];
-  ranked.forEach(item => {
-    const dueByRotation = isDueThisMonth(item.machine, item.tier, monthIndex);
-    const dueByRepair   = recentlyRepaired.has(item.machine);
-    if (dueByRotation || dueByRepair) {
-      dueList.push({ ...item, dueByRotation, dueByRepair });
-    }
-  });
-
-  // เรียงลำดับความสำคัญ: เหตุแจ้งซ่อมเดือนก่อน (เร่งด่วนสุด) → Tier A → B → C
-  // เพื่อให้ได้คิววันต้นๆ ของเดือนก่อน
-  const tierRank = { A: 0, B: 1, C: 2 };
-  dueList.sort((a, b) => {
-    if (a.dueByRepair !== b.dueByRepair) return a.dueByRepair ? -1 : 1;
-    if (tierRank[a.tier] !== tierRank[b.tier]) return tierRank[a.tier] - tierRank[b.tier];
-    return b.repairCount - a.repairCount;
-  });
-
-  const dayPool = buildDayPool(year, month);
-  const newRows = [];
-  const rankingOut = [];
-
-  dueList.forEach((item, i) => {
-    const id   = `PMAUTO-${yyyymm}-${slug(item.machine)}`;
-    const date = pickDate(year, month, dayPool, i);
-    const reasonLabel = item.dueByRepair
-      ? (item.dueByRotation ? `${TIER_LABEL[item.tier]} + แจ้งซ่อมเดือนก่อน` : 'แจ้งซ่อมเดือนก่อน (นอกรอบ)')
-      : TIER_LABEL[item.tier];
-
-    rankingOut.push({ ...item, date, reason: reasonLabel, skipped: existingIds.has(id) });
-    if (existingIds.has(id)) return; // กันสร้างซ้ำถ้ารันมากกว่า 1 ครั้งในเดือนเดียวกัน
-
-    newRows.push([id, `PM ประจำเดือน - ${item.machine}`, item.machine, date, reasonLabel, '', 'รอดำเนินการ']);
-  });
-
-  if (newRows.length) {
-    // RAW แทน USER_ENTERED — กันไม่ให้ Sheets ตีความ date string ("YYYY-MM-DD") เป็น date serial number
-    // แล้วโชว์เป็นตัวเลขดิบ (เช่น 46024) ถ้าคอลัมน์ดันมี number format เป็น "Number" อยู่ก่อนแล้ว
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'PM_Calendar!A:G',
-      valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: newRows },
-    });
-  }
-
-  const result = {
-    created: newRows.length,
-    skipped: rankingOut.length - newRows.length,
-    totalMachines: machines.length,
-    notScheduledThisMonth: machines.length - rankingOut.length, // เครื่องที่ยังไม่ถึงรอบและไม่มีแจ้งซ่อม
-    month: `${year}-${String(month + 1).padStart(2, '0')}`,
-    ranking: rankingOut,
-  };
-  console.log(`[PM Auto-Schedule] เดือน ${result.month}: สร้างใหม่ ${result.created} รายการ, ข้าม (มีอยู่แล้ว) ${result.skipped} รายการ, ยังไม่ถึงรอบ ${result.notScheduledThisMonth} เครื่อง`);
-  return result;
-}
-
-// ─────────────────────────────────────────────────────────────
-// สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน) — ใช้สำหรับดู/วางแผนภาพรวมล่วงหน้า
-// คำนวณเฉพาะ "ตามรอบ Tier" เท่านั้น (ไม่รวมเหตุแจ้งซ่อม เพราะเดือนอนาคตยังไม่มีข้อมูลจริง)
-// พอถึงเดือนนั้นจริง cron รายเดือน (runMonthlyPMAutoSchedule) จะมาเช็คเพิ่ม "เหตุแจ้งซ่อม" ให้อีกที
-// โดยไม่ชนกับรายการที่สร้างไว้ล่วงหน้าจากฟังก์ชันนี้ (เช็คผ่าน PM ID เดิม กันสร้างซ้ำอยู่แล้ว)
-// เรียกผ่าน POST /api/pm/auto-schedule/run-year (แอดมินเท่านั้น — ดู routes/pm.js)
-// ─────────────────────────────────────────────────────────────
-async function runAnnualPMSchedule(targetYear) {
-  const year = targetYear || new Date().getFullYear();
-
-  const [machines, repairCounts, existingIds] = await Promise.all([
-    getMachineList(),
-    getRepairCountsByMachine(),
-    getExistingPMIds(),
   ]);
 
   if (!machines.length) {
@@ -266,34 +204,71 @@ async function runAnnualPMSchedule(targetYear) {
     .map((item, i, arr) => ({ ...item, tier: assignTier(i, arr.length) }));
 
   const tierRank = { A: 0, B: 1, C: 2 };
+
+  // รายการ {y, m} ของ 12 เดือนที่จะจัด (ดูเงื่อนไข rolling / เต็มปี ที่หมายเหตุด้านบนฟังก์ชัน)
+  const targetMonths = [];
+  if (year === todayYear) {
+    for (let i = 0; i < 12; i++) {
+      const idx = todayYear * 12 + todayMonth + i;
+      targetMonths.push({ y: Math.floor(idx / 12), m: ((idx % 12) + 12) % 12 });
+    }
+  } else {
+    for (let m = 0; m < 12; m++) targetMonths.push({ y: year, m });
+  }
+
   const months = [];
   let createdTotal = 0;
 
-  for (let m = 0; m < 12; m++) {
-    const monthIndex = year * 12 + m;
-    const yyyymm = `${year}${String(m + 1).padStart(2, '0')}`;
+  for (const { y, m } of targetMonths) {
+    const monthIndex     = y * 12 + m;
+    const yyyymm          = `${y}${String(m + 1).padStart(2, '0')}`;
+    const isCurrentMonth  = (y === todayYear && m === todayMonth);
 
+    // (1) ตามรอบ Tier ของตัวเอง
     const dueList = ranked
-      .filter(item => isDueThisMonth(item.machine, item.tier, monthIndex))
-      .sort((a, b) => {
-        if (tierRank[a.tier] !== tierRank[b.tier]) return tierRank[a.tier] - tierRank[b.tier];
-        return b.repairCount - a.repairCount;
-      });
+      .map(item => ({ ...item, dueByRotation: isDueThisMonth(item.machine, item.tier, monthIndex), dueByRepair: false }))
+      .filter(item => item.dueByRotation);
 
-    const dayPool = buildDayPool(year, m);
+    // (2) เดือนปัจจุบันเท่านั้น — เครื่องที่เพิ่งแจ้งซ่อมเดือนก่อน ดึงเข้าคิวทันทีแม้ยังไม่ถึงรอบ
+    if (isCurrentMonth) {
+      const dueMachineSet = new Set(dueList.map(d => d.machine));
+      ranked.forEach(item => {
+        if (!recentlyRepaired.has(item.machine)) return;
+        if (dueMachineSet.has(item.machine)) {
+          dueList.find(d => d.machine === item.machine).dueByRepair = true;
+        } else {
+          dueList.push({ ...item, dueByRotation: false, dueByRepair: true });
+        }
+      });
+    }
+
+    // เรียงลำดับความสำคัญ: เหตุแจ้งซ่อมเดือนก่อน (เร่งด่วนสุด) → Tier A → B → C
+    dueList.sort((a, b) => {
+      if (a.dueByRepair !== b.dueByRepair) return a.dueByRepair ? -1 : 1;
+      if (tierRank[a.tier] !== tierRank[b.tier]) return tierRank[a.tier] - tierRank[b.tier];
+      return b.repairCount - a.repairCount;
+    });
+
+    // เดือนปัจจุบัน ห้ามสุ่มวันที่ผ่านมาแล้ว — เดือนอนาคตใช้ START_DAY ปกติ
+    const minDay  = isCurrentMonth ? Math.max(START_DAY, todayDay) : START_DAY;
+    const dayPool = buildDayPool(y, m, minDay);
     const newRows = [];
     let skippedCount = 0;
 
     dueList.forEach((item, i) => {
       const id   = `PMAUTO-${yyyymm}-${slug(item.machine)}`;
-      const date = pickDate(year, m, dayPool, i);
-      if (existingIds.has(id)) { skippedCount++; return; } // มีอยู่แล้ว (เช่น เดือนปัจจุบันที่ cron รันไปแล้ว) — ข้าม
-      newRows.push([id, `PM ประจำเดือน - ${item.machine}`, item.machine, date, TIER_LABEL[item.tier], '', 'รอดำเนินการ']);
+      const date = pickDate(y, m, dayPool, i);
+      if (existingIds.has(id)) { skippedCount++; return; } // มีอยู่แล้ว (เช่นรันซ้ำ) — ข้าม
+      const reasonLabel = item.dueByRepair
+        ? (item.dueByRotation ? `${TIER_LABEL[item.tier]} + แจ้งซ่อมเดือนก่อน` : 'แจ้งซ่อมเดือนก่อน (นอกรอบ)')
+        : TIER_LABEL[item.tier];
+      newRows.push([id, `PM ประจำเดือน - ${item.machine}`, item.machine, date, reasonLabel, '', 'รอดำเนินการ']);
       existingIds.add(id); // กันสร้างซ้ำถ้าเผลอเรียกฟังก์ชันนี้ซ้อนกันในรันเดียว
     });
 
     if (newRows.length) {
-      // RAW แทน USER_ENTERED — เหตุผลเดียวกับใน runMonthlyPMAutoSchedule ด้านบน
+      // RAW แทน USER_ENTERED — กันไม่ให้ Sheets ตีความ date string เป็น date serial number
+      // แล้วโชว์เป็นตัวเลขดิบ ถ้าคอลัมน์ดันมี number format เป็น "Number" อยู่ก่อนแล้ว
       await sheets.spreadsheets.values.append({
         spreadsheetId: SPREADSHEET_ID,
         range: 'PM_Calendar!A:G',
@@ -305,50 +280,15 @@ async function runAnnualPMSchedule(targetYear) {
 
     createdTotal += newRows.length;
     months.push({
-      month: `${year}-${String(m + 1).padStart(2, '0')}`,
+      month: `${y}-${String(m + 1).padStart(2, '0')}`,
       due: dueList.length,
       created: newRows.length,
       skipped: skippedCount,
     });
   }
 
-  console.log(`[PM Auto-Schedule] สร้างแผน PM ล่วงหน้าทั้งปี ${year}: สร้างรวม ${createdTotal} รายการ (ยังไม่รวมเหตุแจ้งซ่อมที่จะเพิ่มทีหลังตามเดือนจริง)`);
+  console.log(`[PM Auto-Schedule] จัดตาราง PM ล่วงหน้า 12 เดือนจาก ${months[0]?.month}: สร้างรวม ${createdTotal} รายการ`);
   return { year, createdTotal, months };
 }
 
-// เรียกครั้งเดียวตอน start server — ตั้ง interval เช็คทุกชั่วโมงว่าเข้าวันที่ 1 ของเดือน (เวลาไทย) หรือยัง
-// ใช้ Intl.DateTimeFormat แทน timezone ของเครื่อง server เอง (ปกติ hosting อย่าง Render รันเวลา UTC)
-// กันรันซ้ำในเดือนเดียวกันด้วย _lastAutoRunKey ที่เก็บไว้ใน memory
-let _lastAutoRunKey = null;
-
-function getBangkokDateParts() {
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Bangkok',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  });
-  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
-  return { year: parts.year, month: parts.month, day: parts.day };
-}
-
-function checkAndRunIfDue() {
-  const { year, month, day } = getBangkokDateParts();
-  if (day !== '01') return; // ไม่ใช่วันที่ 1 ของเดือน (เวลาไทย)
-
-  const key = `${year}-${month}`;
-  if (_lastAutoRunKey === key) return; // เดือนนี้รันไปแล้ว ไม่ต้องรันซ้ำ
-
-  _lastAutoRunKey = key;
-  console.log(`[PM Auto-Schedule] เริ่มจัดตาราง PM ประจำเดือนอัตโนมัติ (${key})...`);
-  runMonthlyPMAutoSchedule().catch(err => {
-    console.error('[PM Auto-Schedule] error:', err);
-    _lastAutoRunKey = null; // รันไม่สำเร็จ — เปิดให้ลองใหม่ได้ในรอบเช็คถัดไป
-  });
-}
-
-function startPMAutoScheduler() {
-  checkAndRunIfDue();                            // เผื่อ server เพิ่ง start ตรงกับวันที่ 1 พอดี
-  setInterval(checkAndRunIfDue, 60 * 60 * 1000);  // เช็คทุก 1 ชั่วโมง
-  console.log('[PM Auto-Schedule] ตั้งเวลาทำงานอัตโนมัติแล้ว (เช็คทุกชั่วโมง — จะรันตอนเข้าวันที่ 1 ของเดือน เวลาไทย)');
-}
-
-module.exports = { runMonthlyPMAutoSchedule, runAnnualPMSchedule, startPMAutoScheduler };
+module.exports = { runAnnualPMSchedule };
