@@ -20,6 +20,7 @@
     "express": "^5.2.1",
     "googleapis": "^173.0.0",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.22.5"
+    "mysql2": "^3.22.5",
+    "node-cron": "^4.6.0"
   }
 }
