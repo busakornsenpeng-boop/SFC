@@ -205,98 +205,104 @@
       </div>
 
       <!-- ══════════════════════════════════════════════════════
-           PANEL: ตาราง PM
+           PANEL: จัดการ PM (ตาราง + ปฏิทิน รวมกัน)
       ══════════════════════════════════════════════════════ -->
       <div id="panel-pm-table" class="view-panel">
-        <div class="stats-grid">
-          <div class="stat-card yellow"><div class="stat-label">ทั้งหมด</div><div class="stat-value" id="pm-stat-total">0</div></div>
-          <div class="stat-card blue"><div class="stat-label">รอดำเนินการ</div><div class="stat-value" id="pm-stat-pend">0</div></div>
-          <div class="stat-card green"><div class="stat-label">เสร็จแล้ว</div><div class="stat-value" id="pm-stat-done">0</div></div>
-          <div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value" id="pm-stat-over">0</div></div>
+        <div class="tp-subtabs" style="margin-bottom:16px">
+          <button class="tp-subtab active" id="pm-sub-list" onclick="pmSwView('list')"><i class="ion-ios-clipboard"></i> รายการ</button>
+          <button class="tp-subtab"        id="pm-sub-cal"  onclick="pmSwView('cal')"><i class="ion-ios-calendar"></i> ปฏิทิน</button>
         </div>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-            <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-sec d-none" id="btn-auto-schedule-year" onclick="runPMAutoScheduleYear()">
-                <i class="ion-ios-calendar-outline"></i> จัดตารางล่วงหน้า 12 เดือน
-              </button>
-              <button class="btn btn-danger d-none" id="btn-clear-all-pm" onclick="clearAllPM()">
-                <i class="ion-ios-trash"></i> ล้างแผน PM ทั้งหมด
-              </button>
-              <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openAddPMModal()">
-                <i class="ion-ios-add"></i> เพิ่มแผน PM
-              </button>
-            </div>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-            <input type="text" id="pm-search" class="input-ctrl"
-              style="flex:1;min-width:160px;font-size:13px"
-              placeholder="🔍 ค้นหาเครื่องจักร / ชื่องาน..."
-              oninput="renderPMTable()">
-            <select id="pm-filter-status" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderPMTable()">
-              <option value="">ทุกสถานะ</option>
-              <option>รอดำเนินการ</option><option>กำลังดำเนินการ</option>
-              <option>เสร็จแล้ว</option><option>เกินกำหนด</option>
-            </select>
-            <select id="pm-filter-freq" class="select-ctrl" style="width:110px;font-size:12px" onchange="renderPMTable()">
-              <option value="">ทุกความถี่</option>
-              <option>รายวัน</option><option>รายเดือน</option>
-            </select>
-          </div>
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="width:36px">#</th><th>เครื่องจักร</th><th>ชื่องาน PM</th>
-                  <th>ความถี่</th><th>วันที่กำหนด</th><th>สถานะ</th><th>ดำเนินการ</th>
-                </tr>
-              </thead>
-              <tbody id="pm-list-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
 
-      <!-- ══════════════════════════════════════════════════════
-           PANEL: ปฏิทิน PM
-      ══════════════════════════════════════════════════════ -->
-      <div id="panel-pm-calendar" class="view-panel">
-        <div class="legend-box">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>เกินกำหนด</div>
-        </div>
-        <div class="calendar-container">
-          <div class="calendar-header">
-            <div style="display:flex;gap:6px">
-              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(-1)"><i class="ion-ios-arrow-back"></i></button>
-              <button class="calendar-nav-btn" onclick="adjustCalendarMonth(1)"><i class="ion-ios-arrow-forward"></i></button>
+        <!-- Sub-view: รายการ (ตาราง PM) -->
+        <div id="pm-v-list">
+          <div class="stats-grid">
+            <div class="stat-card yellow"><div class="stat-label">ทั้งหมด</div><div class="stat-value" id="pm-stat-total">0</div></div>
+            <div class="stat-card blue"><div class="stat-label">รอดำเนินการ</div><div class="stat-value" id="pm-stat-pend">0</div></div>
+            <div class="stat-card green"><div class="stat-label">เสร็จแล้ว</div><div class="stat-value" id="pm-stat-done">0</div></div>
+            <div class="stat-card red"><div class="stat-label">เกินกำหนด</div><div class="stat-value" id="pm-stat-over">0</div></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+              <div class="card-title" style="margin-bottom:0"><i class="ion-ios-list"></i> ตารางแผนบำรุงรักษาเชิงป้องกัน (PM)</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-sec d-none" id="btn-auto-schedule-year" onclick="runPMAutoScheduleYear()">
+                  <i class="ion-ios-calendar-outline"></i> จัดตารางล่วงหน้า 12 เดือน
+                </button>
+                <button class="btn btn-danger d-none" id="btn-clear-all-pm" onclick="clearAllPM()">
+                  <i class="ion-ios-trash"></i> ล้างแผน PM ทั้งหมด
+                </button>
+                <button class="btn btn-accent d-none" id="btn-add-pm-item" onclick="openAddPMModal()">
+                  <i class="ion-ios-add"></i> เพิ่มแผน PM
+                </button>
+              </div>
             </div>
-            <span class="calendar-title" id="calendar-title-txt">—</span>
-            <button class="btn btn-sec" style="padding:6px 12px;font-size:12px" onclick="focusCalendarToday()">วันนี้</button>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+              <input type="text" id="pm-search" class="input-ctrl"
+                style="flex:1;min-width:160px;font-size:13px"
+                placeholder="🔍 ค้นหาเครื่องจักร / ชื่องาน..."
+                oninput="renderPMTable()">
+              <select id="pm-filter-status" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderPMTable()">
+                <option value="">ทุกสถานะ</option>
+                <option>รอดำเนินการ</option><option>กำลังดำเนินการ</option>
+                <option>เสร็จแล้ว</option><option>เกินกำหนด</option>
+              </select>
+              <select id="pm-filter-freq" class="select-ctrl" style="width:110px;font-size:12px" onchange="renderPMTable()">
+                <option value="">ทุกความถี่</option>
+                <option>รายวัน</option><option>รายเดือน</option>
+              </select>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width:36px">#</th><th>เครื่องจักร</th><th>ชื่องาน PM</th>
+                    <th>ความถี่</th><th>วันที่กำหนด</th><th>สถานะ</th><th>ดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody id="pm-list-tbody"></tbody>
+              </table>
+            </div>
           </div>
-          <div class="calendar-grid">
-            <div class="calendar-dow">อา</div><div class="calendar-dow">จ</div>
-            <div class="calendar-dow">อ</div><div class="calendar-dow">พ</div>
-            <div class="calendar-dow">พฤ</div><div class="calendar-dow">ศ</div>
-            <div class="calendar-dow">ส</div>
+        </div>
+
+        <!-- Sub-view: ปฏิทิน PM -->
+        <div id="pm-v-cal" style="display:none">
+          <div class="legend-box">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>เกินกำหนด</div>
           </div>
-          <div class="calendar-grid" id="calendar-body-days"></div>
-        </div>
-        <div class="day-nav-wrapper" id="cal-day-navigator" style="display:none">
-          <button class="day-nav-btn" onclick="shiftSelectedDay(-1)"><i class="ion-ios-arrow-back"></i></button>
-          <div class="day-nav-label"><i class="ion-ios-calendar"></i><span id="cal-selected-day-lbl">—</span></div>
-          <button class="day-nav-btn" onclick="shiftSelectedDay(1)"><i class="ion-ios-arrow-forward"></i></button>
-          <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="clearSelectedDayNav()">
-            <i class="ion-ios-close"></i>
-          </button>
-        </div>
-        <div id="cal-day-detail-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-          <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--teal)"
-            id="cal-detail-title-txt"></div>
-          <div id="cal-day-detail-list"></div>
+          <div class="calendar-container">
+            <div class="calendar-header">
+              <div style="display:flex;gap:6px">
+                <button class="calendar-nav-btn" onclick="adjustCalendarMonth(-1)"><i class="ion-ios-arrow-back"></i></button>
+                <button class="calendar-nav-btn" onclick="adjustCalendarMonth(1)"><i class="ion-ios-arrow-forward"></i></button>
+              </div>
+              <span class="calendar-title" id="calendar-title-txt">—</span>
+              <button class="btn btn-sec" style="padding:6px 12px;font-size:12px" onclick="focusCalendarToday()">วันนี้</button>
+            </div>
+            <div class="calendar-grid">
+              <div class="calendar-dow">อา</div><div class="calendar-dow">จ</div>
+              <div class="calendar-dow">อ</div><div class="calendar-dow">พ</div>
+              <div class="calendar-dow">พฤ</div><div class="calendar-dow">ศ</div>
+              <div class="calendar-dow">ส</div>
+            </div>
+            <div class="calendar-grid" id="calendar-body-days"></div>
+          </div>
+          <div class="day-nav-wrapper" id="cal-day-navigator" style="display:none">
+            <button class="day-nav-btn" onclick="shiftSelectedDay(-1)"><i class="ion-ios-arrow-back"></i></button>
+            <div class="day-nav-label"><i class="ion-ios-calendar"></i><span id="cal-selected-day-lbl">—</span></div>
+            <button class="day-nav-btn" onclick="shiftSelectedDay(1)"><i class="ion-ios-arrow-forward"></i></button>
+            <button class="day-nav-btn" style="border-left:1px solid var(--border)" onclick="clearSelectedDayNav()">
+              <i class="ion-ios-close"></i>
+            </button>
+          </div>
+          <div id="cal-day-detail-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+            <div style="padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--teal)"
+              id="cal-detail-title-txt"></div>
+            <div id="cal-day-detail-list"></div>
+          </div>
         </div>
       </div>
 
@@ -605,7 +611,7 @@
         <div class="adm-filter-row-v2">
           <div class="adm-filter-title"><i class="ion-ios-trending-up"></i> วิเคราะห์ภาพรวม</div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="adm-export-btn" onclick="exportAdminPDF()"><i class="ion-ios-document"></i> ส่งออก PDF</button>
+            <button class="adm-export-btn" id="adm-dash-export-btn" onclick="exportAdminDashboardExcel()"><i class="ion-ios-document"></i> ส่งออก Excel</button>
          <div class="adm-flt-group" style="position:relative">
   <button class="adm-flt active" onclick="changeAdminTimeFilter('all');setFltBtn(this)">ทั้งหมด</button>
   <button class="adm-flt" id="adm-flt-custom-btn" onclick="toggleAdminDatePopover(event)">

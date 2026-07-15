@@ -16,6 +16,7 @@ let cachedJobs = [], cachedPM = [], cachedPMHistory = [];
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarSelectedDate = null;
+let pmSubView = 'list'; // sub-view ปัจจุบันของแท็บ "จัดการ PM": 'list' (ตาราง) หรือ 'cal' (ปฏิทิน)
 let selectedJobForAction = null;
 let uploadedFilesBase64 = [];
 let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = null;
@@ -375,7 +376,6 @@ function setupDashboard() {
     {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'ion-ios-pie'},
     {panel:'admin-repairs',      label:'จัดการใบแจ้งซ่อม',   icon:'ion-ios-options'},
     {panel:'pm-table',           label:'จัดการ PM',          icon:'ion-ios-clipboard'},
-    {panel:'pm-calendar',        label:'ปฏิทิน PM',          icon:'ion-ios-calendar'},
     {panel:'admin-people',       label:'จัดการผู้ใช้งาน',    icon:'ion-ios-people'}
   ]
 };
@@ -415,8 +415,7 @@ function switchViewPanel(panelId, tabBtn) {
   if(panelId==='report-repair')   { const er=document.getElementById('rep-requester');
     if(er&&currentUser) er.value=currentUser.name; }
   if(panelId==='track-repairs')   renderRepairsTable();
-  if(panelId==='pm-table')        { renderPMTable(); updatePMStats(); }
-  if(panelId==='pm-calendar')     renderCalendar();
+  if(panelId==='pm-table')        pmSwView(pmSubView);
   if(panelId==='pm-history')      renderPMHistoryTable();
   if(panelId==='eng-main')        initEngPanel();
   if(panelId==='admin-dashboard') initAdminDashboard();
@@ -1289,6 +1288,19 @@ function renderRepairsTable(){
     const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td><button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button></td>`;tbody.appendChild(tr);});
 }
 
+// สลับ sub-view ในแท็บ "จัดการ PM" ระหว่าง รายการ (ตาราง) กับ ปฏิทิน
+function pmSwView(view){
+  pmSubView = view;
+  const subList=document.getElementById('pm-sub-list'), subCal=document.getElementById('pm-sub-cal');
+  const vList=document.getElementById('pm-v-list'), vCal=document.getElementById('pm-v-cal');
+  if(subList) subList.classList.toggle('active', view==='list');
+  if(subCal)  subCal.classList.toggle('active', view==='cal');
+  if(vList)   vList.style.display = view==='list' ? '' : 'none';
+  if(vCal)    vCal.style.display  = view==='cal'  ? '' : 'none';
+  if(view==='list'){ renderPMTable(); updatePMStats(); }
+  else{ renderCalendar(); }
+}
+
 function updatePMStats(){
   const d=getPMData();
   const ts=document.getElementById('pm-stat-total');if(ts)ts.textContent=d.length;
@@ -1788,7 +1800,102 @@ function goToRepairsFiltered(kind, dept){
 }
 
 function setFltBtn(btn){document.querySelectorAll('.adm-flt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-function exportAdminPDF(){showToast('กำลังเตรียมไฟล์ PDF...','info');setTimeout(()=>{try{window.print();}catch(e){showToast('เปิด Print Dialog เพื่อบันทึกเป็น PDF ได้เลยครับ','info');}},300);}
+// ── ส่งออกภาพรวม Dashboard (KPI / สัดส่วนปัญหา / แผนก / แนวโน้มรายเดือน / Leaderboard) เป็นไฟล์ Excel ──
+async function exportAdminDashboardExcel(){
+  if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
+
+  const btn = document.getElementById('adm-dash-export-btn');
+  if(btn) btn.disabled = true;
+  showLoading('กำลังเตรียมไฟล์ Excel...');
+
+  try{
+    const filtered = filterJobsByTimeRange(getRepairJobsData(), currentAdminTimeFilter);
+    const stats    = calculateAdminStats(filtered);
+    const pm       = getPMData();
+    const overdue  = getRepairJobsData().filter(j => j.slaOverdue).length;
+    const leaders  = calculateTechPerformance(filtered);
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SFC Maintenance Service';
+    workbook.created = new Date();
+
+    const headerFill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF0D9488' } };
+    const headerFont = { bold:true, color:{ argb:'FFFFFFFF' }, name:'Arial' };
+    const styleHeaderRow = row => { row.font = headerFont; row.height = 22; row.eachCell(c => { c.fill = headerFill; c.alignment = { vertical:'middle', horizontal:'center', wrapText:true }; }); };
+
+    // ── Sheet 1: ภาพรวม (KPI) ──
+    const sSummary = workbook.addWorksheet('ภาพรวม');
+    sSummary.columns = [ { header:'ตัวชี้วัด', key:'k', width:28 }, { header:'ค่า', key:'v', width:20 } ];
+    styleHeaderRow(sSummary.getRow(1));
+    [
+      ['แจ้งซ่อมทั้งหมด', stats.total],
+      ['รอซ่อม', stats.waiting],
+      ['กำลังซ่อม', stats.working],
+      ['ปิดงานเสร็จ', stats.closed],
+      ['เกิน SLA (24 ชม.)', overdue],
+      ['PM ทั้งหมด', pm.length],
+      ['SLA เฉลี่ย', '92%'],
+    ].forEach(([k,v]) => sSummary.addRow({ k, v }));
+    sSummary.getColumn('v').alignment = { horizontal:'center' };
+
+    // ── Sheet 2: สัดส่วนด้านปัญหา ──
+    const sSide = workbook.addWorksheet('สัดส่วนด้านปัญหา');
+    sSide.columns = [ { header:'ด้านปัญหา', key:'k', width:26 }, { header:'จำนวน', key:'v', width:14 } ];
+    styleHeaderRow(sSide.getRow(1));
+    Object.entries(stats.sideData).forEach(([k,v]) => sSide.addRow({ k, v }));
+    sSide.getColumn('v').alignment = { horizontal:'center' };
+
+    // ── Sheet 3: แจ้งซ่อมแยกตามแผนก ──
+    const sDept = workbook.addWorksheet('แยกตามแผนก');
+    sDept.columns = [ { header:'แผนก', key:'k', width:26 }, { header:'จำนวน', key:'v', width:14 } ];
+    styleHeaderRow(sDept.getRow(1));
+    Object.entries(stats.deptData).forEach(([k,v]) => sDept.addRow({ k, v }));
+    sDept.getColumn('v').alignment = { horizontal:'center' };
+
+    // ── Sheet 4: แนวโน้มรายเดือน ──
+    const sMonthly = workbook.addWorksheet('แนวโน้มรายเดือน');
+    sMonthly.columns = [ { header:'เดือน/ปี', key:'k', width:16 }, { header:'จำนวนแจ้งซ่อม', key:'v', width:18 } ];
+    styleHeaderRow(sMonthly.getRow(1));
+    const mKeys = Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
+    mKeys.forEach(k => sMonthly.addRow({ k, v: stats.monthlyData[k] }));
+    sMonthly.getColumn('v').alignment = { horizontal:'center' };
+
+    // ── Sheet 5: Leaderboard ช่างซ่อม ──
+    const sLeader = workbook.addWorksheet('Leaderboard ช่าง', { views:[{ state:'frozen', ySplit:1 }] });
+    sLeader.columns = [
+      { header:'#',            key:'rank',  width:6  },
+      { header:'ช่างเทคนิค',    key:'name',  width:22 },
+      { header:'รับงาน',       key:'total', width:12 },
+      { header:'เสร็จ',        key:'done',  width:12 },
+      { header:'ปิดงาน',       key:'closed',width:12 },
+      { header:'ตีกลับ',       key:'back',  width:12 },
+      { header:'คะแนนรวม /100',key:'score', width:16 },
+    ];
+    styleHeaderRow(sLeader.getRow(1));
+    leaders.forEach((t,i) => sLeader.addRow({ rank:i+1, name:t.name, total:t.total, done:t.done, closed:t.closed, back:t.back, score:t.perfScore }));
+    ['rank','total','done','closed','back','score'].forEach(k => sLeader.getColumn(k).alignment = { horizontal:'center' });
+
+    const buf = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const stamp = (currentAdminTimeFilter==='custom' && currentAdminCustomFrom && currentAdminCustomTo)
+      ? `${currentAdminCustomFrom.replace(/-/g,'')}-${currentAdminCustomTo.replace(/-/g,'')}`
+      : `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()+543}`;
+    const a = document.createElement('a');
+    a.href = url; a.download = `Dashboard_ภาพรวม_${stamp}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('ส่งออก Excel สำเร็จ', 'success');
+  }catch(err){
+    console.error('[Export Dashboard Excel] error:', err);
+    showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel', 'error');
+  }finally{
+    hideLoading();
+    if(btn) btn.disabled = false;
+  }
+}
 function changeAdminTimeFilter(ft){
   currentAdminTimeFilter=ft;
   const customBtn=document.getElementById('adm-flt-custom-btn');
