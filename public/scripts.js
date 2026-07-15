@@ -2511,7 +2511,7 @@ function initTEPanel() {
   const now = new Date();
   if (!teCalY) { teCalY = now.getFullYear(); teCalM = now.getMonth(); }
   teUpdateStats();
-  teSw('queue', document.getElementById('te-t-queue'));
+  teSw('jobs', document.getElementById('te-t-jobs'));
 }
 
 // ── แสดง/ซ่อนปุ่ม "ระบุตัวตน" ตามว่าเป็นบัญชีกลางหรือไม่ ──
@@ -2544,23 +2544,42 @@ function teUpdateStats() {
   if(sv('te-stat-mine'))   sv('te-stat-mine').textContent   = mine;
   if(sv('te-stat-qc'))     sv('te-stat-qc').textContent     = qcJobs;
   if(sv('te-badge-queue')) sv('te-badge-queue').textContent = waiting;
+  if(sv('te-badge-jobs'))  sv('te-badge-jobs').textContent  = waiting;
   if(sv('te-badge-mine'))  sv('te-badge-mine').textContent  = mine;
   if(sv('te-badge-qc'))    sv('te-badge-qc').textContent    = qcJobs;
   if(sv('te-badge-pm'))    sv('te-badge-pm').textContent    = pmPend;
 }
+
+let teJobsSub = 'queue';
+let tePmSub   = 'list';
 
 function teSw(tab, btn) {
   document.querySelectorAll('.te-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.te-sec').forEach(s => s.style.display = 'none');
   btn.classList.add('active');
   document.getElementById('te-v-' + tab).style.display = 'block';
-  if (tab === 'queue') teRenderQueue();
-  if (tab === 'mine')  teRenderMine();
-  if (tab === 'qc')    teRenderQC();
-  if (tab === 'pm')    teRenderPMTable();
-  if (tab === 'cal')   teRenderCal();
+  if (tab === 'jobs')  teSwJobs(teJobsSub);
+  if (tab === 'pm')    teSwPM(tePmSub);
   if (tab === 'hist')  teRenderHist();
   if (tab === 'daily') teRenderDailyPM();
+}
+
+function teSwJobs(sub) {
+  teJobsSub = sub;
+  document.getElementById('te-sub-queue').classList.toggle('active', sub === 'queue');
+  document.getElementById('te-sub-mine').classList.toggle('active', sub === 'mine');
+  document.getElementById('te-v-queue').style.display = sub === 'queue' ? 'block' : 'none';
+  document.getElementById('te-v-mine').style.display  = sub === 'mine'  ? 'block' : 'none';
+  if (sub === 'queue') teRenderQueue(); else teRenderMine();
+}
+
+function teSwPM(sub) {
+  tePmSub = sub;
+  document.getElementById('te-sub-pmlist').classList.toggle('active', sub === 'list');
+  document.getElementById('te-sub-pmcal').classList.toggle('active', sub === 'cal');
+  document.getElementById('te-v-pmlist').style.display = sub === 'list' ? 'block' : 'none';
+  document.getElementById('te-v-pmcal').style.display  = sub === 'cal'  ? 'block' : 'none';
+  if (sub === 'list') teRenderPMTable(); else teRenderCal();
 }
 
 function teRenderQueue() {
@@ -2612,7 +2631,7 @@ function teRenderQC() {
 }
 
 function teRenderPMTable() {
-  const el = document.getElementById('te-v-pm');
+  const el = document.getElementById('te-v-pmlist');
   const q  = (document.getElementById('te-pm-search')?.value || '').toLowerCase();
   const sf = document.getElementById('te-pm-status')?.value || '';
   const filtered = getPMData().filter(p =>

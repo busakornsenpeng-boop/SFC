@@ -29,6 +29,10 @@
   .tp-tbadge{min-width:15px;height:15px;border-radius:var(--r-sm);padding:0 3px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;transition:.3s}
   .tp-tbadge.red{background:var(--red);color:#fff}.tp-tbadge.blue{background:var(--accent);color:#fff}
   .tp-tbadge.teal{background:var(--teal);color:#fff}.tp-tbadge.purple{background:var(--purple);color:#fff}
+  .tp-subtabs{display:flex;gap:6px;padding:10px 0 4px;border-bottom:1px solid var(--border);margin-bottom:12px}
+  .tp-subtab{padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s;font-family:inherit}
+  .tp-subtab.active{background:var(--accent);color:#fff;border-color:transparent}
+  .tp-subtab .tp-tbadge{transform:scale(.9)}
   .tp-sec{padding:0 14px 16px}
   .tp-sdiv{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding:0 2px;font-weight:600}
   .tp-jcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;overflow:hidden;transition:.2s;box-shadow:var(--shadow-sm)}

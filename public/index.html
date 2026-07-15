@@ -870,50 +870,63 @@
     </div>
 
     <div class="tp-tabs">
-      <button class="tp-tab te-tab active" id="te-t-queue" onclick="teSw('queue',this)"><i class="ion-ios-archive"></i> คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
-      <button class="tp-tab te-tab"        id="te-t-mine"  onclick="teSw('mine',this)"><i class="ion-ios-construct"></i> งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
+      <button class="tp-tab te-tab active" id="te-t-jobs"  onclick="teSw('jobs',this)"><i class="ion-ios-archive"></i> งานซ่อม <span class="tp-tbadge red" id="te-badge-jobs">0</span></button>
       <button class="tp-tab te-tab"        id="te-t-pm"    onclick="teSw('pm',this)"><i class="ion-ios-clipboard"></i> PM <span class="tp-tbadge teal" id="te-badge-pm">0</span></button>
-      <button class="tp-tab te-tab"        id="te-t-cal"   onclick="teSw('cal',this)">📅 ปฏิทิน</button>
-      <button class="tp-tab te-tab"        id="te-t-hist"  onclick="teSw('hist',this)">📜 ประวัติ</button>
-      <button class="tp-tab te-tab"        id="te-t-daily" onclick="teSw('daily',this)">📋 Daily PM</button>
+      <button class="tp-tab te-tab"        id="te-t-hist"  onclick="teSw('hist',this)"><i class="ion-ios-journal"></i> ประวัติ</button>
+      <button class="tp-tab te-tab"        id="te-t-daily" onclick="teSw('daily',this)"><i class="ion-ios-clipboard"></i> Daily PM</button>
     </div>
 
     <!-- Sections -->
-    <div class="tp-sec te-sec" id="te-v-queue"></div>
-    <div class="tp-sec te-sec" id="te-v-mine"  style="display:none"></div>
-    <div class="tp-sec te-sec" id="te-v-pm"    style="display:none"></div>
+    <div class="tp-sec te-sec" id="te-v-jobs">
+      <div class="tp-subtabs">
+        <button class="tp-subtab active" id="te-sub-queue" onclick="teSwJobs('queue')"><i class="ion-ios-archive"></i> คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
+        <button class="tp-subtab"        id="te-sub-mine"  onclick="teSwJobs('mine')"><i class="ion-ios-construct"></i> งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
+      </div>
+      <div id="te-v-queue"></div>
+      <div id="te-v-mine" style="display:none"></div>
+    </div>
+
+    <div class="tp-sec te-sec" id="te-v-pm" style="display:none">
+      <div class="tp-subtabs">
+        <button class="tp-subtab active" id="te-sub-pmlist" onclick="teSwPM('list')"><i class="ion-ios-clipboard"></i> รายการ</button>
+        <button class="tp-subtab"        id="te-sub-pmcal"  onclick="teSwPM('cal')"><i class="ion-ios-calendar"></i> ปฏิทิน</button>
+      </div>
+
+      <div id="te-v-pmlist"></div>
+
+      <!-- Calendar (ต้องการ HTML พิเศษ) -->
+      <div id="te-v-pmcal" style="display:none">
+        <div class="tp-cal-legend">
+          <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
+          <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
+          <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
+          <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--red)"></div>เกินกำหนด</div>
+        </div>
+        <div class="tp-cal-hdr">
+          <div style="display:flex;gap:5px">
+            <button class="tp-cal-nav" onclick="teShiftMonth(-1)">‹</button>
+            <button class="tp-cal-nav" onclick="teShiftMonth(1)">›</button>
+          </div>
+          <span class="tp-cal-title-txt" id="te-cal-title">—</span>
+          <button class="tp-btn-today" onclick="teCalToday()">วันนี้</button>
+        </div>
+        <div class="tp-cal-dow-row">
+          <div class="tp-cal-dow">อา</div><div class="tp-cal-dow">จ</div><div class="tp-cal-dow">อ</div>
+          <div class="tp-cal-dow">พ</div><div class="tp-cal-dow">พฤ</div><div class="tp-cal-dow">ศ</div><div class="tp-cal-dow">ส</div>
+        </div>
+        <div class="tp-cal-days" id="te-cal-days"></div>
+        <div class="tp-day-nav-bar" id="te-day-nav" style="display:none">
+          <button class="tp-dnav-btn" onclick="teShiftDay(-1)">‹</button>
+          <div class="tp-dnav-lbl" id="te-day-nav-lbl">—</div>
+          <button class="tp-dnav-btn" onclick="teShiftDay(1)">›</button>
+          <button class="tp-dnav-close" onclick="teCalClear()"><i class="ion-ios-close"></i></button>
+        </div>
+        <div class="tp-cal-wrap" id="te-day-detail" style="display:none"></div>
+      </div>
+    </div>
+
     <div class="tp-sec te-sec" id="te-v-hist"  style="display:none"></div>
     <div class="tp-sec te-sec" id="te-v-daily" style="display:none"></div>
-
-    <!-- Calendar (ต้องการ HTML พิเศษ) -->
-    <div class="te-sec" id="te-v-cal" style="display:none">
-      <div class="tp-cal-legend">
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--yellow)"></div>รอดำเนินการ</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--accent)"></div>กำลังดำเนินการ</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--green)"></div>เสร็จแล้ว</div>
-        <div class="tp-leg"><div class="tp-leg-dot" style="background:var(--red)"></div>เกินกำหนด</div>
-      </div>
-      <div class="tp-cal-hdr">
-        <div style="display:flex;gap:5px">
-          <button class="tp-cal-nav" onclick="teShiftMonth(-1)">‹</button>
-          <button class="tp-cal-nav" onclick="teShiftMonth(1)">›</button>
-        </div>
-        <span class="tp-cal-title-txt" id="te-cal-title">—</span>
-        <button class="tp-btn-today" onclick="teCalToday()">วันนี้</button>
-      </div>
-      <div class="tp-cal-dow-row">
-        <div class="tp-cal-dow">อา</div><div class="tp-cal-dow">จ</div><div class="tp-cal-dow">อ</div>
-        <div class="tp-cal-dow">พ</div><div class="tp-cal-dow">พฤ</div><div class="tp-cal-dow">ศ</div><div class="tp-cal-dow">ส</div>
-      </div>
-      <div class="tp-cal-days" id="te-cal-days"></div>
-      <div class="tp-day-nav-bar" id="te-day-nav" style="display:none">
-        <button class="tp-dnav-btn" onclick="teShiftDay(-1)">‹</button>
-        <div class="tp-dnav-lbl" id="te-day-nav-lbl">—</div>
-        <button class="tp-dnav-btn" onclick="teShiftDay(1)">›</button>
-        <button class="tp-dnav-close" onclick="teCalClear()">✕</button>
-      </div>
-      <div class="tp-cal-wrap" id="te-day-detail" style="display:none"></div>
-    </div>
   </div>
 
   <!-- Modal ใช้ร่วมกับ Tech Panel เดิม -->
