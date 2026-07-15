@@ -238,6 +238,81 @@ async function runMonthlyPMAutoSchedule() {
   return result;
 }
 
+// ─────────────────────────────────────────────────────────────
+// สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน) — ใช้สำหรับดู/วางแผนภาพรวมล่วงหน้า
+// คำนวณเฉพาะ "ตามรอบ Tier" เท่านั้น (ไม่รวมเหตุแจ้งซ่อม เพราะเดือนอนาคตยังไม่มีข้อมูลจริง)
+// พอถึงเดือนนั้นจริง cron รายเดือน (runMonthlyPMAutoSchedule) จะมาเช็คเพิ่ม "เหตุแจ้งซ่อม" ให้อีกที
+// โดยไม่ชนกับรายการที่สร้างไว้ล่วงหน้าจากฟังก์ชันนี้ (เช็คผ่าน PM ID เดิม กันสร้างซ้ำอยู่แล้ว)
+// เรียกผ่าน POST /api/pm/auto-schedule/run-year (แอดมินเท่านั้น — ดู routes/pm.js)
+// ─────────────────────────────────────────────────────────────
+async function runAnnualPMSchedule(targetYear) {
+  const year = targetYear || new Date().getFullYear();
+
+  const [machines, repairCounts, existingIds] = await Promise.all([
+    getMachineList(),
+    getRepairCountsByMachine(),
+    getExistingPMIds(),
+  ]);
+
+  if (!machines.length) {
+    return { year, createdTotal: 0, months: [], note: 'ไม่พบรายชื่อเครื่องจักรใน MasterData' };
+  }
+
+  const ranked = machines
+    .map(m => ({ machine: m, repairCount: repairCounts[m] || 0 }))
+    .sort((a, b) => b.repairCount - a.repairCount)
+    .map((item, i, arr) => ({ ...item, tier: assignTier(i, arr.length) }));
+
+  const tierRank = { A: 0, B: 1, C: 2 };
+  const months = [];
+  let createdTotal = 0;
+
+  for (let m = 0; m < 12; m++) {
+    const monthIndex = year * 12 + m;
+    const yyyymm = `${year}${String(m + 1).padStart(2, '0')}`;
+
+    const dueList = ranked
+      .filter(item => isDueThisMonth(item.machine, item.tier, monthIndex))
+      .sort((a, b) => {
+        if (tierRank[a.tier] !== tierRank[b.tier]) return tierRank[a.tier] - tierRank[b.tier];
+        return b.repairCount - a.repairCount;
+      });
+
+    const dayPool = buildDayPool(year, m);
+    const newRows = [];
+    let skippedCount = 0;
+
+    dueList.forEach((item, i) => {
+      const id   = `PMAUTO-${yyyymm}-${slug(item.machine)}`;
+      const date = pickDate(year, m, dayPool, i);
+      if (existingIds.has(id)) { skippedCount++; return; } // มีอยู่แล้ว (เช่น เดือนปัจจุบันที่ cron รันไปแล้ว) — ข้าม
+      newRows.push([id, `PM ประจำเดือน - ${item.machine}`, item.machine, date, TIER_LABEL[item.tier], '', 'รอดำเนินการ']);
+      existingIds.add(id); // กันสร้างซ้ำถ้าเผลอเรียกฟังก์ชันนี้ซ้อนกันในรันเดียว
+    });
+
+    if (newRows.length) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'PM_Calendar!A:G',
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: newRows },
+      });
+    }
+
+    createdTotal += newRows.length;
+    months.push({
+      month: `${year}-${String(m + 1).padStart(2, '0')}`,
+      due: dueList.length,
+      created: newRows.length,
+      skipped: skippedCount,
+    });
+  }
+
+  console.log(`[PM Auto-Schedule] สร้างแผน PM ล่วงหน้าทั้งปี ${year}: สร้างรวม ${createdTotal} รายการ (ยังไม่รวมเหตุแจ้งซ่อมที่จะเพิ่มทีหลังตามเดือนจริง)`);
+  return { year, createdTotal, months };
+}
+
 // เรียกครั้งเดียวตอน start server — ตั้ง interval เช็คทุกชั่วโมงว่าเข้าวันที่ 1 ของเดือน (เวลาไทย) หรือยัง
 // ใช้ Intl.DateTimeFormat แทน timezone ของเครื่อง server เอง (ปกติ hosting อย่าง Render รันเวลา UTC)
 // กันรันซ้ำในเดือนเดียวกันด้วย _lastAutoRunKey ที่เก็บไว้ใน memory
@@ -273,4 +348,4 @@ function startPMAutoScheduler() {
   console.log('[PM Auto-Schedule] ตั้งเวลาทำงานอัตโนมัติแล้ว (เช็คทุกชั่วโมง — จะรันตอนเข้าวันที่ 1 ของเดือน เวลาไทย)');
 }
 
-module.exports = { runMonthlyPMAutoSchedule, startPMAutoScheduler };
+module.exports = { runMonthlyPMAutoSchedule, runAnnualPMSchedule, startPMAutoScheduler };

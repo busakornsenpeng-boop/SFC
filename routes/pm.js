@@ -141,6 +141,22 @@ router.post('/auto-schedule/run', requireRole('admin'), async (req, res) => {
   }
 });
 
+// POST /api/pm/auto-schedule/run-year (เฉพาะแอดมิน) — สร้างแผน PM ล่วงหน้าทั้งปี (12 เดือน)
+// body: { year }  ← ไม่ส่งมา = ใช้ปีปัจจุบัน
+// หมายเหตุ: สร้างเฉพาะ "ตามรอบ Tier" เท่านั้น เดือนอนาคตยังไม่มีข้อมูลแจ้งซ่อมจริง
+// ส่วน "เหตุแจ้งซ่อม" จะถูกเพิ่มให้อัตโนมัติทีหลังตอนถึงเดือนนั้นจริงผ่าน cron รายเดือน
+router.post('/auto-schedule/run-year', requireRole('admin'), async (req, res) => {
+  try {
+    const { runAnnualPMSchedule } = require('./Pmautoscheduler');
+    const { year } = req.body;
+    const result = await runAnnualPMSchedule(year ? Number(year) : undefined);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[PM Auto-Schedule] annual run error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/pm/checklist (เฉพาะช่าง/วิศวกร/แอดมิน)
 router.post('/checklist', requireRole('engineer', 'admin'), async (req, res) => {
   try {
