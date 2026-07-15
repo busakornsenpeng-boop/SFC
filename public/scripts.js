@@ -1745,24 +1745,25 @@ function openDeptBreakdown(kind){
         `<span class="dbm-summary-num">${filtered.length}</span>` +
         `<span class="dbm-summary-lbl">งานทั้งหมดในกลุ่มนี้ <span class="dbm-summary-hint">· คลิกแผนกเพื่อดูรายการ</span></span>` +
       `</div>` +
-      `<div class="dbm-list">` +
-      deptEntries.map(([dept, count], i) => {
-        const pct = maxCount ? Math.max(6, Math.round(count / maxCount * 100)) : 0;
-        const rank = String(i + 1).padStart(2, '0');
-        return `
-        <div class="dbm-row" onclick="goToRepairsFiltered('${kind}', '${dept.replace(/'/g,"\\'")}')">
-          <span class="dbm-row-rank">${rank}</span>
-          <div class="dbm-row-main">
-            <div class="dbm-row-top">
-              <span class="dbm-row-dept">${dept}</span>
-              <span class="dbm-row-count dbm-badge-${cfg.color}">${count}</span>
-            </div>
-            <div class="dbm-row-bar-track"><div class="dbm-row-bar-fill dbm-fill-${cfg.color}" style="width:${pct}%"></div></div>
-          </div>
-          <i class="ion-ios-arrow-forward dbm-row-chevron"></i>
-        </div>`;
-      }).join('') +
-      `</div>`;
+      `<div class="dbm-table-wrap"><table class="dbm-table">` +
+        `<thead><tr>` +
+          `<th>#</th><th>แผนก</th><th class="dbm-th-num">จำนวนงาน</th><th class="dbm-th-bar">สัดส่วน</th><th></th>` +
+        `</tr></thead>` +
+        `<tbody>` +
+        deptEntries.map(([dept, count], i) => {
+          const pct = maxCount ? Math.max(6, Math.round(count / maxCount * 100)) : 0;
+          const rank = String(i + 1).padStart(2, '0');
+          return `
+          <tr onclick="goToRepairsFiltered('${kind}', '${dept.replace(/'/g,"\\'")}')">
+            <td class="dbm-td-rank">${rank}</td>
+            <td class="dbm-td-dept">${dept}</td>
+            <td class="dbm-td-count"><span class="dbm-row-count dbm-badge-${cfg.color}">${count}</span></td>
+            <td class="dbm-td-bar"><div class="dbm-row-bar-track"><div class="dbm-row-bar-fill dbm-fill-${cfg.color}" style="width:${pct}%"></div></div></td>
+            <td class="dbm-td-chevron"><i class="ion-ios-arrow-forward"></i></td>
+          </tr>`;
+        }).join('') +
+        `</tbody>` +
+      `</table></div>`;
   }
   openModal('dept-breakdown-modal');
 }
