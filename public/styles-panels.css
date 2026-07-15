@@ -600,21 +600,64 @@
 .kv-clickable:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .kv-clickable:active { transform: translateY(0); }
 
+/* ── Dept Breakdown Modal — เวอร์ชันจัดรูปแบบใหม่ ── */
+#dbm-title { display: flex; align-items: center; gap: 12px; }
+.dbm-icon-badge {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+}
+.dbm-title-group { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.dbm-title-main { font-size: 15px; font-weight: 700; color: var(--text); }
+.dbm-title-sub { font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: .2px; }
+
+.dbm-summary {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;
+  padding: 14px 16px; border-radius: var(--r, 8px); background: var(--bg2); border: 1px solid var(--border);
+}
+.dbm-summary-num { font-family: var(--font-mono); font-size: 26px; font-weight: 800; color: var(--text); }
+.dbm-summary-lbl { font-size: 12.5px; color: var(--text2); }
+.dbm-summary-hint { color: var(--text3); }
+
+.dbm-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+
 .dbm-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-sm, 8px);
-  margin-bottom: 8px; cursor: pointer; transition: background .15s, border-color .15s;
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--r-sm, 8px);
+  cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
 }
-.dbm-row:hover { background: var(--bg2); border-color: var(--teal); }
-.dbm-row-left { display: flex; align-items: center; gap: 10px; }
-.dbm-row-dept { font-weight: 600; color: var(--text); font-size: 14px; }
+.dbm-row:hover { background: var(--bg2); border-color: var(--accent2); transform: translateX(2px); }
+.dbm-row-rank {
+  width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0;
+  background: var(--surface2); color: var(--text3);
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.dbm-row-main { flex: 1; min-width: 0; }
+.dbm-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.dbm-row-dept {
+  font-weight: 600; color: var(--text); font-size: 13.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .dbm-row-count {
-  font-family: var(--font-mono); font-weight: 700; font-size: 15px;
-  color: var(--teal); background: var(--teal-bg); padding: 3px 12px; border-radius: 999px;
-  min-width: 34px; text-align: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 12.5px;
+  padding: 2px 10px; border-radius: 999px; flex-shrink: 0;
 }
-.dbm-empty { text-align: center; color: var(--text3); padding: 24px 0; font-size: 13px; }
-.dbm-total-line { color: var(--text2); font-size: 12.5px; margin-bottom: 14px; }
+.dbm-row-bar-track { height: 5px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+.dbm-row-bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+.dbm-row-chevron { color: var(--text3); font-size: 13px; flex-shrink: 0; transition: transform .15s, color .15s; }
+.dbm-row:hover .dbm-row-chevron { transform: translateX(2px); color: var(--accent); }
+
+.dbm-badge-blue   { background: rgba(46,92,230,.10); color: var(--accent); }
+.dbm-badge-yellow { background: var(--yellow-bg);    color: var(--yellow); }
+.dbm-badge-orange { background: var(--orange-bg);    color: var(--orange); }
+.dbm-badge-green  { background: var(--green-bg);     color: var(--green); }
+.dbm-fill-blue   { background: var(--accent); }
+.dbm-fill-yellow { background: var(--yellow); }
+.dbm-fill-orange { background: var(--orange); }
+.dbm-fill-green  { background: var(--green); }
+
+.dbm-empty { text-align: center; color: var(--text3); padding: 32px 0; font-size: 13px; }
+.dbm-empty i { display: block; font-size: 26px; margin-bottom: 8px; color: var(--surface3); }
 
 .adm-date-popover {
   display: none;

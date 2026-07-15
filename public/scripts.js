@@ -1713,10 +1713,10 @@ function cancelCloseDeptBreakdown(){
 
 // ── KPI Card → Dept Breakdown Modal ──
 const DBM_CONFIG = {
-  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard', match: j => true },
-  waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',     match: j => j.status === 'รอซ่อม' },
-  working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',   match: j => j.status !== 'รอซ่อม' && j.status !== 'ปิดงาน' },
-  closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle',   match: j => j.status === 'ปิดงาน' }
+  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
+  waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
+  working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => j.status !== 'รอซ่อม' && j.status !== 'ปิดงาน', color: 'orange' },
+  closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle', match: j => j.status === 'ปิดงาน', color: 'green' }
 };
 
 function openDeptBreakdown(kind){
@@ -1727,21 +1727,42 @@ function openDeptBreakdown(kind){
   const byDept = {};
   filtered.forEach(j => { const d = j.dept || 'ไม่ระบุแผนก'; byDept[d] = (byDept[d]||0) + 1; });
   const deptEntries = Object.entries(byDept).sort((a,b) => b[1]-a[1]);
+  const maxCount = deptEntries.length ? deptEntries[0][1] : 0;
 
-  document.getElementById('dbm-title').innerHTML = `<i class="${cfg.icon}"></i> ${cfg.label} — แยกตามแผนก`;
+  document.getElementById('dbm-title').innerHTML =
+    `<span class="dbm-icon-badge dbm-badge-${cfg.color}"><i class="${cfg.icon}"></i></span>` +
+    `<span class="dbm-title-group">` +
+      `<span class="dbm-title-main">${cfg.label}</span>` +
+      `<span class="dbm-title-sub">แยกตามแผนก</span>` +
+    `</span>`;
 
   const body = document.getElementById('dbm-body');
   if(!deptEntries.length){
-    body.innerHTML = `<div class="dbm-empty">ไม่มีรายการในกลุ่มนี้</div>`;
+    body.innerHTML = `<div class="dbm-empty"><i class="ion-ios-archive"></i>ไม่มีรายการในกลุ่มนี้</div>`;
   } else {
     body.innerHTML =
-      `<div class="dbm-total-line">รวมทั้งหมด <strong style="color:var(--text)">${filtered.length}</strong> งาน · คลิกแผนกเพื่อดูรายการ</div>` +
-      deptEntries.map(([dept, count]) => `
+      `<div class="dbm-summary">` +
+        `<span class="dbm-summary-num">${filtered.length}</span>` +
+        `<span class="dbm-summary-lbl">งานทั้งหมดในกลุ่มนี้ <span class="dbm-summary-hint">· คลิกแผนกเพื่อดูรายการ</span></span>` +
+      `</div>` +
+      `<div class="dbm-list">` +
+      deptEntries.map(([dept, count], i) => {
+        const pct = maxCount ? Math.max(6, Math.round(count / maxCount * 100)) : 0;
+        const rank = String(i + 1).padStart(2, '0');
+        return `
         <div class="dbm-row" onclick="goToRepairsFiltered('${kind}', '${dept.replace(/'/g,"\\'")}')">
-          <div class="dbm-row-left"><i class="ion-ios-business" style="color:var(--text3)"></i><span class="dbm-row-dept">${dept}</span></div>
-          <span class="dbm-row-count">${count}</span>
-        </div>
-      `).join('');
+          <span class="dbm-row-rank">${rank}</span>
+          <div class="dbm-row-main">
+            <div class="dbm-row-top">
+              <span class="dbm-row-dept">${dept}</span>
+              <span class="dbm-row-count dbm-badge-${cfg.color}">${count}</span>
+            </div>
+            <div class="dbm-row-bar-track"><div class="dbm-row-bar-fill dbm-fill-${cfg.color}" style="width:${pct}%"></div></div>
+          </div>
+          <i class="ion-ios-arrow-forward dbm-row-chevron"></i>
+        </div>`;
+      }).join('') +
+      `</div>`;
   }
   openModal('dept-breakdown-modal');
 }
