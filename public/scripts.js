@@ -2985,7 +2985,7 @@ let tePmSub   = 'list';
 function teSw(tab, btn) {
   document.querySelectorAll('.te-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.te-sec').forEach(s => s.style.display = 'none');
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.getElementById('te-v-' + tab).style.display = 'block';
   if (tab === 'jobs')  teRenderQueue();
   if (tab === 'pm')    teSwPM(tePmSub);
