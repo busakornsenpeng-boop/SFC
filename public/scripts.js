@@ -952,6 +952,7 @@ function tpOpenJobModal(id){
     <div class="tp-mrow"><div class="tp-mrow-lbl">ด้านปัญหา</div><div class="tp-mrow-val desc">${raw&&raw.side?raw.side:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">รายละเอียด</div><div class="tp-mrow-val desc">${j.desc}</div></div>
     ${j.progress?`<div class="tp-mrow"><div class="tp-mrow-lbl">ความคืบหน้า</div><div class="tp-mrow-val desc">${j.progress}</div></div>`:''}
+    ${raw&&raw.repairDuration?`<div class="tp-mrow"><div class="tp-mrow-lbl">เวลาที่ใช้ซ่อม</div><div class="tp-mrow-val">${raw.repairDuration}</div></div>`:''}
     <div class="tp-mdivider"></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แท็ก</div><div class="tp-mrow-tags">${[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-mtag">${t}</span>`).join('')}</div></div>
     ${j.eta?`<div class="tp-mrow"><div class="tp-mrow-lbl">กำหนดเสร็จ</div><div class="tp-mrow-val">${j.eta}</div></div>`:''}
@@ -1006,9 +1007,12 @@ function tpOpenUpdateModal(id) {
       <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'เสร็จแล้ว')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-checkmark-circle-outline"></i>ซ่อมเสร็จสิ้น</button>
     </div>
     <input type="hidden" id="tp-upd-status" value="${j.status}">
-    <div id="tp-upd-done-box" style="display:none;background:rgba(16,185,129,.08);border:0.5px solid rgba(16,185,129,.3);border-radius:8px;padding:10px 13px;margin-bottom:14px;align-items:center;justify-content:space-between">
-      <span style="font-size:12px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:6px"><i class="ion-ios-checkmark"></i> วันที่ซ่อมเสร็จจริง</span>
-      <span style="font-size:13px;font-weight:500;color:var(--green);font-family:var(--font-mono)">${todayDisplay} <span style="font-size:10px;opacity:.7">บันทึกอัตโนมัติ</span></span>
+    <div id="tp-upd-done-box" style="display:none;background:rgba(16,185,129,.08);border:0.5px solid rgba(16,185,129,.3);border-radius:8px;padding:10px 13px;margin-bottom:14px;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:6px"><i class="ion-ios-checkmark"></i> วันที่ซ่อมเสร็จจริง</span>
+        <span style="font-size:13px;font-weight:500;color:var(--green);font-family:var(--font-mono)">${todayDisplay} <span style="font-size:10px;opacity:.7">บันทึกอัตโนมัติ</span></span>
+      </div>
+      <input type="text" id="tp-upd-repair-duration" placeholder="เวลาที่ใช้ซ่อม เช่น 45 นาที / 2 ชม." style="width:100%;background:var(--bg);border:0.5px solid rgba(16,185,129,.3);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
     </div>
     <div id="tp-upd-stop-box" style="display:none;margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px"><i class="ion-ios-calendar"></i> วันที่วางแผนหยุดเครื่อง</div>
@@ -1077,12 +1081,13 @@ function tpSaveUpdate(id) {
   const ns       = document.getElementById('tp-upd-status')?.value || '';
   const eta      = document.getElementById('tp-upd-eta')?.value || '';
   const stopDate = document.getElementById('tp-upd-stop-date')?.value || '';
+  const repairDuration = document.getElementById('tp-upd-repair-duration')?.value.trim() || '';
  const statusMap = {
     'เสร็จแล้ว':  'ซ่อมเสร็จแล้ว',
     'Workaround': 'Workaround'
   };
   const finalStatus = statusMap[ns] || ns;
-  const upd = { status: finalStatus, note, eta, planStopDate: stopDate };
+  const upd = { status: finalStatus, note, eta, planStopDate: stopDate, repairDuration };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก...');
  authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
@@ -1096,7 +1101,7 @@ function tpSaveUpdate(id) {
       hideLoading();
       if (saveBtn) saveBtn.disabled = false;
      if (res.success) {
-        Object.assign(j, { note, eta, planStopDate: stopDate });
+        Object.assign(j, { note, eta, planStopDate: stopDate, repairDuration });
         if (finalStatus) j.status = finalStatus;
         showToast('บันทึกสำเร็จ!', 'success');
      tpCloseModal();
