@@ -73,7 +73,7 @@ async function processImages(images, prefix = 'img') {
 async function getAllRepairs() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:X1000',
+    range: 'Repairs!A2:Y1000',
   });
   const rows = res.data.values || [];
   return rows.map(row => ({
@@ -101,6 +101,7 @@ async function getAllRepairs() {
     acceptedDate: row[21] || '', // ← เวลาที่ช่างกดรับงาน (V)
     closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลัง QC ผ่าน/แอดมินปิดงาน (W)
     hadWait:      row[23] || '', // ← 'TRUE' ถ้างานนี้เคยผ่านสถานะรออะไหล่/ขอหยุดเครื่อง (X)
+    repairDuration: row[24] || '', // ← เวลาที่ใช้ซ่อม กรอกเองโดยช่างตอนอัปเดตงาน (Y)
   }));
 }
 
@@ -233,7 +234,7 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
 router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, imgAfter, updatedBy } = req.body;
+    const { status, note, eta, imgAfter, updatedBy, repairDuration } = req.body;
     const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
@@ -271,6 +272,8 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
       updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
     if (updatedBy)
       updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
+    if (repairDuration)
+      updateData.push({ range: `Repairs!Y${sheetRow}`, values: [[repairDuration]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,

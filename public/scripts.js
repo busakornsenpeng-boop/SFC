@@ -1482,12 +1482,13 @@ function techSubmitUpdate(){
   const status = document.getElementById('tup-status')?.value;
   const note   = document.getElementById('tup-note')?.value;
   const eta    = document.getElementById('tup-eta')?.value;
-  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, eta});
+  const repairDuration = document.getElementById('tup-repair-duration')?.value;
+  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, eta, repairDuration});
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, note, eta, updatedBy: myIdentifiedName || ME })
+      body: JSON.stringify({ status, note, eta, repairDuration, updatedBy: myIdentifiedName || ME })
     })
     .then(r => r.json())
     .then(res => {
@@ -1497,6 +1498,7 @@ function techSubmitUpdate(){
         if(status) j.status=status; 
         if(note) j.note=note; 
         if(eta) j.eta=eta; 
+        if(repairDuration) j.repairDuration=repairDuration;
         console.log('Updated local job:', j);
         closeModal('job-detail-modal');
         loadAllData().then(() => {
@@ -1829,14 +1831,9 @@ function computeJobDurations(j){
   const closed=parseJobDateTime(j.closedDate);
   const fixMins=(accepted&&done)?(done-accepted)/60000:null;
   const closeMins=(done&&closed)?(closed-done)/60000:null;
-  // เวลาเท่ากันเป๊ะ (0 นาที) มักเกิดจากแอดมินข้ามขั้นตอน (ปรับสถานะตรงไป "เสร็จซ่อม"/"ปิดงาน"
-  // โดยไม่ผ่านปุ่มรับงาน/QC ปกติ) ทำให้ระบบ auto-stamp เวลาสองจุดพร้อมกันในคำขอเดียว
-  // ไม่ใช่ระยะเวลาใช้งานจริง — โชว์เป็นป้าย "ข้ามขั้นตอน" แทน เพื่อไม่ให้เข้าใจผิด
-  const fixSkipped   = fixMins===0;
-  const closeSkipped = closeMins===0;
   return{
-    fix: fixSkipped?'ข้ามขั้นตอน':(fixMins!=null?formatDurationHM(fixMins):null),
-    close: closeSkipped?'ข้ามขั้นตอน':(closeMins!=null?formatDurationHM(closeMins):null),
+    fix: fixMins!=null?formatDurationHM(fixMins):null,
+    close: closeMins!=null?formatDurationHM(closeMins):null,
     hadWait: j.hadWait==='TRUE',
   };
 }
@@ -3613,6 +3610,7 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">รายละเอียด</span><span class="spec-val">${escapeHtml(j.detail||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">ช่างซ่อม</span><span class="spec-val">${escapeHtml(j.technician||'ยังไม่ได้รับงาน')}</span></div>
     <div class="spec-row"><span class="spec-lbl">สถานะ</span><span class="spec-val">${j.status}</span></div>
+    ${j.repairDuration ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(j.repairDuration)}</span></div>` : ''}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
     ${j.eta  ? `<div class="spec-row"><span class="spec-lbl">ETA</span><span class="spec-val">${j.eta}</span></div>`  : ''}`;
 
@@ -3650,18 +3648,6 @@ function viewJobDetail(id) {
     const t = document.getElementById('adm-job-tech');   if(t && j.technician) t.value = j.technician;
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
 
-    const dur = computeJobDurations(j);
-    const box = document.getElementById('adm-job-duration-box');
-    if (box) {
-      if (dur.fix || dur.close) {
-        box.style.display = 'flex';
-        const fixEl   = document.getElementById('adm-job-duration-fix');   if(fixEl)   fixEl.textContent   = dur.fix   || 'ยังไม่เสร็จซ่อม';
-        const closeEl = document.getElementById('adm-job-duration-close'); if(closeEl) closeEl.textContent = dur.close || 'ยังไม่ปิดงาน';
-        const waitEl  = document.getElementById('adm-job-wait-note');      if(waitEl)  waitEl.style.display = dur.hadWait ? 'block' : 'none';
-      } else {
-        box.style.display = 'none';
-      }
-    }
   }
   openModal('job-detail-modal');
 }
