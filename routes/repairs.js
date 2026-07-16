@@ -144,7 +144,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const jobId   = await generateJobId(dept);          // ✅ PDF-001-300626
-    const dateStr = new Date().toLocaleString('th-TH'); // ✅ บรรทัดเดียว
+    const dateStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }); // ✅ บรรทัดเดียว
     const imgUrls = await processImages(imgArr, `${jobId}_before`);
     const imgStr  = JSON.stringify(imgUrls);
     const resolvedJobType = job_type || 'ซ่อมปกติ';
@@ -211,7 +211,7 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
     ];
     // บันทึก "เวลารับงาน" ครั้งแรกเท่านั้น — ใช้คำนวณ "ใช้เวลาแก้ไข" (รับงาน → เสร็จซ่อม) ภายหลัง
     if (!alreadyAcceptedAt) {
-      acceptData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      acceptData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     await sheets.spreadsheets.values.batchUpdate({
@@ -265,7 +265,7 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
     if (status === 'ซ่อมเสร็จ' || status === 'รอ QC' || status === 'ซ่อมเสร็จแล้ว')
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
     if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง')
       updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
@@ -338,7 +338,7 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
     // "ปิดงานจริง (QC ผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
     // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
     if (result === 'ผ่าน QC')
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -396,10 +396,10 @@ router.post('/:id/approval', requireRole('admin'), async (req, res) => {
     const updateData = [{ range: `Repairs!T${sheetRow}`, values: [[result || '']] }];
     if (result === 'อนุมัติ') {
       updateData.push({ range: `Repairs!J${sheetRow}`, values: [['ปิดงาน']] });
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
     if (result === 'รออนุมัติ' && progressNote)
-      updateData.push({ range: `Repairs!N${sheetRow}`, values: [[`[${new Date().toLocaleString('th-TH')}] ${progressNote}`]] });
+      updateData.push({ range: `Repairs!N${sheetRow}`, values: [[`[${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${progressNote}`]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -432,7 +432,7 @@ router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) =>
 
     const requesterName = rows[rowIndex][1] || '';
     const machine       = rows[rowIndex][3] || '';
-    const rejectNote    = `[ตีกลับ ${new Date().toLocaleString('th-TH')}] ${reason}`;
+    const rejectNote    = `[ตีกลับ ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${reason}`;
     const sheetRow      = rowIndex + 2;
 
   const rejectData = [
@@ -512,17 +512,17 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     const alreadyAcceptedAt = rows[rowIndex][21] || '';
     const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
     if (status && startedStatuses.includes(status) && !alreadyAcceptedAt) {
-      updateData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอ QC เหมือนเดิม
     if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status)) {
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     // "เวลาปิดงานจริง" (W) — auto-set เฉพาะตอนสถานะ "เปลี่ยนเข้า" ปิดงาน (กันเขียนทับซ้ำถ้าปิดงานอยู่แล้วแค่แก้หมายเหตุ)
     if (status === 'ปิดงาน' && currentStatus !== 'ปิดงาน') {
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
