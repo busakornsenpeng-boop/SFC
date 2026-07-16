@@ -2915,7 +2915,9 @@ function openTechIdentifySelf() {
 // ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง/วิศวกร ──
 // key ตรงกับ data-stat ของแต่ละการ์ดใน index.html
 const TE_JOB_FILTERS = {
-  reported:  { label: 'แจ้งซ่อม',       match: j => true },
+  // "แจ้งซ่อม" = ยอดรวมงานที่ยังอยู่ในกระบวนการ (ไม่รวมงานที่ปิดแล้ว/ถูกตีกลับ)
+  // เพื่อให้ผลรวมของ 4 การ์ดถัดไปเท่ากับยอดนี้พอดี
+  reported:  { label: 'แจ้งซ่อม',       match: j => !['ปิดงาน','ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
   progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
   done:      { label: 'ซ่อมแล้ว',       match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว'].includes(j.status) },
