@@ -1831,6 +1831,7 @@ function parseJobDateTime(str){
 // จัดรูปแบบนาทีให้อ่านง่าย เช่น 135 → "2 ชม. 15 นาที", 1600 → "1 วัน 2 ชม."
 function formatDurationHM(totalMinutes){
   if(totalMinutes==null||isNaN(totalMinutes)||totalMinutes<0)return '-';
+  if(totalMinutes<1)return 'น้อยกว่า 1 นาที'; // รับงาน→เสร็จห่างกันแค่ไม่กี่วินาที ปัดเป็น 0 นาทีแล้วดูเหมือนข้อมูลพัง เลยบอกตรงๆ แทน
   const mins=Math.round(totalMinutes);
   const days=Math.floor(mins/1440);
   const hours=Math.floor((mins%1440)/60);
