@@ -14,6 +14,45 @@ cloudinary.config({
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
 
+// ── สถานะที่นับเป็น "กำลังรอ" (รออะไหล่ / ขอหยุดเครื่อง) ──
+// ใช้จับเวลาเข้า-ออกสถานะนี้ เพื่อคำนวณ "ใช้เวลารออะไหล่" แยกจาก "ใช้เวลาซ่อม"
+const WAIT_STATUSES = ['รออะไหล่', 'ขอหยุดเครื่อง'];
+
+// แปลงข้อความวันที่แบบที่ระบบเก็บ "D/M/YYYY, HH:mm:ss" (toLocaleString th-TH) กลับเป็น Date
+function parseThaiDateTime(str) {
+  if (!str) return null;
+  try {
+    const [dPart, tPart] = String(str).split(',').map(s => (s || '').trim());
+    const parts = dPart.split('/');
+    if (parts.length !== 3) return null;
+    let y = parseInt(parts[2]);
+    if (y > 2400) y -= 543; // พ.ศ. → ค.ศ.
+    const [hh, mm, ss] = (tPart || '00:00:00').split(':').map(Number);
+    return new Date(y, parseInt(parts[1]) - 1, parseInt(parts[0]), hh || 0, mm || 0, ss || 0);
+  } catch (e) { return null; }
+}
+
+// คำนวณการเปลี่ยนสถานะเข้า/ออกจากช่วง "รอ" (รออะไหล่/ขอหยุดเครื่อง)
+// - เพิ่งเข้าสถานะรอ  → บันทึกเวลาเริ่มรอ (Z)
+// - เพิ่งออกจากสถานะรอ → รวมเวลาที่รอไปสะสมไว้ (AA) แล้วเคลียร์เวลาเริ่มรอ (Z)
+// - ยังอยู่ในสถานะรอเหมือนเดิม (เช่นสลับ รออะไหล่ ↔ ขอหยุดเครื่อง) → ไม่แตะ ให้นับเวลาต่อเนื่อง
+function buildWaitUpdateData(sheetRow, currentStatus, newStatus, waitStartRaw, waitMinutesRaw) {
+  const wasWaiting = WAIT_STATUSES.includes(currentStatus);
+  const isWaiting   = !!newStatus && WAIT_STATUSES.includes(newStatus);
+  const data = [];
+
+  if (!wasWaiting && isWaiting) {
+    data.push({ range: `Repairs!Z${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+  } else if (wasWaiting && !isWaiting) {
+    const start     = parseThaiDateTime(waitStartRaw);
+    const prevTotal = parseFloat(waitMinutesRaw) || 0;
+    const elapsed   = start ? Math.max(0, (Date.now() - start.getTime()) / 60000) : 0;
+    data.push({ range: `Repairs!AA${sheetRow}`, values: [[Math.round(prevTotal + elapsed)]] });
+    data.push({ range: `Repairs!Z${sheetRow}`,  values: [['']] });
+  }
+  return data;
+}
+
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
 // ปรับลิสต์นี้ได้ตามที่คิดว่าสำคัญจริงกับผู้แจ้งงาน
 const NOTIFY_REQUESTER_STATUSES = ['ซ่อมเสร็จ', 'ซ่อมเสร็จแล้ว'];
@@ -73,7 +112,7 @@ async function processImages(images, prefix = 'img') {
 async function getAllRepairs() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:Y1000',
+    range: 'Repairs!A2:AA1000',
   });
   const rows = res.data.values || [];
   return rows.map(row => ({
@@ -102,6 +141,8 @@ async function getAllRepairs() {
     closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลัง QC ผ่าน/แอดมินปิดงาน (W)
     hadWait:      row[23] || '', // ← 'TRUE' ถ้างานนี้เคยผ่านสถานะรออะไหล่/ขอหยุดเครื่อง (X)
     repairDuration: row[24] || '', // ← เวลาที่ใช้ซ่อม กรอกเองโดยช่างตอนอัปเดตงาน (Y)
+    waitStart:    row[25] || '', // ← เวลาที่เริ่มเข้าสถานะรออะไหล่/ขอหยุดเครื่อง (ถ้ากำลังรออยู่ตอนนี้) (Z)
+    waitMinutes:  row[26] || '', // ← จำนวนนาทีสะสมที่เคยรอไปแล้ว (นับรวมทุกช่วงที่เคยเข้ารอ) (AA)
   }));
 }
 
@@ -234,8 +275,8 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
 router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, imgAfter, updatedBy, repairDuration } = req.body;
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
+    const { status, note, imgAfter, updatedBy, repairDuration } = req.body;
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:AA1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -248,7 +289,9 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
 
     const requesterName = rows[rowIndex][1]  || '';
     const techName      = rows[rowIndex][10] || '';
-    const machine       = rows[rowIndex][3]  || '';
+    const machine        = rows[rowIndex][3]  || '';
+    const waitStartRaw   = rows[rowIndex][25] || '';
+    const waitMinutesRaw = rows[rowIndex][26] || '';
 
     let imgAfterArr = [];
     if (Array.isArray(imgAfter)) imgAfterArr = imgAfter;
@@ -262,7 +305,6 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
     const updateData = [
       { range: `Repairs!I${sheetRow}`, values: [[imgAfterStr]] },
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
-      { range: `Repairs!M${sheetRow}`, values: [[eta    || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
     if (status === 'ซ่อมเสร็จ' || status === 'รอ QC' || status === 'ซ่อมเสร็จแล้ว')
@@ -274,6 +316,8 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
       updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
     if (repairDuration)
       updateData.push({ range: `Repairs!Y${sheetRow}`, values: [[repairDuration]] });
+    // เข้า/ออกสถานะ "รออะไหล่-ขอหยุดเครื่อง" — จับเวลาอัตโนมัติเพื่อคำนวณ "ใช้เวลารออะไหล่"
+    updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, status, waitStartRaw, waitMinutesRaw));
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -478,12 +522,14 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     const { id } = req.params;
     const { status, note, technician, imgAfter } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:AA1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
 
     const currentStatus = rows[rowIndex][9] || '';
+    const waitStartRaw   = rows[rowIndex][25] || '';
+    const waitMinutesRaw = rows[rowIndex][26] || '';
     // งานที่ปิด/ตีกลับแล้ว ห้าม "เปลี่ยนสถานะ" ซ้ำ แต่ยังแก้วันที่/หมายเหตุ/ช่างย้อนหลังได้ตามปกติ
     // (เผื่อกรอกผิดตอนแรก หรือแอดมินต้องแก้ข้อมูลย้อนหลังให้ตรงกับที่เกิดขึ้นจริง)
     if (LOCKED_STATUSES.includes(currentStatus) && status && status !== currentStatus)
@@ -532,6 +578,8 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง') {
       updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
     }
+    // เข้า/ออกสถานะ "รออะไหล่-ขอหยุดเครื่อง" — จับเวลาอัตโนมัติเพื่อคำนวณ "ใช้เวลารออะไหล่"
+    updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, status, waitStartRaw, waitMinutesRaw));
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,

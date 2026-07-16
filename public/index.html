@@ -1111,8 +1111,7 @@
         <!-- Tech: Update -->
         <div id="tech-action-update" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">อัปเดตความคืบหน้า</h4>
-          <div class="form-grid-2">
-            <div class="form-field">
+          <div class="form-field">
               <label>สถานะการทำงาน</label>
               <select id="tup-status" class="select-ctrl" onchange="toggleDoneInputFields(this.value)">
                 <option value="กำลังซ่อม">กำลังดำเนินการแก้ไข</option>
@@ -1122,8 +1121,6 @@
                 <option value="Workaround">แก้ไขชั่วคราว (Workaround)</option>
               </select>
             </div>
-            <div class="form-field"><label>ETA (คาดว่าจะเสร็จประมาณ)</label><input type="date" id="tup-eta" class="input-ctrl"></div>
-          </div>
           <div class="form-grid-2 d-none" id="tech-done-date-field">
             <div class="form-field"><label>วันที่ซ่อมเสร็จจริง</label><input type="date" id="tup-done-date" class="input-ctrl"></div>
             <div class="form-field"><label>เวลาที่ใช้ซ่อม</label><input type="text" id="tup-repair-duration" class="input-ctrl" placeholder="เช่น 45 นาที / 2 ชม."></div>

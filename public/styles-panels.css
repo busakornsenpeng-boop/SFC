@@ -537,7 +537,7 @@
 /* ── KPI Bar v2 ── */
 .adm-kpi-bar-v2 {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr); /* มีการ์ดจริง 5 ใบ — เดิม 6 คอลัมน์ทำให้เหลือช่องว่างท้ายแถว ไม่สมดุล */
   gap: 14px;
   margin-bottom: 0;
   padding: 0;

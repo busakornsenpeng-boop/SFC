@@ -767,7 +767,7 @@ let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
 function mapJobToTechPanel(j) {
   const statusMap={'ปิดงาน':'เสร็จแล้ว'}; 
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?j.date.split(',')[0].trim():'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,eta:j.eta||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||''};
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?j.date.split(',')[0].trim():'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||'',waitStart:j.waitStart||'',waitMinutes:j.waitMinutes||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -812,7 +812,20 @@ function tpTimeInfoText(j){
     if (j.repairDuration) return 'ใช้เวลาซ่อม '+j.repairDuration;
     return '';
   }
-  return j.eta ? 'ETA '+j.eta : '';
+  return computeWaitDurationText(j);
+}
+// คำนวณ "ใช้เวลารออะไหล่" (รวมทุกช่วงที่เคยเข้าสถานะรออะไหล่/ขอหยุดเครื่อง)
+// ถ้ากำลังอยู่ในสถานะรอตอนนี้ ให้บวกเวลาที่รอไปแล้วนับจากตอนเริ่มรอจนถึงตอนนี้เข้าไปด้วย
+const WAIT_STATUSES_FE = ['รออะไหล่','ขอหยุดเครื่อง'];
+function computeWaitDurationText(j){
+  if (!j) return '';
+  let totalMins = parseFloat(j.waitMinutes) || 0;
+  if (WAIT_STATUSES_FE.includes(j.status) && j.waitStart) {
+    const start = parseJobDateTime(j.waitStart);
+    if (start) totalMins += Math.max(0, (Date.now() - start.getTime()) / 60000);
+  }
+  if (totalMins <= 0) return '';
+  return 'ใช้เวลารออะไหล่ '+formatDurationHM(totalMins);
 }
 function tpJobCardHTML(j,mode){
   const statusLabelMap = {
@@ -964,7 +977,7 @@ function tpOpenJobModal(id){
     ${raw&&raw.repairDuration?`<div class="tp-mrow"><div class="tp-mrow-lbl">เวลาที่ใช้ซ่อม</div><div class="tp-mrow-val">${raw.repairDuration}</div></div>`:''}
     <div class="tp-mdivider"></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แท็ก</div><div class="tp-mrow-tags">${[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-mtag">${t}</span>`).join('')}</div></div>
-    ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):(j.eta?`<div class="tp-mrow"><div class="tp-mrow-lbl">กำหนดเสร็จ</div><div class="tp-mrow-val">${j.eta}</div></div>`:'')}
+    ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):(computeWaitDurationText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลารออะไหล่</div><div class="tp-mrow-val">${computeWaitDurationText(j).replace('ใช้เวลารออะไหล่ ','')}</div></div>`:'')}
   ${j.overdue?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;color:#ef4444;font-size:12px"><i class="ion-ios-warning"></i> เกินกำหนด ${j.overdueHrs} ชั่วโมง</div>`:''}
   ${(() => {
   let imgs = [];
@@ -998,7 +1011,6 @@ function tpOpenUpdateModal(id) {
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const yyyy = today.getFullYear();
   const todayDisplay = `${dd}/${mm}/${yyyy}`;
-  const todayISO = `${yyyy}-${mm}-${dd}`;
   document.getElementById('tp-modal-body').innerHTML = `
     <div style="background:var(--color-background-secondary,var(--bg2));border:0.5px solid var(--color-border-tertiary,var(--border));border-radius:8px;padding:11px 13px;margin-bottom:16px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--accent);margin-bottom:3px">${j.id}</div>
@@ -1026,10 +1038,6 @@ function tpOpenUpdateModal(id) {
     <div id="tp-upd-stop-box" style="display:none;margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px"><i class="ion-ios-calendar"></i> วันที่วางแผนหยุดเครื่อง</div>
       <input type="date" id="tp-upd-stop-date" style="width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
-    </div>
-    <div id="tp-upd-eta-field" style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px">⏱ วันที่คาดว่าจะแล้วเสร็จ (ETA)</div>
-      <input type="date" id="tp-upd-eta" value="${todayISO}" style="width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px"><i class="ion-ios-create"></i> หมายเหตุ / รายงานการซ่อมบำรุง</div>
@@ -1073,10 +1081,8 @@ function tpSetStatus(btn, val) {
   if (hidStatus) hidStatus.value = val;
   const doneBox  = document.getElementById('tp-upd-done-box');
   const stopBox  = document.getElementById('tp-upd-stop-box');
-  const etaField = document.getElementById('tp-upd-eta-field');
   if (doneBox)  doneBox.style.display  = val==='เสร็จแล้ว' ? 'flex'  : 'none';
   if (stopBox)  stopBox.style.display  = val==='ขอหยุดเครื่อง' ? 'block' : 'none';
-  if (etaField) etaField.style.display = val==='เสร็จแล้ว' ? 'none'  : 'block';
 }
 function tpSaveUpdate(id) {
   const j = getRepairJobsData().find(j => j.id === id);
@@ -1088,7 +1094,6 @@ function tpSaveUpdate(id) {
 
   const note     = document.getElementById('tp-upd-note')?.value.trim() || '';
   const ns       = document.getElementById('tp-upd-status')?.value || '';
-  const eta      = document.getElementById('tp-upd-eta')?.value || '';
   const stopDate = document.getElementById('tp-upd-stop-date')?.value || '';
   const repairDuration = document.getElementById('tp-upd-repair-duration')?.value.trim() || '';
  const statusMap = {
@@ -1096,7 +1101,7 @@ function tpSaveUpdate(id) {
     'Workaround': 'Workaround'
   };
   const finalStatus = statusMap[ns] || ns;
-  const upd = { status: finalStatus, note, eta, planStopDate: stopDate, repairDuration };
+  const upd = { status: finalStatus, note, planStopDate: stopDate, repairDuration };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก...');
  authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
@@ -1110,7 +1115,7 @@ function tpSaveUpdate(id) {
       hideLoading();
       if (saveBtn) saveBtn.disabled = false;
      if (res.success) {
-        Object.assign(j, { note, eta, planStopDate: stopDate, repairDuration });
+        Object.assign(j, { note, planStopDate: stopDate, repairDuration });
         if (finalStatus) j.status = finalStatus;
         showToast('บันทึกสำเร็จ!', 'success');
      tpCloseModal();
@@ -1128,7 +1133,6 @@ function tpSaveUpdate(id) {
     return;
   }
  j.note = note;
-  if (eta) j.eta = eta;
   if (stopDate) j.planStopDate = stopDate;
   if (finalStatus) j.status = finalStatus; 
   tpCloseModal();
@@ -1495,14 +1499,13 @@ function techSubmitUpdate(){
   const j = getRepairJobsData().find(x => x.id===selectedJobForAction); if(!j) return;
   const status = document.getElementById('tup-status')?.value;
   const note   = document.getElementById('tup-note')?.value;
-  const eta    = document.getElementById('tup-eta')?.value;
   const repairDuration = document.getElementById('tup-repair-duration')?.value;
-  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, eta, repairDuration});
+  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, repairDuration});
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, note, eta, repairDuration, updatedBy: myIdentifiedName || ME })
+      body: JSON.stringify({ status, note, repairDuration, updatedBy: myIdentifiedName || ME })
     })
     .then(r => r.json())
     .then(res => {
@@ -1511,7 +1514,6 @@ function techSubmitUpdate(){
       if(res.success){ 
         if(status) j.status=status; 
         if(note) j.note=note; 
-        if(eta) j.eta=eta; 
         if(repairDuration) j.repairDuration=repairDuration;
         console.log('Updated local job:', j);
         closeModal('job-detail-modal');
@@ -1531,7 +1533,7 @@ function techSubmitUpdate(){
     });
     return;
   }
-  if(status)j.status=status; if(note)j.note=note; if(eta)j.eta=eta;
+  if(status)j.status=status; if(note)j.note=note;
   closeModal('job-detail-modal'); 
   tpUpdateStats(); 
   tpRenderMine(); 
@@ -2274,7 +2276,8 @@ async function exportAdminRepairsExcel(){
       { header:'ช่างซ่อม',      key:'tech',    width:16 },
       { header:'สถานะ',        key:'status',  width:14 },
       { header:'วันที่เสร็จ',    key:'doneDate',width:14 },
-      { header:'กำหนดเสร็จ (ETA)',key:'eta',   width:14 },
+      { header:'เวลาที่ใช้ซ่อม',  key:'fixDuration',  width:16 },
+      { header:'เวลาที่ใช้รออะไหล่',key:'waitDuration', width:18 },
       { header:'หมายเหตุ',      key:'note',    width:24 },
       { header:'ผล QC',        key:'qc',      width:12 },
       { header:'รูปก่อนซ่อม',   key:'imgBefore',width:20 },
@@ -2297,11 +2300,15 @@ async function exportAdminRepairsExcel(){
     const imgResults = await Promise.all(imgTasks);
 
     filtered.forEach((j, i) => {
+      const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
+      const fixDuration  = dur.fix || j.repairDuration || '-';
+      const waitMinsTot  = parseFloat(j.waitMinutes) || 0;
+      const waitDuration = waitMinsTot > 0 ? formatDurationHM(waitMinsTot) : '-';
       const row = sheet.addRow({
         id: j.id, date: j.date, name: j.name || j.requester || '-', dept: j.dept || '-',
         machine: j.machine || '-', side: j.side || '-', opType: j.opType || '-',
         detail: j.detail || '-', tech: j.technician || 'ยังไม่กำหนด', status: j.status || '-',
-        doneDate: j.doneDate || '-', eta: j.eta || '-', note: j.note || '-', qc: j.qcResult || '-',
+        doneDate: j.doneDate || '-', fixDuration, waitDuration, note: j.note || '-', qc: j.qcResult || '-',
         imgBefore: '', imgAfter: ''
       });
       row.font = { name:'Arial', size:10 };
@@ -3624,9 +3631,16 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">รายละเอียด</span><span class="spec-val">${escapeHtml(j.detail||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">ช่างซ่อม</span><span class="spec-val">${escapeHtml(j.technician||'ยังไม่ได้รับงาน')}</span></div>
     <div class="spec-row"><span class="spec-lbl">สถานะ</span><span class="spec-val">${j.status}</span></div>
-    ${j.repairDuration ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(j.repairDuration)}</span></div>` : ''}
+    ${(() => {
+      const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
+      const fixText = dur.fix || j.repairDuration || '';
+      return fixText ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(fixText)}</span></div>` : '';
+    })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
-    ${j.eta  ? `<div class="spec-row"><span class="spec-lbl">ETA</span><span class="spec-val">${j.eta}</span></div>`  : ''}`;
+    ${(() => {
+      const waitText = computeWaitDurationText(j);
+      return waitText ? `<div class="spec-row"><span class="spec-lbl">ใช้เวลารออะไหล่</span><span class="spec-val">${escapeHtml(waitText.replace('ใช้เวลารออะไหล่ ',''))}</span></div>` : '';
+    })()}`;
 
   let imgHtml = '';
   try {
@@ -3648,7 +3662,6 @@ function viewJobDetail(id) {
       ['กำลังซ่อม','รออะไหล่','Workaround','ขอหยุดเครื่อง'].includes(j.status)) {
     document.getElementById('tech-action-update')?.classList.remove('d-none');
     const s = document.getElementById('tup-status'); if(s) s.value = j.status;
-    const e = document.getElementById('tup-eta');    if(e && j.eta) e.value = j.eta;
     const n = document.getElementById('tup-note');   if(n && j.note) n.value = j.note;
     toggleDoneInputFields(j.status);
   }
