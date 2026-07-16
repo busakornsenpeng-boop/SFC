@@ -44,7 +44,7 @@
   .tp-subtab.active{background:var(--accent);color:#fff;border-color:transparent}
   .tp-subtab .tp-tbadge{transform:scale(.9)}
   .tp-sec{padding:0 14px 16px}
-  .tp-sdiv{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding:0 2px;font-weight:600}
+  .tp-sdiv{font-size:13px;color:var(--text);text-transform:none;letter-spacing:normal;margin-bottom:10px;padding:8px 12px;font-weight:700;background:var(--bg2);border-left:3px solid var(--accent);border-radius:6px}
   .tp-jcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;overflow:hidden;transition:.2s;box-shadow:var(--shadow-sm)}
   .tp-jcard:hover{border-color:var(--border2);box-shadow:var(--shadow)}
   .tp-jcard.ov{border-left:3px solid var(--red)}
