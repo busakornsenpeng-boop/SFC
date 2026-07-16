@@ -193,12 +193,22 @@ function loadAllData() {
   });
 }
 
+let _loadingWatchdog = null;
 function showLoading(txt='กำลังประมวลผล...') {
   const o = document.getElementById('loading-overlay');
   o.style.display='flex'; o.style.opacity=1; o.style.pointerEvents='auto';
   document.getElementById('loading-txt').textContent=txt;
+  // ── กันเคสค้าง: ถ้า fetch ค้างนาน (เช่น Render cold-start) แล้วไม่มีใครเรียก hideLoading()
+  // overlay จะบัง pointer-events ทั้งหน้าตลอดไป กดปุ่ม/แท็บอะไรก็ไม่ขยับ — ตั้ง timeout สำรอง
+  // บังคับปลดล็อกอัตโนมัติหลัง 20 วิ กันไม่ให้ผู้ใช้ค้างจริงๆ
+  if (_loadingWatchdog) clearTimeout(_loadingWatchdog);
+  _loadingWatchdog = setTimeout(() => {
+    hideLoading();
+    showToast('การเชื่อมต่อช้าผิดปกติ กรุณาลองใหม่อีกครั้ง', 'warning');
+  }, 20000);
 }
 function hideLoading() {
+  if (_loadingWatchdog) { clearTimeout(_loadingWatchdog); _loadingWatchdog = null; }
   const o = document.getElementById('loading-overlay');
   o.style.opacity=0; o.style.pointerEvents='none';
   setTimeout(()=>{ if(o.style.opacity==='0') o.style.display='none'; }, 300);
