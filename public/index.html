@@ -1341,6 +1341,10 @@
       <div style="background:rgba(46,92,230,0.06);border:1.5px dashed var(--accent);padding:18px;border-radius:var(--r);margin-bottom:25px">
         <span style="display:block;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-weight:600">รหัสใบแจ้งซ่อม (Job ID)</span>
         <span id="success-job-id" style="font-family:var(--font-mono);font-size:26px;font-weight:700">REP-XXXXXXXX-XXX</span>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(46,92,230,.25);display:flex;flex-direction:column;gap:5px;text-align:left">
+          <span id="success-job-location-row" style="display:none;font-size:12.5px;color:var(--text2)"><i class="ion-ios-pin" style="color:var(--accent)"></i> <span id="success-job-location"></span></span>
+          <span id="success-job-machine-row" style="display:none;font-size:12.5px;color:var(--text2)"><i class="ion-ios-construct" style="color:var(--accent)"></i> <span id="success-job-machine"></span></span>
+        </div>
       </div>
       <div style="display:flex;gap:12px;justify-content:center">
         <button class="btn btn-sec" onclick="copyJobIdToClipboard()"><i class="ion-ios-copy"></i> คัดลอก</button>

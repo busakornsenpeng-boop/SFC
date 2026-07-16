@@ -2818,7 +2818,22 @@ function clearUploadPreview(thumbGridId) {
 }
 function resetForm(formId,thumbGridId){const f=document.getElementById(formId);if(f)f.reset();clearUploadPreview(thumbGridId);}
 function copyJobIdToClipboard(){const id=document.getElementById('success-job-id')?.textContent;if(id&&navigator.clipboard)navigator.clipboard.writeText(id).then(()=>showToast('คัดลอกรหัสงานแล้ว!','success'));}
-function showSuccessModal(jobID){const el=document.getElementById('success-job-id');if(el)el.textContent=jobID;openModal('success-modal');}
+function showSuccessModal(jobID, machine, location){
+  const el=document.getElementById('success-job-id');if(el)el.textContent=jobID;
+  const locRow = document.getElementById('success-job-location-row');
+  const locEl  = document.getElementById('success-job-location');
+  if (locRow && locEl) {
+    if (location) { locEl.textContent = location; locRow.style.display = 'flex'; locRow.style.alignItems = 'center'; locRow.style.gap = '6px'; }
+    else locRow.style.display = 'none';
+  }
+  const machRow = document.getElementById('success-job-machine-row');
+  const machEl  = document.getElementById('success-job-machine');
+  if (machRow && machEl) {
+    if (machine) { machEl.textContent = machine; machRow.style.display = 'flex'; machRow.style.alignItems='center'; machRow.style.gap='6px'; }
+    else machRow.style.display = 'none';
+  }
+  openModal('success-modal');
+}
 
 // ============================================================
 // REGISTER — Avatar Upload
@@ -3276,7 +3291,8 @@ function submitRepairForm(event) {
     .then(res => {
       hideLoading();
       if (res.success) {
-        showSuccessModal(res.jobId);
+        const loc = [formData.dept, formData.line].filter(Boolean).join(' • ');
+        showSuccessModal(res.jobId, formData.machine, loc);
         resetForm('repair-request-form', 'rep-thumb-grid');
         loadAllData();
       } else {
@@ -3320,7 +3336,7 @@ function submitRepairForm(event) {
     qcBy: '', slaScore: '', hoursOpen: 0
   });
 
-  showSuccessModal(jobID);
+  showSuccessModal(jobID, formData.machine, [formData.dept, formData.line].filter(Boolean).join(' • '));
   resetForm('repair-request-form', 'rep-thumb-grid');
   uploadedFileBase64 = '';
 }
