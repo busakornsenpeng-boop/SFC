@@ -2940,10 +2940,8 @@ const TE_JOB_FILTERS = {
   // (ซ่อมเสร็จแล้ว รอทีมตรวจรับ QC) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
   pendqc:    { label: 'รอตรวจรับ(ซ่อม)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอ QC'].includes(j.status) },
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
-  // "ของฉัน" = งานทั้งหมดที่ช่างที่ระบุตัวตนอยู่ตอนนี้เป็นคนรับไปเอง (ทุกสถานะ ยกเว้นที่ยังไม่มีคนรับ)
-  mine:      { label: 'ของฉัน',        match: j => j.status !== 'รอซ่อม' && j.technician === (myIdentifiedName || ME) },
 };
-let teJobsFilterKey = 'mine'; // ค่าเริ่มต้น = แสดงงานของช่างคนที่ระบุตัวตนอยู่ก่อน
+let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
 
 function teFilterByStat(key) {
   if (!TE_JOB_FILTERS[key]) return;
@@ -2966,7 +2964,7 @@ function teUpdateStats() {
   if(sv('te-stat-pendqc'))    sv('te-stat-pendqc').textContent    = counts.pendqc;
   if(sv('te-stat-closed'))    sv('te-stat-closed').textContent    = counts.closed;
   if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
-  if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.mine;
+  if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.waiting;
   if(sv('te-badge-mine'))     sv('te-badge-mine').textContent     = mine;
   if(sv('te-badge-pm'))       sv('te-badge-pm').textContent       = pmPend;
 }
@@ -3003,14 +3001,7 @@ function teSwPM(sub) {
 function teRenderQueue() {
   const el     = document.getElementById('te-v-queue');
   const filter = TE_JOB_FILTERS[teJobsFilterKey] || TE_JOB_FILTERS.waiting;
-  // สถานะที่ "มีคนรับงานแล้ว" ต้องกรองให้เห็นแค่งานของช่างที่ระบุตัวตนอยู่ตอนนี้
-  // ส่วน "แจ้งซ่อม" (รวมทุกสถานะ) และ "รอช่างรับงาน" (ยังไม่มีเจ้าของ) ยังคงเป็นคิวรวมของทั้งทีม
-  const CLAIMED_KEYS = ['progress', 'pendqc', 'closed'];
-  let jobs = getRepairJobsData().filter(filter.match);
-  if (CLAIMED_KEYS.includes(teJobsFilterKey)) {
-    const me = myIdentifiedName || ME;
-    jobs = jobs.filter(j => j.technician === me);
-  }
+  const jobs   = getRepairJobsData().filter(filter.match);
   // โหมด 'queue' (มีปุ่มรับงาน/ตีกลับ) ใช้เฉพาะฟิลเตอร์ "รอช่างรับงาน" เท่านั้น
   // ฟิลเตอร์อื่นแสดงปุ่มตามสถานะจริงของแต่ละงาน (ดูรายละเอียด/อัปเดต ฯลฯ ใน tpJobCardHTML)
   const mode = teJobsFilterKey === 'waiting' ? 'queue' : 'view';
