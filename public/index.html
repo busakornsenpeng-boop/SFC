@@ -884,10 +884,12 @@
       </button>
     </div>
 
-    <div class="tp-stats">
-      <div class="tp-sbox y"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอซ่อม</div></div>
-      <div class="tp-sbox b"><div class="tp-snum b" id="te-stat-mine">0</div><div class="tp-slbl">งานของฉัน</div></div>
-      <div class="tp-sbox g"><div class="tp-snum g" id="te-stat-qc">0</div><div class="tp-slbl">รอ QC</div></div>
+    <div class="tp-stats tp-stats-5">
+      <div class="tp-sbox b" data-stat="reported" onclick="teFilterByStat('reported')"><div class="tp-snum b" id="te-stat-reported">0</div><div class="tp-slbl">แจ้งซ่อม</div></div>
+      <div class="tp-sbox y active" data-stat="waiting" onclick="teFilterByStat('waiting')"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอช่างรับงาน</div></div>
+      <div class="tp-sbox o" data-stat="progress" onclick="teFilterByStat('progress')"><div class="tp-snum o" id="te-stat-progress">0</div><div class="tp-slbl">กำลังดำเนินการ</div></div>
+      <div class="tp-sbox t" data-stat="done" onclick="teFilterByStat('done')"><div class="tp-snum t" id="te-stat-done">0</div><div class="tp-slbl">ซ่อมแล้ว</div></div>
+      <div class="tp-sbox p" data-stat="pendclose" onclick="teFilterByStat('pendclose')"><div class="tp-snum p" id="te-stat-pendclose">0</div><div class="tp-slbl">รอปิดงาน</div></div>
     </div>
 
     <div class="tp-tabs">
@@ -899,10 +901,6 @@
 
     <!-- Sections -->
     <div class="tp-sec te-sec" id="te-v-jobs">
-      <div class="tp-subtabs">
-        <button class="tp-subtab active" id="te-sub-queue" onclick="teSwJobs('queue')"><i class="ion-ios-archive"></i> คิวงาน <span class="tp-tbadge red" id="te-badge-queue">0</span></button>
-        <button class="tp-subtab"        id="te-sub-mine"  onclick="teSwJobs('mine')"><i class="ion-ios-construct"></i> งานของฉัน <span class="tp-tbadge blue" id="te-badge-mine">0</span></button>
-      </div>
       <div id="te-v-queue"></div>
       <div id="te-v-mine" style="display:none"></div>
     </div>

@@ -845,7 +845,8 @@ function tpJobCardHTML(j,mode){
   const ovHTML=j.overdue?`<div class="tp-jovr"><i class="ion-ios-warning"></i> เกิน 24 ชม. (${j.overdueHrs} ชม.)</div>`:'';
   const noteHTML=j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4"><i class="ion-ios-create"></i> ${j.progress}</div>`:'';
   const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag">${t}</span>`).join('');
-  let actHTML='';
+  // ค่าเริ่มต้น: อย่างน้อยต้องมีปุ่ม "ดูรายละเอียด" เสมอ แม้สถานะจะไม่ตรงเงื่อนไขด้านล่างเป๊ะๆ
+  let actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>`;
  if(mode==='queue'){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
     <button class="tp-jbtn-a acc" onclick="tpAcceptJob('${j.id}')"><i class="ion-ios-hand"></i> รับงาน</button>
@@ -2911,22 +2912,41 @@ function openTechIdentifySelf() {
   _pendingAcceptJobId = null; // ไม่ใช่ flow รับงาน — แค่ยืนยันตัวตนล่วงหน้า
   openTechIdentifyModal();
 }
+// ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง/วิศวกร ──
+// key ตรงกับ data-stat ของแต่ละการ์ดใน index.html
+const TE_JOB_FILTERS = {
+  reported:  { label: 'แจ้งซ่อม',       match: j => true },
+  waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
+  progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
+  done:      { label: 'ซ่อมแล้ว',       match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว'].includes(j.status) },
+  pendclose: { label: 'รอปิดงาน',       match: j => j.status === 'รอ QC' },
+};
+let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
+
+function teFilterByStat(key) {
+  if (!TE_JOB_FILTERS[key]) return;
+  teJobsFilterKey = key;
+  document.querySelectorAll('.tp-sbox[data-stat]').forEach(b => b.classList.toggle('active', b.dataset.stat === key));
+  teSw('jobs', document.getElementById('te-t-jobs'));
+}
+
 function teUpdateStats() {
   const jobs   = getRepairJobsData();
   const pmList = getPMData();
-  const waiting = jobs.filter(j => j.status === 'รอซ่อม').length;
+  const counts = {};
+  Object.keys(TE_JOB_FILTERS).forEach(k => { counts[k] = jobs.filter(TE_JOB_FILTERS[k].match).length; });
   const mine    = jobs.filter(j => j.status === 'กำลังซ่อม' && j.technician === (myIdentifiedName || ME)).length;
-  const qcJobs  = jobs.filter(j => j.status === 'ซ่อมเสร็จแล้ว').length;
   const pmPend  = pmList.filter(p => p.status !== 'เสร็จแล้ว').length;
   const sv = id => document.getElementById(id);
-  if(sv('te-stat-wait'))   sv('te-stat-wait').textContent   = waiting;
-  if(sv('te-stat-mine'))   sv('te-stat-mine').textContent   = mine;
-  if(sv('te-stat-qc'))     sv('te-stat-qc').textContent     = qcJobs;
-  if(sv('te-badge-queue')) sv('te-badge-queue').textContent = waiting;
-  if(sv('te-badge-jobs'))  sv('te-badge-jobs').textContent  = waiting;
-  if(sv('te-badge-mine'))  sv('te-badge-mine').textContent  = mine;
-  if(sv('te-badge-qc'))    sv('te-badge-qc').textContent    = qcJobs;
-  if(sv('te-badge-pm'))    sv('te-badge-pm').textContent    = pmPend;
+  if(sv('te-stat-reported'))  sv('te-stat-reported').textContent  = counts.reported;
+  if(sv('te-stat-wait'))      sv('te-stat-wait').textContent      = counts.waiting;
+  if(sv('te-stat-progress'))  sv('te-stat-progress').textContent  = counts.progress;
+  if(sv('te-stat-done'))      sv('te-stat-done').textContent      = counts.done;
+  if(sv('te-stat-pendclose')) sv('te-stat-pendclose').textContent = counts.pendclose;
+  if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
+  if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.waiting;
+  if(sv('te-badge-mine'))     sv('te-badge-mine').textContent     = mine;
+  if(sv('te-badge-pm'))       sv('te-badge-pm').textContent       = pmPend;
 }
 
 let teJobsSub = 'queue';
@@ -2937,19 +2957,16 @@ function teSw(tab, btn) {
   document.querySelectorAll('.te-sec').forEach(s => s.style.display = 'none');
   btn.classList.add('active');
   document.getElementById('te-v-' + tab).style.display = 'block';
-  if (tab === 'jobs')  teSwJobs(teJobsSub);
+  if (tab === 'jobs')  teRenderQueue();
   if (tab === 'pm')    teSwPM(tePmSub);
   if (tab === 'hist')  teRenderHist();
   if (tab === 'daily') teRenderDailyPM();
 }
 
 function teSwJobs(sub) {
+  // เก็บไว้เพื่อ backward-compat — ตอนนี้การกรองรายการขับเคลื่อนด้วยการ์ดสถิติ 5 ช่องแทน (ดู teFilterByStat)
   teJobsSub = sub;
-  document.getElementById('te-sub-queue').classList.toggle('active', sub === 'queue');
-  document.getElementById('te-sub-mine').classList.toggle('active', sub === 'mine');
-  document.getElementById('te-v-queue').style.display = sub === 'queue' ? 'block' : 'none';
-  document.getElementById('te-v-mine').style.display  = sub === 'mine'  ? 'block' : 'none';
-  if (sub === 'queue') teRenderQueue(); else teRenderMine();
+  teFilterByStat(sub === 'mine' ? 'progress' : 'waiting');
 }
 
 function teSwPM(sub) {
@@ -2962,11 +2979,15 @@ function teSwPM(sub) {
 }
 
 function teRenderQueue() {
-  const el   = document.getElementById('te-v-queue');
-  const jobs = getRepairJobsData().filter(j => j.status === 'รอซ่อม');
-  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">งานรอซ่อม</div><div class="tp-empty"><i class="ion-ios-archive"></i> ไม่มีงานรอซ่อมขณะนี้</div>`; return; }
-  el.innerHTML = `<div class="tp-sdiv">งานรอซ่อมทั้งหมด • ${jobs.length} รายการ</div>` +
-    jobs.map(j => tpJobCardHTML(mapJobToTechPanel(j), 'queue')).join('');
+  const el     = document.getElementById('te-v-queue');
+  const filter = TE_JOB_FILTERS[teJobsFilterKey] || TE_JOB_FILTERS.waiting;
+  const jobs   = getRepairJobsData().filter(filter.match);
+  // โหมด 'queue' (มีปุ่มรับงาน/ตีกลับ) ใช้เฉพาะฟิลเตอร์ "รอช่างรับงาน" เท่านั้น
+  // ฟิลเตอร์อื่นแสดงปุ่มตามสถานะจริงของแต่ละงาน (ดูรายละเอียด/อัปเดต ฯลฯ ใน tpJobCardHTML)
+  const mode = teJobsFilterKey === 'waiting' ? 'queue' : 'view';
+  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">${filter.label}</div><div class="tp-empty"><i class="ion-ios-archive"></i> ไม่มีรายการในหมวดนี้ขณะนี้</div>`; return; }
+  el.innerHTML = `<div class="tp-sdiv">${filter.label} • ${jobs.length} รายการ</div>` +
+    jobs.map(j => tpJobCardHTML(mapJobToTechPanel(j), mode)).join('');
 }
 
 function teRenderMine() {
