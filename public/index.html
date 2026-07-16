@@ -886,7 +886,7 @@
 
     <div class="tp-stats tp-stats-6">
       <div class="tp-sbox b" data-stat="reported" onclick="teFilterByStat('reported')"><div class="tp-snum b" id="te-stat-reported">0</div><div class="tp-slbl">แจ้งซ่อม</div></div>
-      <div class="tp-sbox y active" data-stat="waiting" onclick="teFilterByStat('waiting')"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอช่างรับงาน</div></div>
+      <div class="tp-sbox y" data-stat="waiting" onclick="teFilterByStat('waiting')"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอช่างรับงาน</div></div>
       <div class="tp-sbox o" data-stat="progress" onclick="teFilterByStat('progress')"><div class="tp-snum o" id="te-stat-progress">0</div><div class="tp-slbl">กำลังดำเนินการ</div></div>
       <div class="tp-sbox t" data-stat="done" onclick="teFilterByStat('done')"><div class="tp-snum t" id="te-stat-done">0</div><div class="tp-slbl">ซ่อมแล้ว</div></div>
       <div class="tp-sbox p" data-stat="pendclose" onclick="teFilterByStat('pendclose')"><div class="tp-snum p" id="te-stat-pendclose">0</div><div class="tp-slbl">รอตรวจรับ</div></div>
@@ -894,7 +894,7 @@
     </div>
 
     <div class="tp-tabs">
-      <button class="tp-tab te-tab active" id="te-t-jobs"  onclick="teSw('jobs',this)"><i class="ion-ios-archive"></i> งานซ่อม <span class="tp-tbadge red" id="te-badge-jobs">0</span></button>
+      <button class="tp-tab te-tab active" id="te-t-jobs"  onclick="teSw('jobs',this)"><i class="ion-ios-archive"></i> ของฉัน <span class="tp-tbadge red" id="te-badge-jobs">0</span></button>
       <button class="tp-tab te-tab"        id="te-t-pm"    onclick="teSw('pm',this)"><i class="ion-ios-clipboard"></i> แผนบำรุงรักษา(PM) <span class="tp-tbadge teal" id="te-badge-pm">0</span></button>
       <button class="tp-tab te-tab"        id="te-t-hist"  onclick="teSw('hist',this)"><i class="ion-ios-journal"></i> ประวัติ</button>
       <button class="tp-tab te-tab"        id="te-t-daily" onclick="teSw('daily',this)"><i class="ion-ios-clipboard"></i> Daily PM</button>

@@ -2924,8 +2924,10 @@ const TE_JOB_FILTERS = {
   done:      { label: 'ซ่อมแล้ว',       match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว'].includes(j.status) },
   pendclose: { label: 'รอตรวจรับ',      match: j => j.status === 'รอ QC' },
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
+  // "ของฉัน" = งานทั้งหมดที่ช่างที่ระบุตัวตนอยู่ตอนนี้เป็นคนรับไปเอง (ทุกสถานะ ยกเว้นที่ยังไม่มีคนรับ)
+  mine:      { label: 'ของฉัน',        match: j => j.status !== 'รอซ่อม' && j.technician === (myIdentifiedName || ME) },
 };
-let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
+let teJobsFilterKey = 'mine'; // ค่าเริ่มต้น = แสดงงานของช่างคนที่ระบุตัวตนอยู่ก่อน
 
 function teFilterByStat(key) {
   if (!TE_JOB_FILTERS[key]) return;
@@ -2949,7 +2951,7 @@ function teUpdateStats() {
   if(sv('te-stat-pendclose')) sv('te-stat-pendclose').textContent = counts.pendclose;
   if(sv('te-stat-closed'))    sv('te-stat-closed').textContent    = counts.closed;
   if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
-  if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.waiting;
+  if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.mine;
   if(sv('te-badge-mine'))     sv('te-badge-mine').textContent     = mine;
   if(sv('te-badge-pm'))       sv('te-badge-pm').textContent       = pmPend;
 }
