@@ -2986,14 +2986,7 @@ function teSwPM(sub) {
 function teRenderQueue() {
   const el     = document.getElementById('te-v-queue');
   const filter = TE_JOB_FILTERS[teJobsFilterKey] || TE_JOB_FILTERS.waiting;
-  // สถานะที่ "มีคนรับงานแล้ว" ต้องกรองให้เห็นแค่งานของช่างที่ระบุตัวตนอยู่ตอนนี้
-  // ส่วน "แจ้งซ่อม" (รวมทุกสถานะ) และ "รอช่างรับงาน" (ยังไม่มีเจ้าของ) ยังคงเป็นคิวรวมของทั้งทีม
-  const CLAIMED_KEYS = ['progress', 'done', 'pendclose', 'closed'];
-  let jobs = getRepairJobsData().filter(filter.match);
-  if (CLAIMED_KEYS.includes(teJobsFilterKey)) {
-    const me = myIdentifiedName || ME;
-    jobs = jobs.filter(j => j.technician === me);
-  }
+  const jobs   = getRepairJobsData().filter(filter.match);
   // โหมด 'queue' (มีปุ่มรับงาน/ตีกลับ) ใช้เฉพาะฟิลเตอร์ "รอช่างรับงาน" เท่านั้น
   // ฟิลเตอร์อื่นแสดงปุ่มตามสถานะจริงของแต่ละงาน (ดูรายละเอียด/อัปเดต ฯลฯ ใน tpJobCardHTML)
   const mode = teJobsFilterKey === 'waiting' ? 'queue' : 'view';
