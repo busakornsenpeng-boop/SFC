@@ -3682,11 +3682,27 @@ function viewJobDetail(id) {
   let imgHtml = '';
   try {
     const imgs = JSON.parse(j.img || '[]');
-    imgs.forEach(src => { imgHtml += `<img src="${src}" style="width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px" onerror="this.style.display='none'">`; });
+    imgs.forEach(src => { imgHtml += `<img src="${src}" style="width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`; });
   } catch(e) {
-    if (j.img && j.img.length > 10) imgHtml = `<img src="${j.img}" style="width:100%;border-radius:8px" onerror="this.style.display='none'">`;
+    if (j.img && j.img.length > 10) imgHtml = `<img src="${j.img}" style="width:100%;border-radius:8px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`;
   }
-  document.getElementById('jdm-image-body').innerHTML = imgHtml;
+  document.getElementById('jdm-image-body').innerHTML = imgHtml || '<div style="color:var(--text3);font-size:12px">ไม่มีรูปภาพที่แจ้ง</div>';
+
+  // รูปหลังซ่อม — เดิมไม่เคยถูกดึงมาแสดงเลย ทั้งที่ backend มีเก็บ imgAfter ไว้อยู่แล้ว
+  let imgAfterHtml = '';
+  try {
+    const imgsAfter = JSON.parse(j.imgAfter || '[]');
+    imgsAfter.forEach(src => { imgAfterHtml += `<img src="${src}" style="width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`; });
+  } catch(e) {
+    if (j.imgAfter && j.imgAfter.length > 10) imgAfterHtml = `<img src="${j.imgAfter}" style="width:100%;border-radius:8px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`;
+  }
+  const afterWrap = document.getElementById('jdm-image-after-wrap');
+  if (imgAfterHtml) {
+    document.getElementById('jdm-image-after-body').innerHTML = imgAfterHtml;
+    afterWrap.style.display = 'block';
+  } else {
+    afterWrap.style.display = 'none';
+  }
 
   ['tech-action-accept','tech-action-update','eng-action-qc','admin-action-edit']
     .forEach(sid => document.getElementById(sid)?.classList.add('d-none'));
