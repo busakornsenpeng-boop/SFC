@@ -1829,9 +1829,14 @@ function computeJobDurations(j){
   const closed=parseJobDateTime(j.closedDate);
   const fixMins=(accepted&&done)?(done-accepted)/60000:null;
   const closeMins=(done&&closed)?(closed-done)/60000:null;
+  // เวลาเท่ากันเป๊ะ (0 นาที) มักเกิดจากแอดมินข้ามขั้นตอน (ปรับสถานะตรงไป "เสร็จซ่อม"/"ปิดงาน"
+  // โดยไม่ผ่านปุ่มรับงาน/QC ปกติ) ทำให้ระบบ auto-stamp เวลาสองจุดพร้อมกันในคำขอเดียว
+  // ไม่ใช่ระยะเวลาใช้งานจริง — โชว์เป็นป้าย "ข้ามขั้นตอน" แทน เพื่อไม่ให้เข้าใจผิด
+  const fixSkipped   = fixMins===0;
+  const closeSkipped = closeMins===0;
   return{
-    fix: fixMins!=null?formatDurationHM(fixMins):null,
-    close: closeMins!=null?formatDurationHM(closeMins):null,
+    fix: fixSkipped?'ข้ามขั้นตอน':(fixMins!=null?formatDurationHM(fixMins):null),
+    close: closeSkipped?'ข้ามขั้นตอน':(closeMins!=null?formatDurationHM(closeMins):null),
     hadWait: j.hadWait==='TRUE',
   };
 }
