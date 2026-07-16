@@ -2936,8 +2936,9 @@ const TE_JOB_FILTERS = {
   reported:  { label: 'แจ้งซ่อม',       match: j => !['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
   progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
-  done:      { label: 'ซ่อมแล้ว',       match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว'].includes(j.status) },
-  pendclose: { label: 'รอตรวจรับ',      match: j => j.status === 'รอ QC' },
+  // เดิมแยกเป็น "ซ่อมแล้ว" กับ "รอตรวจรับ" สองช่อง แต่ทั้งสามค่าสถานะนี้หมายถึงเรื่องเดียวกัน
+  // (ซ่อมเสร็จแล้ว รอทีมตรวจรับ QC) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
+  pendqc:    { label: 'รอตรวจรับ(ซ่อม)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอ QC'].includes(j.status) },
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
   // "ของฉัน" = งานทั้งหมดที่ช่างที่ระบุตัวตนอยู่ตอนนี้เป็นคนรับไปเอง (ทุกสถานะ ยกเว้นที่ยังไม่มีคนรับ)
   mine:      { label: 'ของฉัน',        match: j => j.status !== 'รอซ่อม' && j.technician === (myIdentifiedName || ME) },
@@ -2962,8 +2963,7 @@ function teUpdateStats() {
   if(sv('te-stat-reported'))  sv('te-stat-reported').textContent  = counts.reported;
   if(sv('te-stat-wait'))      sv('te-stat-wait').textContent      = counts.waiting;
   if(sv('te-stat-progress'))  sv('te-stat-progress').textContent  = counts.progress;
-  if(sv('te-stat-done'))      sv('te-stat-done').textContent      = counts.done;
-  if(sv('te-stat-pendclose')) sv('te-stat-pendclose').textContent = counts.pendclose;
+  if(sv('te-stat-pendqc'))    sv('te-stat-pendqc').textContent    = counts.pendqc;
   if(sv('te-stat-closed'))    sv('te-stat-closed').textContent    = counts.closed;
   if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
   if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.mine;
@@ -3005,7 +3005,7 @@ function teRenderQueue() {
   const filter = TE_JOB_FILTERS[teJobsFilterKey] || TE_JOB_FILTERS.waiting;
   // สถานะที่ "มีคนรับงานแล้ว" ต้องกรองให้เห็นแค่งานของช่างที่ระบุตัวตนอยู่ตอนนี้
   // ส่วน "แจ้งซ่อม" (รวมทุกสถานะ) และ "รอช่างรับงาน" (ยังไม่มีเจ้าของ) ยังคงเป็นคิวรวมของทั้งทีม
-  const CLAIMED_KEYS = ['progress', 'done', 'pendclose', 'closed'];
+  const CLAIMED_KEYS = ['progress', 'pendqc', 'closed'];
   let jobs = getRepairJobsData().filter(filter.match);
   if (CLAIMED_KEYS.includes(teJobsFilterKey)) {
     const me = myIdentifiedName || ME;
