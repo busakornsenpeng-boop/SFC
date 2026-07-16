@@ -3631,6 +3631,7 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">รายละเอียด</span><span class="spec-val">${escapeHtml(j.detail||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">ช่างซ่อม</span><span class="spec-val">${escapeHtml(j.technician||'ยังไม่ได้รับงาน')}</span></div>
     <div class="spec-row"><span class="spec-lbl">สถานะ</span><span class="spec-val">${j.status}</span></div>
+    ${j.doneDate ? `<div class="spec-row"><span class="spec-lbl">วันที่ซ่อมเสร็จ</span><span class="spec-val">${escapeHtml(j.doneDate)}</span></div>` : ''}
     ${(() => {
       const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
       const fixText = dur.fix || j.repairDuration || '';
