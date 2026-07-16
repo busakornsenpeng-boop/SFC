@@ -845,6 +845,7 @@ function tpJobCardHTML(j,mode){
   const ovHTML=j.overdue?`<div class="tp-jovr"><i class="ion-ios-warning"></i> เกิน 24 ชม. (${j.overdueHrs} ชม.)</div>`:'';
   const noteHTML=j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4"><i class="ion-ios-create"></i> ${j.progress}</div>`:'';
   const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag">${t}</span>`).join('');
+  const assigneeHTML=(mode!=='queue'&&j.assignee)?`<div class="tp-jassignee"><i class="ion-ios-person"></i> ${j.assignee}</div>`:'';
   // ค่าเริ่มต้น: อย่างน้อยต้องมีปุ่ม "ดูรายละเอียด" เสมอ แม้สถานะจะไม่ตรงเงื่อนไขด้านล่างเป๊ะๆ
   let actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>`;
  if(mode==='queue'){
@@ -868,6 +869,7 @@ return `<div class="tp-jcard${j.overdue?' ov':''}">
   <div class="tp-jtop"><span class="tp-jid">${j.id}</span>${statLabel}</div>
   <div class="tp-jtitle">${j.title}</div>
   <div class="tp-jdesc">${j.desc}</div>
+  ${assigneeHTML}
   ${ovHTML}
   ${noteHTML}
   <div class="tp-jtags">${tagsHTML}</div>
