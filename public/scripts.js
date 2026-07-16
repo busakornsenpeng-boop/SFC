@@ -2915,13 +2915,13 @@ function openTechIdentifySelf() {
 // ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง/วิศวกร ──
 // key ตรงกับ data-stat ของแต่ละการ์ดใน index.html
 const TE_JOB_FILTERS = {
-  // "แจ้งซ่อม" = ยอดรวมงานที่ยังอยู่ในกระบวนการ (ไม่รวมงานที่ปิดแล้ว/ถูกตีกลับ)
-  // เพื่อให้ผลรวมของ 4 การ์ดถัดไปเท่ากับยอดนี้พอดี
-  reported:  { label: 'แจ้งซ่อม',       match: j => !['ปิดงาน','ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
+  // "แจ้งซ่อม" = ยอดรวมงานทั้งหมด ยกเว้นงานที่ถูกตีกลับ (ตีกลับไม่มีการ์ดของตัวเอง จึงไม่รวม)
+  reported:  { label: 'แจ้งซ่อม',       match: j => !['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
   progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
   done:      { label: 'ซ่อมแล้ว',       match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว'].includes(j.status) },
-  pendclose: { label: 'รอปิดงาน',       match: j => j.status === 'รอ QC' },
+  pendclose: { label: 'รอตรวจรับ',      match: j => j.status === 'รอ QC' },
+  closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
 };
 let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
 
@@ -2945,6 +2945,7 @@ function teUpdateStats() {
   if(sv('te-stat-progress'))  sv('te-stat-progress').textContent  = counts.progress;
   if(sv('te-stat-done'))      sv('te-stat-done').textContent      = counts.done;
   if(sv('te-stat-pendclose')) sv('te-stat-pendclose').textContent = counts.pendclose;
+  if(sv('te-stat-closed'))    sv('te-stat-closed').textContent    = counts.closed;
   if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
   if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.waiting;
   if(sv('te-badge-mine'))     sv('te-badge-mine').textContent     = mine;
