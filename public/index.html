@@ -1153,7 +1153,7 @@
         <!-- Admin: Edit -->
         <div id="admin-action-edit" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
           <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">แผงแก้ไขสถานะ (Admin)</h4>
-          <div class="form-grid-3">
+          <div class="form-grid-2">
             <div class="form-field">
               <label>สถานะ</label>
               <select id="adm-job-status" class="select-ctrl">
@@ -1168,22 +1168,20 @@
                 <option value="">เลือกช่าง</option>
               </select>
             </div>
-            <div class="form-field">
-              <label>ETA (วันที่คาดเดาเสร็จ)</label>
-              <input type="date" id="adm-job-eta" class="input-ctrl">
-            </div>
           </div>
-          <div class="form-grid-2" style="margin-top:12px">
-            <div class="form-field">
-              <label>วันที่แจ้งซ่อม <span style="font-weight:400;color:var(--text3)">(แก้ได้ถ้ากรอกผิด)</span></label>
-              <input type="datetime-local" id="adm-job-date" class="input-ctrl">
+          <!-- เวลาทุกจุด (รับงาน/เสร็จซ่อม/ปิดงาน) ระบบจับอัตโนมัติทั้งหมด — แก้มือไม่ได้แล้ว -->
+          <div id="adm-job-duration-box" style="margin-top:12px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:11px 14px;display:none;flex-direction:column;gap:7px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;color:var(--text2)"><i class="ion-ios-timer"></i> ใช้เวลาแก้ไข <span style="color:var(--text3)">(รับงาน → เสร็จซ่อม)</span></span>
+              <span id="adm-job-duration-fix" style="font-size:13px;font-weight:600">-</span>
             </div>
-            <div class="form-field">
-              <label>วันที่ปิดงาน <span style="font-weight:400;color:var(--text3)">(เว้นว่าง = ให้ระบบตั้งเองตามสถานะ)</span></label>
-              <input type="datetime-local" id="adm-job-donedate" class="input-ctrl">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;color:var(--text2)"><i class="ion-ios-hourglass"></i> รอปิดงาน <span style="color:var(--text3)">(เสร็จซ่อม → ปิดงาน)</span></span>
+              <span id="adm-job-duration-close" style="font-size:13px;font-weight:600">-</span>
             </div>
+            <div id="adm-job-wait-note" style="display:none;font-size:11px;color:#d97706">⚠️ ตัวเลขนี้รวมช่วงรออะไหล่/ขอหยุดเครื่องด้วย</div>
           </div>
-          <div class="form-field" style="margin-bottom:16px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
+          <div class="form-field" style="margin-bottom:16px;margin-top:12px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
           <div style="display:flex;justify-content:space-between;gap:10px">
             <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="ion-ios-trash"></i> ลบ</button>
             <button class="btn btn-accent" onclick="adminSubmitUpdateJob()"><i class="ion-ios-checkmark"></i> อัปเดต</button>

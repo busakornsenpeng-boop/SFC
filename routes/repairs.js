@@ -73,31 +73,34 @@ async function processImages(images, prefix = 'img') {
 async function getAllRepairs() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:U1000',
+    range: 'Repairs!A2:X1000',
   });
   const rows = res.data.values || [];
   return rows.map(row => ({
-    id:         row[0]  || '',
-    name:       row[1]  || '',
-    dept:       row[2]  || '',
-    machine:    row[3]  || '',
-    side:       row[4]  || '',
-    opType:     row[5]  || '',
-    detail:     row[6]  || '',
-    img:        row[7]  || '',
-    imgAfter:   row[8]  || '',
-    status:     row[9]  || '',
-    technician: row[10] || '',
-    doneDate:   row[11] || '',
-    eta:        row[12] || '',
-    note:       row[13] || '',
-    qcResult:   row[14] || '',
-    qcBy:       row[15] || '',
-    qcNote:     row[16] || '',
-    date:       row[17] || '',
-    jobType:    row[18] || 'ซ่อมปกติ',
-    approval:   row[19] || '',
-    actionBy:   row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
+    id:           row[0]  || '',
+    name:         row[1]  || '',
+    dept:         row[2]  || '',
+    machine:      row[3]  || '',
+    side:         row[4]  || '',
+    opType:       row[5]  || '',
+    detail:       row[6]  || '',
+    img:          row[7]  || '',
+    imgAfter:     row[8]  || '',
+    status:       row[9]  || '',
+    technician:   row[10] || '',
+    doneDate:     row[11] || '', // เวลาที่ช่างแจ้งว่าซ่อมเสร็จ ("ซ่อมเสร็จ/ซ่อมเสร็จแล้ว/รอ QC")
+    eta:          row[12] || '', // เดิม — เหลือไว้เผื่อยังมีที่ใช้อยู่ (ช่างฝั่ง tech update)
+    note:         row[13] || '',
+    qcResult:     row[14] || '',
+    qcBy:         row[15] || '',
+    qcNote:       row[16] || '',
+    date:         row[17] || '',
+    jobType:      row[18] || 'ซ่อมปกติ',
+    approval:     row[19] || '',
+    actionBy:     row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
+    acceptedDate: row[21] || '', // ← เวลาที่ช่างกดรับงาน (V)
+    closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลัง QC ผ่าน/แอดมินปิดงาน (W)
+    hadWait:      row[23] || '', // ← 'TRUE' ถ้างานนี้เคยผ่านสถานะรออะไหล่/ขอหยุดเครื่อง (X)
   }));
 }
 
@@ -187,7 +190,7 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
     const { technician } = req.body;
     if (!technician) return res.status(400).json({ success: false, message: 'กรุณาระบุชื่อช่าง' });
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -196,17 +199,24 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
     if (LOCKED_STATUSES.includes(currentStatus))
       return res.json({ success: false, message: `งานนี้ถูกปิดแล้ว (${currentStatus})` });
 
-    const requesterName = rows[rowIndex][1] || '';
-    const machine       = rows[rowIndex][3] || '';
-    const sheetRow      = rowIndex + 2;
+    const requesterName    = rows[rowIndex][1]  || '';
+    const machine          = rows[rowIndex][3]  || '';
+    const alreadyAcceptedAt = rows[rowIndex][21] || ''; // V — กันไม่ให้เวลารับงานถูกเขียนทับถ้าเคยรับไปแล้ว
+    const sheetRow          = rowIndex + 2;
 
-   await sheets.spreadsheets.values.batchUpdate({
+    const acceptData = [
+      { range: `Repairs!J${sheetRow}`, values: [['กำลังซ่อม']] },
+      { range: `Repairs!K${sheetRow}`, values: [[technician]] },
+      { range: `Repairs!U${sheetRow}`, values: [[technician]] },
+    ];
+    // บันทึก "เวลารับงาน" ครั้งแรกเท่านั้น — ใช้คำนวณ "ใช้เวลาแก้ไข" (รับงาน → เสร็จซ่อม) ภายหลัง
+    if (!alreadyAcceptedAt) {
+      acceptData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
-      requestBody: { valueInputOption: 'USER_ENTERED', data: [
-        { range: `Repairs!J${sheetRow}`, values: [['กำลังซ่อม']] },
-        { range: `Repairs!K${sheetRow}`, values: [[technician]] },
-        { range: `Repairs!U${sheetRow}`, values: [[technician]] },
-      ]},
+      requestBody: { valueInputOption: 'USER_ENTERED', data: acceptData },
     });
 
     // ตัดแจ้งเตือน requester ตอนช่างรับงาน — เช็คสถานะเองผ่าน LINE bot ได้ (พิมพ์รหัสงาน)
@@ -224,7 +234,7 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
   try {
     const { id } = req.params;
     const { status, note, eta, imgAfter, updatedBy } = req.body;
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -256,6 +266,9 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
     ];
     if (status === 'ซ่อมเสร็จ' || status === 'รอ QC' || status === 'ซ่อมเสร็จแล้ว')
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
+    if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง')
+      updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
     if (updatedBy)
       updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
 
@@ -301,7 +314,7 @@ router.post('/:id/qc', requireRole('engineer', 'admin'), async (req, res) => {
     const { id } = req.params;
     const { result, by, note } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -321,8 +334,11 @@ router.post('/:id/qc', requireRole('engineer', 'admin'), async (req, res) => {
       { range: `Repairs!P${sheetRow}`, values: [[by     || '']] },
       { range: `Repairs!Q${sheetRow}`, values: [[note   || '']] },
     ];
+    // เดิม route นี้เขียนเวลาทับคอลัมน์ L (doneDate) ซ้ำ ทำให้แยกไม่ออกว่า "เสร็จซ่อม" กับ
+    // "ปิดงานจริง (QC ผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
+    // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
     if (result === 'ผ่าน QC')
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -457,9 +473,9 @@ router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) =>
 router.post('/:id/status', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, eta, technician, imgAfter, date, doneDate } = req.body;
+    const { status, note, technician, imgAfter } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -487,25 +503,31 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       { range: `Repairs!I${sheetRow}`, values: [[imgAfterStr]]  },
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
       { range: `Repairs!K${sheetRow}`, values: [[technician || oldTech]] },
-      { range: `Repairs!M${sheetRow}`, values: [[eta    || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
 
-    // แอดมินแก้ "วันที่แจ้งซ่อม" เองได้ (เผื่อกรอกผิด/ต้องแก้ย้อนหลัง) — ส่งมาเป็นค่าจาก
-    // <input type="datetime-local"> เช่น "2026-07-08T14:30" แล้ว format ให้ตรงรูปแบบเดียวกับที่
-    // ระบบเขียนอัตโนมัติทุกที่ (new Date().toLocaleString('th-TH')) เพื่อไม่ให้รูปแบบข้อมูลเพี้ยน
-    if (date) {
-      const parsedDate = new Date(date);
-      if (!isNaN(parsedDate)) updateData.push({ range: `Repairs!R${sheetRow}`, values: [[parsedDate.toLocaleString('th-TH')]] });
+    // ── เวลาทุกจุด (รับงาน/เสร็จซ่อม/ปิดงาน) ให้ระบบจับอัตโนมัติทั้งหมดตามสถานะ ไม่มีให้แก้มือแล้ว ──
+
+    // "เวลารับงาน" (V) — เผื่อแอดมิน assign ช่างแล้วเปลี่ยนสถานะเองโดยไม่ผ่านปุ่ม "รับงาน" ของช่าง
+    const alreadyAcceptedAt = rows[rowIndex][21] || '';
+    const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
+    if (status && startedStatuses.includes(status) && !alreadyAcceptedAt) {
+      updateData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
     }
 
-    // แอดมินแก้ "วันที่ปิดงาน" เองได้เช่นกัน — ถ้าไม่ได้ส่งมา (เว้นว่างในฟอร์ม) ใช้ตรรกะเดิม
-    // คือ auto-set เป็นเวลาปัจจุบันตอนสถานะเปลี่ยนเป็นเสร็จ/รอ QC เหมือนเดิมทุกประการ
-    if (doneDate) {
-      const parsedDone = new Date(doneDate);
-      if (!isNaN(parsedDone)) updateData.push({ range: `Repairs!L${sheetRow}`, values: [[parsedDone.toLocaleString('th-TH')]] });
-    } else if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status)) {
+    // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอ QC เหมือนเดิม
+    if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status)) {
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    }
+
+    // "เวลาปิดงานจริง" (W) — auto-set เฉพาะตอนสถานะ "เปลี่ยนเข้า" ปิดงาน (กันเขียนทับซ้ำถ้าปิดงานอยู่แล้วแค่แก้หมายเหตุ)
+    if (status === 'ปิดงาน' && currentStatus !== 'ปิดงาน') {
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH')]] });
+    }
+
+    // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
+    if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง') {
+      updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
     }
 
     await sheets.spreadsheets.values.batchUpdate({

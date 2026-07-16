@@ -1524,22 +1524,19 @@ function techSubmitUpdate(){
 }
 
 // adminSubmitUpdateJob
+// หมายเหตุ: ETA และวันที่แจ้งซ่อม/ปิดงานแบบแก้มือถูกถอดออกจากพาเนลนี้แล้ว —
+// เวลารับงาน/เสร็จซ่อม/ปิดงาน ให้ backend จับอัตโนมัติทั้งหมดตามการเปลี่ยนสถานะ (ดู routes/repairs.js)
 function adminSubmitUpdateJob(){
   if(!selectedJobForAction) return;
   const j = getRepairJobsData().find(x => x.id===selectedJobForAction); if(!j) return;
-  const status   = document.getElementById('adm-job-status')?.value;
-  const tech     = document.getElementById('adm-job-tech')?.value;
-  const eta      = document.getElementById('adm-job-eta')?.value;
-  const note     = document.getElementById('adm-job-note')?.value;
-  // ค่าจาก <input type="datetime-local"> เช่น "2026-07-08T14:30" — ส่งตรงๆ ให้ backend แปลงเป็น
-  // รูปแบบเดียวกับที่ระบบใช้เก็บอยู่แล้ว เว้นว่างไว้ = ไม่แก้ค่าเดิม (ฝั่ง backend จะไม่ทับคอลัมน์นั้น)
-  const dateVal     = document.getElementById('adm-job-date')?.value;
-  const doneDateVal = document.getElementById('adm-job-donedate')?.value;
+  const status = document.getElementById('adm-job-status')?.value;
+  const tech   = document.getElementById('adm-job-tech')?.value;
+  const note   = document.getElementById('adm-job-note')?.value;
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, technician: tech, eta, note, date: dateVal || undefined, doneDate: doneDateVal || undefined })
+      body: JSON.stringify({ status, technician: tech, note })
     })
     .then(r => r.json())
     .then(res => {
@@ -1547,7 +1544,6 @@ function adminSubmitUpdateJob(){
       if(res.success){ 
         if(status) j.status=status; 
         if(tech) j.technician=tech; 
-        if(eta) j.eta=eta;
         if(note) j.note=note; 
         closeModal('job-detail-modal'); 
         renderAdminRepairsTable(); 
@@ -1558,7 +1554,7 @@ function adminSubmitUpdateJob(){
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
     return;
   }
-  if(status)j.status=status; if(tech)j.technician=tech; if(eta)j.eta=eta; if(note)j.note=note;
+  if(status)j.status=status; if(tech)j.technician=tech; if(note)j.note=note;
   closeModal('job-detail-modal'); showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success'); renderAdminRepairsTable();
 }
 
@@ -1798,6 +1794,44 @@ function thaiDateToInputValue(str){
     const[hh,mm]=(tPart||'00:00').split(':');
     return `${y}-${mo}-${da}T${(hh||'00').padStart(2,'0')}:${(mm||'00').padStart(2,'0')}`;
   }catch(e){return '';}
+}
+// แปลงข้อความวันที่แบบที่ระบบเก็บ "D/M/YYYY, HH:mm:ss" (รองรับทั้งปี พ.ศ./ค.ศ.) ให้เป็น Date object
+// (รวมเวลาด้วย ไม่เหมือน parseJobDate ที่ตัดเวลาออก) — ใช้คำนวณระยะเวลาระหว่าง 2 จุดเวลา
+function parseJobDateTime(str){
+  if(!str)return null;
+  try{
+    const[dPart,tPart]=str.split(',').map(s=>(s||'').trim());
+    const parts=dPart.split('/');
+    if(parts.length!==3)return null;
+    let y=parseInt(parts[2]);if(y>2400)y-=543;
+    const[hh,mm,ss]=(tPart||'00:00:00').split(':').map(Number);
+    return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]),hh||0,mm||0,ss||0);
+  }catch(e){return null;}
+}
+// จัดรูปแบบนาทีให้อ่านง่าย เช่น 135 → "2 ชม. 15 นาที", 1600 → "1 วัน 2 ชม."
+function formatDurationHM(totalMinutes){
+  if(totalMinutes==null||isNaN(totalMinutes)||totalMinutes<0)return '-';
+  const mins=Math.round(totalMinutes);
+  const days=Math.floor(mins/1440);
+  const hours=Math.floor((mins%1440)/60);
+  const remMins=mins%60;
+  if(days>0)return `${days} วัน ${hours} ชม.`;
+  if(hours>0)return `${hours} ชม. ${remMins} นาที`;
+  return `${remMins} นาที`;
+}
+// คำนวณ "ใช้เวลาแก้ไข" (รับงาน→เสร็จซ่อม) และ "รอปิดงาน" (เสร็จซ่อม→ปิดงานจริง) ของงานหนึ่งรายการ
+// รวมเวลาช่วงรออะไหล่/ขอหยุดเครื่องไปด้วย (ไม่หักออก) — hadWait ใช้แสดงป้ายเตือนเฉยๆ
+function computeJobDurations(j){
+  const accepted=parseJobDateTime(j.acceptedDate);
+  const done=parseJobDateTime(j.doneDate);
+  const closed=parseJobDateTime(j.closedDate);
+  const fixMins=(accepted&&done)?(done-accepted)/60000:null;
+  const closeMins=(done&&closed)?(closed-done)/60000:null;
+  return{
+    fix: fixMins!=null?formatDurationHM(fixMins):null,
+    close: closeMins!=null?formatDurationHM(closeMins):null,
+    hadWait: j.hadWait==='TRUE',
+  };
 }
 function filterJobsByTimeRange(jobs,ft){
   if(ft==='all')return jobs;
@@ -3607,8 +3641,19 @@ function viewJobDetail(id) {
     const s = document.getElementById('adm-job-status'); if(s) s.value = j.status;
     const t = document.getElementById('adm-job-tech');   if(t && j.technician) t.value = j.technician;
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
-    const d = document.getElementById('adm-job-date');     if(d) d.value = thaiDateToInputValue(j.date);
-    const dd = document.getElementById('adm-job-donedate'); if(dd) dd.value = thaiDateToInputValue(j.doneDate);
+
+    const dur = computeJobDurations(j);
+    const box = document.getElementById('adm-job-duration-box');
+    if (box) {
+      if (dur.fix || dur.close) {
+        box.style.display = 'flex';
+        const fixEl   = document.getElementById('adm-job-duration-fix');   if(fixEl)   fixEl.textContent   = dur.fix   || 'ยังไม่เสร็จซ่อม';
+        const closeEl = document.getElementById('adm-job-duration-close'); if(closeEl) closeEl.textContent = dur.close || 'ยังไม่ปิดงาน';
+        const waitEl  = document.getElementById('adm-job-wait-note');      if(waitEl)  waitEl.style.display = dur.hadWait ? 'block' : 'none';
+      } else {
+        box.style.display = 'none';
+      }
+    }
   }
   openModal('job-detail-modal');
 }
