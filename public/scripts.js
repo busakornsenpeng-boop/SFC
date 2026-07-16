@@ -1542,12 +1542,14 @@ function adminSubmitUpdateJob(){
     .then(res => {
       hideLoading();
       if(res.success){ 
-        if(status) j.status=status; 
-        if(tech) j.technician=tech; 
-        if(note) j.note=note; 
         closeModal('job-detail-modal'); 
-        renderAdminRepairsTable(); 
-        showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success'); 
+        // สำคัญ: ต้อง refetch ข้อมูลจริงจากเซิร์ฟเวอร์ ไม่ใช่แค่ patch ค่า status/tech/note ในตัวแปร local
+        // เพราะ acceptedDate/doneDate/closedDate ที่ backend เพิ่ง auto-set ไป ยังไม่มีอยู่ใน cache เดิม
+        // (ถ้าไม่ refetch การ์ดระยะเวลาจะคำนวณจากข้อมูลเก่า/ว่าง แล้วโชว์ผิดหรือไม่ขึ้นเลย)
+        loadAllData().then(() => {
+          renderAdminRepairsTable();
+          showToast(`อัปเดตรายการ ${j.id} สำเร็จ!`,'success');
+        });
       }
       else showToast('เกิดข้อผิดพลาด: '+(res.message||''),'error');
     })
@@ -3416,11 +3418,12 @@ function doAcceptJob(id, technicianName) {
     .then(res => {
       hideLoading();
       if (res.success) {
-        j.status = 'กำลังซ่อม';
-        j.technician = technicianName;
         showToast(`<i class="ion-ios-hand"></i> รับงาน ${j.machine} สำเร็จ`, 'success');
-        teUpdateStats(); teRenderQueue(); teRenderMine();
-        tpUpdateStats(); tpRenderQueue(); tpRenderMine();
+        // refetch จริง แทนการ patch local — ต้องได้ acceptedDate (V) ที่ backend เพิ่ง auto-set ไปด้วย
+        loadAllData().then(() => {
+          teUpdateStats(); teRenderQueue(); teRenderMine();
+          tpUpdateStats(); tpRenderQueue(); tpRenderMine();
+        });
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
@@ -3677,13 +3680,15 @@ function engSubmitQC() {
     .then(res => {
       hideLoading();
       if (res.success) {
-        j.status   = result === 'ผ่าน QC' ? 'ปิดงาน' : 'แก้ไข (ตีกลับ)';
-        j.qcResult = result; j.qcBy = by;
         showToast(`QC: ${result} — ${j.machine}`, result==='ผ่าน QC'?'success':'warning');
         closeModal('job-detail-modal');
-        renderRepairsTable(); renderAdminRepairsTable();
-        if (currentUser.role==='engineer') { engRenderQC(); teUpdateStats(); }
-        renderUserQCPanel();
+        // refetch จริง แทนการ patch local — ต้องได้ closedDate (W) ที่ backend auto-set ไปตอน QC ผ่าน
+        // มาด้วย ไม่งั้นการ์ดระยะเวลาในพาเนลแอดมินจะยังใช้ค่าเก่า/ว่างอยู่
+        loadAllData().then(() => {
+          renderRepairsTable(); renderAdminRepairsTable();
+          if (currentUser.role==='engineer') { engRenderQC(); teUpdateStats(); }
+          renderUserQCPanel();
+        });
       } else showToast('เกิดข้อผิดพลาด: '+(res.message||''), 'error');
     })
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
