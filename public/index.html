@@ -885,11 +885,31 @@
     </div>
 
     <div class="tp-stats tp-stats-5">
-      <div class="tp-sbox b" data-stat="reported" onclick="teFilterByStat('reported')"><div class="tp-snum b" id="te-stat-reported">0</div><div class="tp-slbl">แจ้งซ่อม</div></div>
-      <div class="tp-sbox y active" data-stat="waiting" onclick="teFilterByStat('waiting')"><div class="tp-snum y" id="te-stat-wait">0</div><div class="tp-slbl">รอช่างรับงาน</div></div>
-      <div class="tp-sbox o" data-stat="progress" onclick="teFilterByStat('progress')"><div class="tp-snum o" id="te-stat-progress">0</div><div class="tp-slbl">กำลังดำเนินการ</div></div>
-      <div class="tp-sbox t" data-stat="pendqc" onclick="teFilterByStat('pendqc')"><div class="tp-snum t" id="te-stat-pendqc">0</div><div class="tp-slbl">รอตรวจรับ(ซ่อม)</div></div>
-      <div class="tp-sbox g" data-stat="closed" onclick="teFilterByStat('closed')"><div class="tp-snum g" id="te-stat-closed">0</div><div class="tp-slbl">ปิดงาน</div></div>
+      <div class="tp-sbox b" data-stat="reported" onclick="teFilterByStat('reported')">
+        <div class="tp-sbox-icon b"><i class="ion-ios-archive"></i></div>
+        <div class="tp-snum b" id="te-stat-reported">0</div>
+        <div class="tp-slbl">แจ้งซ่อม</div>
+      </div>
+      <div class="tp-sbox y active" data-stat="waiting" onclick="teFilterByStat('waiting')">
+        <div class="tp-sbox-icon y"><i class="ion-ios-hourglass"></i></div>
+        <div class="tp-snum y" id="te-stat-wait">0</div>
+        <div class="tp-slbl">รอช่างรับงาน</div>
+      </div>
+      <div class="tp-sbox o" data-stat="progress" onclick="teFilterByStat('progress')">
+        <div class="tp-sbox-icon o"><i class="ion-ios-construct"></i></div>
+        <div class="tp-snum o" id="te-stat-progress">0</div>
+        <div class="tp-slbl">กำลังดำเนินการ</div>
+      </div>
+      <div class="tp-sbox t" data-stat="pendqc" onclick="teFilterByStat('pendqc')">
+        <div class="tp-sbox-icon t"><i class="ion-ios-eye"></i></div>
+        <div class="tp-snum t" id="te-stat-pendqc">0</div>
+        <div class="tp-slbl">รอตรวจรับ(ซ่อม)</div>
+      </div>
+      <div class="tp-sbox g" data-stat="closed" onclick="teFilterByStat('closed')">
+        <div class="tp-sbox-icon g"><i class="ion-ios-checkmark-circle"></i></div>
+        <div class="tp-snum g" id="te-stat-closed">0</div>
+        <div class="tp-slbl">ปิดงาน</div>
+      </div>
     </div>
 
     <div class="tp-tabs">
