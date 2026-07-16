@@ -767,7 +767,7 @@ let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
 function mapJobToTechPanel(j) {
   const statusMap={'ปิดงาน':'เสร็จแล้ว'}; 
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?j.date.split(',')[0].trim():'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,eta:j.eta||null,progress:j.note||''};
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?j.date.split(',')[0].trim():'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,eta:j.eta||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -805,6 +805,15 @@ function tpRenderMine(){
   el.innerHTML=`<div class="tp-sdiv">งานที่รับไว้ • ${jobs.length} รายการ</div>`+jobs.map(j=>tpJobCardHTML(j,'mine')).join('');
 }
 
+function tpTimeInfoText(j){
+  if (j.status==='เสร็จแล้ว' || j.status==='ปิดงาน') {
+    const dur = computeJobDurations({acceptedDate:j.acceptedDate, doneDate:j.doneDate});
+    if (dur.fix) return 'ใช้เวลาซ่อม '+dur.fix;
+    if (j.repairDuration) return 'ใช้เวลาซ่อม '+j.repairDuration;
+    return '';
+  }
+  return j.eta ? 'ETA '+j.eta : '';
+}
 function tpJobCardHTML(j,mode){
   const statusLabelMap = {
     'รอซ่อม':          {cls:'wait',   text:'รอซ่อม'},
@@ -848,7 +857,7 @@ return `<div class="tp-jcard${j.overdue?' ov':''}">
   ${ovHTML}
   ${noteHTML}
   <div class="tp-jtags">${tagsHTML}</div>
-  <div class="tp-jdate"><i class="ion-ios-calendar"></i> ${j.date}${j.eta?' · ETA '+j.eta:''}</div>
+  <div class="tp-jdate"><i class="ion-ios-calendar"></i> ${j.date}${tpTimeInfoText(j)?' · '+tpTimeInfoText(j):''}</div>
   <div class="tp-jact">${actHTML}</div>
 </div>`; 
 }
@@ -955,7 +964,7 @@ function tpOpenJobModal(id){
     ${raw&&raw.repairDuration?`<div class="tp-mrow"><div class="tp-mrow-lbl">เวลาที่ใช้ซ่อม</div><div class="tp-mrow-val">${raw.repairDuration}</div></div>`:''}
     <div class="tp-mdivider"></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แท็ก</div><div class="tp-mrow-tags">${[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-mtag">${t}</span>`).join('')}</div></div>
-    ${j.eta?`<div class="tp-mrow"><div class="tp-mrow-lbl">กำหนดเสร็จ</div><div class="tp-mrow-val">${j.eta}</div></div>`:''}
+    ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):(j.eta?`<div class="tp-mrow"><div class="tp-mrow-lbl">กำหนดเสร็จ</div><div class="tp-mrow-val">${j.eta}</div></div>`:'')}
   ${j.overdue?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;color:#ef4444;font-size:12px"><i class="ion-ios-warning"></i> เกินกำหนด ${j.overdueHrs} ชั่วโมง</div>`:''}
   ${(() => {
   let imgs = [];

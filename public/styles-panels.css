@@ -538,7 +538,7 @@
 .adm-kpi-bar-v2 {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 0;
   padding: 0;
 }
@@ -546,59 +546,83 @@
 .adm-kpi-v2 {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px 20px 17px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
   position: relative;
   overflow: hidden;
-  transition: transform .15s, box-shadow .15s;
+  transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s cubic-bezier(.2,.8,.2,1), border-color .2s;
   cursor: default;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
 }
 .adm-kpi-v2:hover {
   border-color: var(--border2);
+  box-shadow: 0 10px 24px -8px rgba(16,24,40,.14);
 }
 .adm-kpi-v2::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  border-radius: var(--r) var(--r) 0 0;
+  border-radius: 16px 16px 0 0;
+  opacity: .9;
 }
+.adm-kpi-v2::after {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: var(--kv-glow, transparent);
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: .5;
+  transition: opacity .2s;
+}
+.adm-kpi-v2:hover::after { opacity: .85; }
 
-/* สีแถบบน + icon bg — สีต่างกันจริงตามหมวด ไม่ซ้ำ */
-.kv-blue::before   { background: var(--accent); }
-.kv-amber::before  { background: var(--yellow); }
-.kv-orange::before { background: var(--orange); }
-.kv-green::before  { background: var(--green); }
-.kv-purple::before { background: var(--purple); }
-.kv-teal::before   { background: var(--teal); }
+/* สีแถบบน + glow + icon bg — สีต่างกันจริงตามหมวด ไม่ซ้ำ */
+.kv-blue::before   { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.kv-amber::before  { background: linear-gradient(90deg, var(--yellow), #f0b74a); }
+.kv-orange::before { background: linear-gradient(90deg, var(--orange), #f4894f); }
+.kv-green::before  { background: linear-gradient(90deg, var(--green), #34d399); }
+.kv-purple::before { background: linear-gradient(90deg, var(--purple), #a78bfa); }
+.kv-teal::before   { background: linear-gradient(90deg, var(--teal), #5eead4); }
+
+.kv-blue   { --kv-glow: rgba(46,92,230,.14); }
+.kv-amber  { --kv-glow: rgba(217,119,6,.14); }
+.kv-orange { --kv-glow: rgba(234,88,12,.14); }
+.kv-green  { --kv-glow: rgba(5,150,105,.14); }
+.kv-purple { --kv-glow: rgba(124,58,237,.14); }
+.kv-teal   { --kv-glow: rgba(20,184,166,.14); }
 
 .kv-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 17px;
   flex-shrink: 0;
-  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
 }
-.kv-blue   .kv-icon { background: rgba(46,92,230,.10);  color: var(--accent); }
-.kv-amber  .kv-icon { background: var(--yellow-bg);     color: var(--yellow); }
-.kv-orange .kv-icon { background: var(--orange-bg);     color: var(--orange); }
-.kv-green  .kv-icon { background: var(--green-bg);      color: var(--green); }
-.kv-purple .kv-icon { background: var(--purple-bg);     color: var(--purple); }
-.kv-teal   .kv-icon { background: var(--teal-bg);       color: var(--teal); }
+.kv-blue   .kv-icon { background: linear-gradient(155deg, rgba(46,92,230,.16), rgba(46,92,230,.06));  color: var(--accent); }
+.kv-amber  .kv-icon { background: linear-gradient(155deg, rgba(217,119,6,.16), rgba(217,119,6,.06));  color: var(--yellow); }
+.kv-orange .kv-icon { background: linear-gradient(155deg, rgba(234,88,12,.16), rgba(234,88,12,.06));  color: var(--orange); }
+.kv-green  .kv-icon { background: linear-gradient(155deg, rgba(5,150,105,.16), rgba(5,150,105,.06));  color: var(--green); }
+.kv-purple .kv-icon { background: linear-gradient(155deg, rgba(124,58,237,.16), rgba(124,58,237,.06)); color: var(--purple); }
+.kv-teal   .kv-icon { background: linear-gradient(155deg, rgba(20,184,166,.16), rgba(20,184,166,.06)); color: var(--teal); }
 
-.kv-body { flex: 1; min-width: 0; }
+.kv-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
 
 .kv-clickable { cursor: pointer; }
-.kv-clickable:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
-.kv-clickable:active { transform: translateY(0); }
+.kv-clickable:hover { transform: translateY(-3px); }
+.kv-clickable:active { transform: translateY(-1px); }
 
 /* ── Dept Breakdown Modal — เวอร์ชันจัดรูปแบบใหม่ ── */
 #dbm-title { display: flex; align-items: center; gap: 12px; }
@@ -679,12 +703,13 @@
 .pm-file-menu-divider{ height:1px; background:var(--border); margin:5px 4px; }
 
 .kv-val {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 27px;
+  font-weight: 800;
   font-family: var(--font-mono);
   line-height: 1;
-  margin-bottom: 3px;
-  letter-spacing: -.5px;
+  margin-bottom: 4px;
+  letter-spacing: -.6px;
+  font-variant-numeric: tabular-nums;
 }
 .kv-blue   .kv-val { color: var(--accent); }
 .kv-amber  .kv-val { color: var(--yellow); }
@@ -694,30 +719,35 @@
 .kv-teal   .kv-val { color: var(--teal); }
 
 .kv-lbl {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text2);
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 6px;
+  letter-spacing: .4px;
+  margin-bottom: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .kv-trend {
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--text3);
-  display: flex;
+  background: var(--bg2);
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
   white-space: nowrap;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.kv-trend.up   { color: var(--green); }
-.kv-trend.down { color: var(--red); }
-.kv-trend.warn { color: var(--yellow); }
+.kv-trend.up   { color: var(--green);  background: var(--green-bg); }
+.kv-trend.down { color: var(--red, #dc2626); background: rgba(220,38,38,.09); }
+.kv-trend.warn { color: var(--yellow); background: var(--yellow-bg); }
 
 /* ── Filter Row v2 ── */
 .adm-filter-row-v2 {
