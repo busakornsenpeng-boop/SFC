@@ -389,7 +389,7 @@ function setupDashboard() {
     {panel:'report-repair', label:'แจ้งซ่อมบำรุง',  icon:'ion-ios-add-circle-outline'},
     {panel:'track-repairs', label:'ติดตามงานซ่อม',   icon:'ion-ios-time'},
    {panel:'ins-daily-pm',  label:'เช็คก่อนผลิตทุกวัน',  icon:'ion-ios-clipboard'},
-    {panel:'qc-panel',      label:'ตรวจรับงาน QC',   icon:'ion-ios-ribbon'}
+    {panel:'qc-panel',      label:'ตรวจรับงาน',      icon:'ion-ios-ribbon'}
   ],
   engineer: [
     // แท็บสำหรับวิศวกร
@@ -546,12 +546,12 @@ function engRenderQC() {
   if(sub) sub.textContent=`งานซ่อมที่รอตรวจสอบคุณภาพ • ${qcJobs.length} รายการ`;
   if(!grid) return;
   if(!qcJobs.length){
-    grid.innerHTML='<div style="color:var(--text3);text-align:center;padding:2rem;font-size:13px"><i class="ion-ios-archive"></i> ไม่มีงานรอตรวจ QC ขณะนี้</div>';
+    grid.innerHTML='<div style="color:var(--text3);text-align:center;padding:2rem;font-size:13px"><i class="ion-ios-archive"></i> ไม่มีงานรอตรวจรับขณะนี้</div>';
     return;
   }
   grid.innerHTML=qcJobs.map(j=>`
     <div class="qc-card" style="border-left:3px solid var(--teal)">
-      <div class="qc-card-top"><span class="qc-card-id">${j.id}</span><span class="qc-urgency normal">รอ QC</span></div>
+      <div class="qc-card-top"><span class="qc-card-id">${j.id}</span><span class="qc-urgency normal">รอตรวจรับ</span></div>
       <div class="qc-card-machine">${j.machine}</div>
       <div class="qc-card-tech"><i class="ion-ios-construct"></i> ${j.technician||'—'} · เสร็จ ${j.doneDate||j.date||'—'}</div>
       <div class="qc-card-meta">
@@ -561,7 +561,7 @@ function engRenderQC() {
       </div>
       <div class="qc-card-actions">
         <button class="qc-btn-detail" onclick="viewJobDetail('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
-        <button class="qc-btn-do"     onclick="engOpenQC('${j.id}')"><i class="ion-ios-checkmark-circle"></i> ทำ QC ตรวจสอบ</button>
+        <button class="qc-btn-do"     onclick="engOpenQC('${j.id}')"><i class="ion-ios-checkmark-circle"></i> ตรวจรับงาน</button>
       </div>
     </div>`).join('');
 }
@@ -603,7 +603,7 @@ function engRenderDash() {
         </div>`).join('');
     } else {
       recentEl.innerHTML=`
-        <div class="recent-item"><div class="recent-info"><div class="recent-machine">FLF (03) — ผ่าน QC</div><div class="recent-date">วันนี้</div></div><span class="rpill pass">ปกติ</span></div>
+        <div class="recent-item"><div class="recent-info"><div class="recent-machine">FLF (03) — ผ่านตรวจรับ</div><div class="recent-date">วันนี้</div></div><span class="rpill pass">ปกติ</span></div>
         <div class="recent-item"><div class="recent-info"><div class="recent-machine">PM FLF (12) — ตรวจแล้ว</div><div class="recent-date">วันนี้</div></div><span class="rpill qc">PM เสร็จ</span></div>`;
     }
   }
@@ -875,7 +875,7 @@ function tpJobCardHTML(j,mode){
     <button class="tp-jbtn-a acc" onclick="tpAcceptJob('${j.id}')"><i class="ion-ios-hand"></i> รับงาน</button>
     <button class="tp-jbtn-a" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#ef4444;margin-top:6px;width:100%" onclick="tpOpenRejectModal('${j.id}')">↩ ตีกลับ — ขอข้อมูลเพิ่ม</button>`;
 } else if(j.status==='ซ่อมเสร็จแล้ว'){
-  // เสร็จแล้ว → รอ QC → ไม่มีปุ่มอัปเดต
+  // เสร็จแล้ว → รอตรวจรับ → ไม่มีปุ่มอัปเดต
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:var(--teal)">⏳ รอตรวจรับงาน</div>`;
 } else if(j.status==='กำลังซ่อม'||j.status==='รออะไหล่'||j.status==='Workaround'||j.status==='ขอหยุดเครื่อง'){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
@@ -2299,7 +2299,7 @@ async function exportAdminRepairsExcel(){
       { header:'เวลาที่ใช้ซ่อม',  key:'fixDuration',  width:16 },
       { header:'เวลาที่ใช้รออะไหล่',key:'waitDuration', width:18 },
       { header:'หมายเหตุ',      key:'note',    width:24 },
-      { header:'ผล QC',        key:'qc',      width:12 },
+      { header:'ผลตรวจรับ',    key:'qc',      width:12 },
       { header:'รูปก่อนซ่อม',   key:'imgBefore',width:20 },
       { header:'รูปหลังซ่อม',   key:'imgAfter', width:20 },
     ];
@@ -2953,8 +2953,8 @@ const TE_JOB_FILTERS = {
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
   progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
   // เดิมแยกเป็น "ซ่อมแล้ว" กับ "รอตรวจรับ" สองช่อง แต่ทั้งสามค่าสถานะนี้หมายถึงเรื่องเดียวกัน
-  // (ซ่อมเสร็จแล้ว รอทีมตรวจรับ QC) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
-  pendqc:    { label: 'รอตรวจรับ(ซ่อม)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอ QC'].includes(j.status) },
+  // (ซ่อมเสร็จแล้ว รอทีมตรวจรับงาน) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
+  pendqc:    { label: 'รอตรวจรับ(ซ่อม)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอตรวจรับ'].includes(j.status) },
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
 };
 let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
@@ -3037,13 +3037,13 @@ function teRenderMine() {
 function teRenderQC() {
   const el       = document.getElementById('te-v-qc');
   const qcJobs   = getRepairJobsData().filter(j => j.status === 'ซ่อมเสร็จแล้ว');
-  const doneJobs = getRepairJobsData().filter(j => j.qcResult && j.qcResult !== '' && j.qcResult !== 'รอ QC' && j.status !== 'ซ่อมเสร็จแล้ว');
+  const doneJobs = getRepairJobsData().filter(j => j.qcResult && j.qcResult !== '' && j.qcResult !== 'รอตรวจรับ' && j.status !== 'ซ่อมเสร็จแล้ว');
 
   const cardHTML = (j, isDone) => `
     <div class="qc-card" style="border-left:3px solid ${isDone ? 'var(--border)' : 'var(--teal)'}">
       <div class="qc-card-top">
         <span class="qc-card-id">${j.id}</span>
-        <span class="qc-urgency ${isDone ? 'normal' : 'high'}">${isDone ? (j.qcResult||'เสร็จ') : 'รอ QC'}</span>
+        <span class="qc-urgency ${isDone ? 'normal' : 'high'}">${isDone ? (j.qcResult||'เสร็จ') : 'รอตรวจรับ'}</span>
       </div>
       <div class="qc-card-machine">${j.machine}</div>
       <div class="qc-card-tech"><i class="ion-ios-construct"></i> ${j.technician||'—'} · ${j.doneDate||j.date}</div>
@@ -3053,15 +3053,15 @@ function teRenderQC() {
       </div>
       <div class="qc-card-actions">
         <button class="qc-btn-detail" onclick="viewJobDetail('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
-        ${!isDone ? `<button class="qc-btn-do" onclick="viewJobDetail('${j.id}')"><i class="ion-ios-checkmark-circle"></i> ทำ QC</button>` : ''}
+        ${!isDone ? `<button class="qc-btn-do" onclick="viewJobDetail('${j.id}')"><i class="ion-ios-checkmark-circle"></i> ตรวจรับงาน</button>` : ''}
       </div>
     </div>`;
 
   el.innerHTML = `
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">รอ QC • ${qcJobs.length} รายการ</div>
-    <div class="qc-grid">${qcJobs.map(j => cardHTML(j,false)).join('') || '<div style="color:var(--text3);padding:1rem;font-size:13px"><i class="ion-ios-archive"></i> ไม่มีงานรอ QC</div>'}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">รอตรวจรับ • ${qcJobs.length} รายการ</div>
+    <div class="qc-grid">${qcJobs.map(j => cardHTML(j,false)).join('') || '<div style="color:var(--text3);padding:1rem;font-size:13px"><i class="ion-ios-archive"></i> ไม่มีงานรอตรวจรับ</div>'}</div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">QC แล้ว • ${doneJobs.length} รายการ</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">ตรวจรับแล้ว • ${doneJobs.length} รายการ</div>
       <div class="qc-grid">${doneJobs.map(j => cardHTML(j,true)).join('') || '<div style="color:var(--text3);padding:1rem;font-size:13px">ยังไม่มีประวัติ</div>'}</div>
     </div>`;
 }
@@ -3908,7 +3908,7 @@ function engSubmitQC() {
   const note   = document.getElementById('eqc-note')?.value || '';
 
   if (!isLocalMode) {
-    showLoading('กำลังบันทึก QC...');
+    showLoading('กำลังบันทึกการตรวจรับ...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/qc`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3918,9 +3918,9 @@ function engSubmitQC() {
     .then(res => {
       hideLoading();
       if (res.success) {
-        showToast(`QC: ${result} — ${j.machine}`, result==='ผ่าน QC'?'success':'warning');
+        showToast(`ตรวจรับ: ${result} — ${j.machine}`, result==='ผ่านตรวจรับ'?'success':'warning');
         closeModal('job-detail-modal');
-        // refetch จริง แทนการ patch local — ต้องได้ closedDate (W) ที่ backend auto-set ไปตอน QC ผ่าน
+        // refetch จริง แทนการ patch local — ต้องได้ closedDate (W) ที่ backend auto-set ไปตอนตรวจรับผ่าน
         // มาด้วย ไม่งั้นการ์ดระยะเวลาในพาเนลแอดมินจะยังใช้ค่าเก่า/ว่างอยู่
         loadAllData().then(() => {
           renderRepairsTable(); renderAdminRepairsTable();
@@ -3932,10 +3932,10 @@ function engSubmitQC() {
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
     return;
   }
-  j.status = result==='ผ่าน QC' ? 'ปิดงาน' : 'แก้ไข (ตีกลับ)';
+  j.status = result==='ผ่านตรวจรับ' ? 'ปิดงาน' : 'แก้ไข (ตีกลับ)';
   j.qcResult = result; j.qcBy = by;
   closeModal('job-detail-modal');
-  showToast(`QC: ${result} — ${j.machine}`, result==='ผ่าน QC'?'success':'warning');
+  showToast(`ตรวจรับ: ${result} — ${j.machine}`, result==='ผ่านตรวจรับ'?'success':'warning');
   renderRepairsTable(); renderUserQCPanel();
 }
 
@@ -4095,7 +4095,7 @@ function closeRegisterModal() {
     btn.disabled         = false;
   }
   const status = document.getElementById('reg-line-status');
-  if (status) status.innerHTML = 'รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่าน QC';
+  if (status) status.innerHTML = 'รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่านตรวจรับ';
 }
 
 // ── submitRegister — แทนที่ฟังก์ชันเดิม ──

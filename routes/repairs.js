@@ -12,13 +12,13 @@ cloudinary.config({
 });
 
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ', 'แก้ไข (ตีกลับ)'];
-const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
+const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอตรวจรับ'];
 
 // ── สถานะ "ตีกลับ" ทั้งสองแบบ ──
 // - 'ตีกลับ'            → ช่างตีกลับขอข้อมูลเพิ่ม (route /:id/reject)
-// - 'แก้ไข (ตีกลับ)'     → QC ไม่ผ่าน (route /:id/qc)
+// - 'แก้ไข (ตีกลับ)'     → ตรวจรับไม่ผ่าน (route /:id/qc)
 // ทั้งสองแบบต้องเดิน flow "ส่งกลับให้ผู้แจ้งแก้ไข → resubmit เข้าคิวใหม่" เหมือนกัน
-// จึงต้องเช็คคู่กันเสมอ ห้ามเช็คแค่ 'ตีกลับ' เพราะจะทำให้งาน QC ไม่ผ่านค้าง ไม่มีทางแก้ไขต่อ
+// จึงต้องเช็คคู่กันเสมอ ห้ามเช็คแค่ 'ตีกลับ' เพราะจะทำให้งานตรวจรับไม่ผ่านค้าง ไม่มีทางแก้ไขต่อ
 const BOUNCED_STATUSES = ['ตีกลับ', 'แก้ไข (ตีกลับ)'];
 
 // ── สถานะที่นับเป็น "กำลังรอ" (รออะไหล่ / ขอหยุดเครื่อง) ──
@@ -134,7 +134,7 @@ async function getAllRepairs() {
     imgAfter:     row[8]  || '',
     status:       row[9]  || '',
     technician:   row[10] || '',
-    doneDate:     row[11] || '', // เวลาที่ช่างแจ้งว่าซ่อมเสร็จ ("ซ่อมเสร็จ/ซ่อมเสร็จแล้ว/รอ QC")
+    doneDate:     row[11] || '', // เวลาที่ช่างแจ้งว่าซ่อมเสร็จ ("ซ่อมเสร็จ/ซ่อมเสร็จแล้ว/รอตรวจรับ")
     eta:          row[12] || '', // เดิม — เหลือไว้เผื่อยังมีที่ใช้อยู่ (ช่างฝั่ง tech update)
     note:         row[13] || '',
     qcResult:     row[14] || '',
@@ -145,7 +145,7 @@ async function getAllRepairs() {
     approval:     row[19] || '',
     actionBy:     row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
     acceptedDate: row[21] || '', // ← เวลาที่ช่างกดรับงาน (V)
-    closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลัง QC ผ่าน/แอดมินปิดงาน (W)
+    closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลังตรวจรับผ่าน/แอดมินปิดงาน (W)
     hadWait:      row[23] || '', // ← 'TRUE' ถ้างานนี้เคยผ่านสถานะรออะไหล่/ขอหยุดเครื่อง (X)
     repairDuration: row[24] || '', // ← เวลาที่ใช้ซ่อม กรอกเองโดยช่างตอนอัปเดตงาน (Y)
     waitStart:    row[25] || '', // ← เวลาที่เริ่มเข้าสถานะรออะไหล่/ขอหยุดเครื่อง (ถ้ากำลังรออยู่ตอนนี้) (Z)
@@ -314,7 +314,7 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
-    if (status === 'ซ่อมเสร็จ' || status === 'รอ QC' || status === 'ซ่อมเสร็จแล้ว')
+    if (status === 'ซ่อมเสร็จ' || status === 'รอตรวจรับ' || status === 'ซ่อมเสร็จแล้ว')
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
     if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง')
@@ -352,7 +352,7 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
       );
     }
 
-    // ตัดแจ้งเตือน admin ตอน "เสร็จซ่อม/รอ QC" ออก — แอดมินรู้แค่ตอนเปิดงาน กับ ตอน QC ผ่าน (ปิดงาน) พอ
+    // ตัดแจ้งเตือน admin ตอน "เสร็จซ่อม/รอตรวจรับ" ออก — แอดมินรู้แค่ตอนเปิดงาน กับ ตอนตรวจรับผ่าน (ปิดงาน) พอ
     // (TODO เปิดใช้ภายหลัง — แจ้งเตือนช่างตอนงานเสร็จ ถ้าต้องการ)
 
     res.json({ success: true });
@@ -379,10 +379,10 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
     const requesterName = rows[rowIndex][1]  || '';
     const techName      = rows[rowIndex][10] || '';
     const machine       = rows[rowIndex][3]  || '';
-    // QC ไม่ผ่าน = งานซ่อมยังไม่เรียบร้อย ต้องกลับไปให้ "ช่างคนเดิม" แก้ไขต่อ (ไม่ใช่ส่งกลับผู้แจ้งขอข้อมูลเพิ่ม
+    // ตรวจรับไม่ผ่าน = งานซ่อมยังไม่เรียบร้อย ต้องกลับไปให้ "ช่างคนเดิม" แก้ไขต่อ (ไม่ใช่ส่งกลับผู้แจ้งขอข้อมูลเพิ่ม
     // แบบ /:id/reject) จึงตั้งสถานะกลับเป็น "กำลังซ่อม" และไม่แตะคอลัมน์ K (ชื่อช่าง) เพื่อให้ช่างเดิมยังเป็นเจ้าของงาน
-    const newStatus  = result === 'ผ่าน QC' ? 'ปิดงาน' : 'กำลังซ่อม';
-    const qcFailNote = `[QC ไม่ผ่าน ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${note || 'ไม่ระบุเหตุผล'}`;
+    const newStatus  = result === 'ผ่านตรวจรับ' ? 'ปิดงาน' : 'กำลังซ่อม';
+    const qcFailNote = `[ตรวจรับไม่ผ่าน ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${note || 'ไม่ระบุเหตุผล'}`;
     const sheetRow      = rowIndex + 2;
 
     const updateData = [
@@ -392,13 +392,13 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
       { range: `Repairs!Q${sheetRow}`, values: [[note   || '']] },
     ];
     // เดิม route นี้เขียนเวลาทับคอลัมน์ L (doneDate) ซ้ำ ทำให้แยกไม่ออกว่า "เสร็จซ่อม" กับ
-    // "ปิดงานจริง (QC ผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
+    // "ปิดงานจริง (ตรวจรับผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
     // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
-    if (result === 'ผ่าน QC') {
+    if (result === 'ผ่านตรวจรับ') {
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     } else {
-      // บันทึกเหตุผล QC ไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
-      // ทำให้ช่างเห็นเหตุผลที่ QC ตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
+      // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
+      // ทำให้ช่างเห็นเหตุผลที่ตรวจรับตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
       updateData.push({ range: `Repairs!N${sheetRow}`, values: [[qcFailNote]] });
     }
 
@@ -407,38 +407,38 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
       requestBody: { valueInputOption: 'USER_ENTERED', data: updateData }
     });
 
-   if (result === 'ผ่าน QC') {
+   if (result === 'ผ่านตรวจรับ') {
       const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
       if (requesterLineId) {
         await sendLineMessage(requesterLineId,
-          `🎉 งานซ่อมผ่าน QC และปิดงานแล้ว!\n` +
+          `🎉 งานซ่อมผ่านการตรวจรับและปิดงานแล้ว!\n` +
           `📋 รหัสงาน: ${id}\n` +
           `🔧 เครื่องจักร: ${machine}\n` +
           `✅ ตรวจสอบโดย: ${by}`
         );
       }
-      // ตัดแจ้งเตือนช่างตอนผ่าน QC ออก (แอดมินเป็นผู้ประสานงานให้ช่างเอง)
+      // ตัดแจ้งเตือนช่างตอนตรวจรับผ่านออก (แอดมินเป็นผู้ประสานงานให้ช่างเอง)
       // แจ้ง admin ผ่าน LINE
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่าน QC - ${by}`);
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่านตรวจรับ - ${by}`);
     } else {
-      // แจ้งช่างคนที่รับงานนี้ไว้ — QC ไม่ผ่าน งานกลับเข้าสถานะ "กำลังซ่อม" ให้แก้ไขต่อ
+      // แจ้งช่างคนที่รับงานนี้ไว้ — ตรวจรับไม่ผ่าน งานกลับเข้าสถานะ "กำลังซ่อม" ให้แก้ไขต่อ
       const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
       if (techLineId) {
         await sendLineMessage(techLineId,
-          `⚠️ งานซ่อมไม่ผ่าน QC!\n` +
+          `⚠️ งานซ่อมไม่ผ่านการตรวจรับ!\n` +
           `📋 รหัสงาน: ${id}\n` +
           `🔧 เครื่องจักร: ${machine}\n` +
           `📝 เหตุผล: ${note || 'ไม่ระบุ'}\n` +
-          `กรุณาดำเนินการแก้ไขต่อแล้วส่งตรวจ QC อีกครั้ง`
+          `กรุณาดำเนินการแก้ไขต่อแล้วส่งตรวจรับอีกครั้ง`
         );
       }
-      // แจ้ง admin ผ่าน LINE ตอน QC ไม่ผ่าน
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'QC ไม่ผ่าน', note || '');
+      // แจ้ง admin ผ่าน LINE ตอนตรวจรับไม่ผ่าน
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error('QC error:', err);
+    console.error('ตรวจรับงาน error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -705,13 +705,13 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
 
     // "เวลารับงาน" (V) — เผื่อแอดมิน assign ช่างแล้วเปลี่ยนสถานะเองโดยไม่ผ่านปุ่ม "รับงาน" ของช่าง
     const alreadyAcceptedAt = rows[rowIndex][21] || '';
-    const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
+    const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'ซ่อมเสร็จ', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
     if (status && startedStatuses.includes(status) && !alreadyAcceptedAt) {
       updateData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
-    // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอ QC เหมือนเดิม
-    if (['ซ่อมเสร็จ', 'รอ QC', 'ซ่อมเสร็จแล้ว'].includes(status)) {
+    // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอตรวจรับ เหมือนเดิม
+    if (['ซ่อมเสร็จ', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว'].includes(status)) {
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
@@ -739,8 +739,8 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
         'กำลังซ่อม':     '🔧 ช่างกำลังดำเนินการซ่อมอยู่',
         'รออะไหล่':      '⏳ ระบบรอจัดหาอะไหล่เข้า',
         'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อดำเนินการซ่อม',
-        'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
-        'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจสอบ QC',
+        'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจรับงาน',
+        'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจรับงาน',
         'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
         'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
       }[status] || `📌 สถานะ: ${status}`;

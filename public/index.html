@@ -431,7 +431,7 @@
         <div class="eng-wrap">
           <!-- KPI Summary -->
           <div class="eng-summary">
-            <div class="eng-kpi ek-red"><span class="eng-kpi-icon"><i class="ion-ios-search"></i></span><div class="eng-kpi-val" id="eng-kpi-qc">0</div><div class="eng-kpi-lbl">รอ QC</div></div>
+            <div class="eng-kpi ek-red"><span class="eng-kpi-icon"><i class="ion-ios-search"></i></span><div class="eng-kpi-val" id="eng-kpi-qc">0</div><div class="eng-kpi-lbl">รอตรวจรับ</div></div>
             <div class="eng-kpi ek-yellow"><span class="eng-kpi-icon">⏳</span><div class="eng-kpi-val" id="eng-kpi-pmpend">0</div><div class="eng-kpi-lbl">PM รอดำเนินการ</div></div>
             <div class="eng-kpi ek-green"><span class="eng-kpi-icon"><i class="ion-ios-checkmark-circle-outline"></i></span><div class="eng-kpi-val" id="eng-kpi-pmdone">0</div><div class="eng-kpi-lbl">PM เสร็จแล้ว</div></div>
             <div class="eng-kpi ek-teal"><span class="eng-kpi-icon"><i class="ion-ios-clipboard"></i></span><div class="eng-kpi-val" id="eng-kpi-pmtotal">0</div><div class="eng-kpi-lbl">PM ทั้งหมด</div></div>
@@ -439,7 +439,7 @@
           </div>
           <!-- Sub-tabs -->
           <div class="eng-tabs">
-            <button class="eng-tab active" id="et-qc"   onclick="swEng('qc',this)"><i class="ion-ios-search"></i> งาน QC <span class="eng-tab-badge alert" id="eng-badge-qc">0</span></button>
+            <button class="eng-tab active" id="et-qc"   onclick="swEng('qc',this)"><i class="ion-ios-search"></i> งานตรวจรับ <span class="eng-tab-badge alert" id="eng-badge-qc">0</span></button>
             <button class="eng-tab"        id="et-dash" onclick="swEng('dash',this)">📊 ภาพรวม</button>
             <button class="eng-tab"        id="et-pm"   onclick="swEng('pm',this)"><i class="ion-ios-clipboard"></i> กำหนด PM <span class="eng-tab-badge" id="eng-badge-pm">0</span></button>
             <button class="eng-tab"        id="et-cal"  onclick="swEng('cal',this)">📅 ปฏิทิน PM</button>
@@ -448,12 +448,12 @@
             <button class="eng-tab"        id="et-daily" onclick="swEng('daily',this)"><i class="ion-ios-clipboard"></i> Daily PM <span class="eng-tab-badge" id="eng-badge-daily">0</span></button>
           </div>
 
-          <!-- QC Tab -->
+          <!-- Tab ตรวจรับงาน -->
           <div class="eng-panel active" id="ep-qc">
             <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px" id="ep-qc-subtitle">งานซ่อมที่รอตรวจสอบคุณภาพ</div>
             <div class="qc-grid" id="ep-qc-grid"></div>
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
-              <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px" id="ep-qc-done-subtitle">งานที่ตรวจ QC แล้ว</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px" id="ep-qc-done-subtitle">งานที่ตรวจรับแล้ว</div>
               <div class="qc-grid" id="ep-qc-done-grid"></div>
             </div>
           </div>
@@ -761,7 +761,7 @@
                 <tr>
                   <th>JobID</th><th>วันที่แจ้ง</th><th>ผู้แจ้ง</th>
                   <th>เครื่องจักร</th><th>ช่างซ่อม</th><th>สถานะ</th>
-                  <th>QC</th><th>ดำเนินการ</th>
+                  <th>ตรวจรับ</th><th>ดำเนินการ</th>
                 </tr>
               </thead>
               <tbody id="admin-rep-list-tbody"></tbody>
@@ -845,11 +845,11 @@
   <div id="panel-admin-techprofiles" style="display:none"></div>
 </div>
     </section>
-    <!-- PANEL: QC พนักงาน -->
+    <!-- PANEL: ตรวจรับงาน พนักงาน -->
 <div id="panel-qc-panel" class="view-panel">
   <div class="card">
     <div class="card-title">
-      <i class="ion-ios-ribbon"></i> ตรวจรับงานซ่อม (QC)
+      <i class="ion-ios-ribbon"></i> ตรวจรับงานซ่อม
     </div>
     <p style="color:var(--text2);font-size:13px;margin-bottom:16px">
       งานที่ช่างซ่อมเสร็จแล้ว รอการตรวจรับจากผู้แจ้งซ่อม
@@ -1085,7 +1085,7 @@
           เชื่อมต่อ LINE OA
         </button>
         <div id="reg-line-status" style="margin-top:8px;font-size:11px;color:var(--text3,#98a2b8);text-align:center">
-          รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่าน QC
+          รับการแจ้งเตือนตรงใน LINE เมื่อช่างรับงาน อัปเดตสถานะ และงานผ่านตรวจรับ
         </div>
       </div>
       <div id="reg-error" style="display:none;margin-top:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626);"></div>
@@ -1138,7 +1138,7 @@
               <label>สถานะการทำงาน</label>
               <select id="tup-status" class="select-ctrl" onchange="toggleDoneInputFields(this.value)">
                 <option value="กำลังซ่อม">กำลังดำเนินการแก้ไข</option>
-                <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว (ส่งตรวจสอบ QC)</option>
+                <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว (ส่งตรวจรับ)</option>
                 <option value="รออะไหล่">รอสั่งซื้อชิ้นส่วนอะไหล่</option>
                 <option value="ขอหยุดเครื่อง">ขอหยุดเครื่องเพื่อซ่อม</option>
                 <option value="Workaround">แก้ไขชั่วคราว (Workaround)</option>
@@ -1153,22 +1153,22 @@
             <i class="ion-ios-cloud-upload"></i> บันทึกความคืบหน้า
           </button>
         </div>
-        <!-- Engineer: QC -->
+        <!-- Engineer: ตรวจรับงาน -->
         <div id="eng-action-qc" class="d-none" style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
-          <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">บันทึกการตรวจสอบคุณภาพ (QC)</h4>
+          <h4 style="margin-bottom:12px;font-size:14px;font-weight:700;color:var(--teal)">บันทึกการตรวจรับงาน</h4>
           <div class="form-grid-2">
             <div class="form-field">
               <label>ผลการตรวจสอบ</label>
               <select id="eqc-result" class="select-ctrl">
-                <option value="ผ่าน QC">ผ่าน QC (ปิดงานถาวร)</option>
+                <option value="ผ่านตรวจรับ">ผ่านตรวจรับ (ปิดงานถาวร)</option>
                 <option value="ตีกลับ">ตีกลับ (ส่งแก้ไขให้ช่างทำใหม่)</option>
               </select>
             </div>
-            <div class="form-field"><label>ผู้ตรวจสอบ QC</label><input type="text" id="eqc-by" class="input-ctrl" readonly></div>
+            <div class="form-field"><label>ผู้ตรวจรับงาน</label><input type="text" id="eqc-by" class="input-ctrl" readonly></div>
           </div>
           <div class="form-field" style="margin:12px 0 16px"><label>ข้อสังเกต / เหตุผล</label><textarea id="eqc-note" class="textarea-ctrl" placeholder="ระบุเหตุผล..."></textarea></div>
           <button class="btn btn-accent" style="width:100%" onclick="engSubmitQC()">
-            <i class="ion-ios-ribbon"></i> บันทึกใบรับรอง QC
+            <i class="ion-ios-ribbon"></i> บันทึกใบรับรองการตรวจรับงาน
           </button>
         </div>
         <!-- Admin: Edit -->

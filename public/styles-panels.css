@@ -219,7 +219,7 @@
   .eng-tab-badge.alert{background:var(--red);color:white;border-radius:var(--r-sm);padding:1px 6px;font-size:10px;font-weight:700}
   .eng-panel{display:none;animation:tabFadeIn .25s ease-out}
   .eng-panel.active{display:block}
-  /* QC Grid */
+  /* ตรวจรับงาน Grid */
   .qc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
   .qc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm)}
   .qc-card:hover{border-color:var(--border2);box-shadow:var(--shadow)}
