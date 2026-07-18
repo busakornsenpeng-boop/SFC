@@ -1313,7 +1313,7 @@ function renderRepairsTable(){
   const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF))&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลรายการแจ้งซ่อม</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
-    const isBounced = j.status==='ตีกลับ';
+    const isBounced = j.status==='ตีกลับ'||j.status==='แก้ไข (ตีกลับ)';
     const actBtns = isBounced
       ? `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button><button class="btn-action" style="border-color:var(--accent);color:var(--accent);margin-left:6px" onclick="userOpenResubmitModal('${escapeHtml(j.id)}')"><i class="ion-ios-create"></i> แก้ไขและส่งใหม่</button>`
       : `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button>`;
@@ -3749,7 +3749,7 @@ function viewJobDetail(id) {
     const t = document.getElementById('adm-job-tech');   if(t && j.technician) t.value = j.technician;
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
     // ปุ่ม "ยกเลิกการตีกลับ" โชว์เฉพาะตอนงานถูกช่างตีกลับอยู่ (ให้แอดมิน override ส่งกลับเข้าคิวได้ถ้าเห็นว่าไม่สมควรตีกลับ)
-    document.getElementById('admin-action-cancel')?.classList.toggle('d-none', j.status !== 'ตีกลับ');
+    document.getElementById('admin-action-cancel')?.classList.toggle('d-none', !(j.status === 'ตีกลับ' || j.status === 'แก้ไข (ตีกลับ)'));
   }
   openModal('job-detail-modal');
 }

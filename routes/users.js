@@ -358,8 +358,22 @@ router.post('/line/link', async (req, res) => {
     }
 
     const users = await getAllUsers();
-    const user  = users.find(u => u.username === username && u.password === password);
+    const user  = users.find(u => u.username === username);
     if (!user) {
+      return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
+    }
+
+    // รองรับทั้งรหัสผ่านแบบเก่า (plaintext) และแบบ bcrypt hash เหมือนกับ /login
+    // (เดิม endpoint นี้เทียบ plaintext ตรงๆ ซึ่งพังทันทีที่ password ของ user ถูก
+    // auto-migrate เป็น bcrypt hash ตอน login สำเร็จครั้งแรก ทำให้ผูก LINE ผ่านหน้านี้ไม่ได้อีกเลย)
+    let passwordOk = false;
+    if (isBcryptHash(user.password)) {
+      passwordOk = await bcrypt.compare(password, user.password);
+    } else {
+      passwordOk = password === user.password;
+      if (passwordOk) await upgradePasswordHash(username, password);
+    }
+    if (!passwordOk) {
       return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
     }
     if (user.status !== 'active') {

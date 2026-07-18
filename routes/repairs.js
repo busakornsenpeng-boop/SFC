@@ -11,8 +11,15 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ'];
+const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ', 'แก้ไข (ตีกลับ)'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอ QC'];
+
+// ── สถานะ "ตีกลับ" ทั้งสองแบบ ──
+// - 'ตีกลับ'            → ช่างตีกลับขอข้อมูลเพิ่ม (route /:id/reject)
+// - 'แก้ไข (ตีกลับ)'     → QC ไม่ผ่าน (route /:id/qc)
+// ทั้งสองแบบต้องเดิน flow "ส่งกลับให้ผู้แจ้งแก้ไข → resubmit เข้าคิวใหม่" เหมือนกัน
+// จึงต้องเช็คคู่กันเสมอ ห้ามเช็คแค่ 'ตีกลับ' เพราะจะทำให้งาน QC ไม่ผ่านค้าง ไม่มีทางแก้ไขต่อ
+const BOUNCED_STATUSES = ['ตีกลับ', 'แก้ไข (ตีกลับ)'];
 
 // ── สถานะที่นับเป็น "กำลังรอ" (รออะไหล่ / ขอหยุดเครื่อง) ──
 // ใช้จับเวลาเข้า-ออกสถานะนี้ เพื่อคำนวณ "ใช้เวลารออะไหล่" แยกจาก "ใช้เวลาซ่อม"
@@ -531,7 +538,7 @@ router.post('/:id/resubmit', requireAuth, async (req, res) => {
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
 
     const currentStatus = rows[rowIndex][9] || '';
-    if (currentStatus !== 'ตีกลับ')
+    if (!BOUNCED_STATUSES.includes(currentStatus))
       return res.json({ success: false, message: `ส่งงานนี้ใหม่ได้เฉพาะตอนสถานะเป็น "ตีกลับ" เท่านั้น (ปัจจุบัน: ${currentStatus})` });
 
     // กันแก้ไขงานของคนอื่น — เช็คว่าชื่อผู้ส่งตรงกับผู้แจ้งเดิม (ถ้า frontend ส่งชื่อมาด้วย)
@@ -607,7 +614,7 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
 
     const currentStatus = rows[rowIndex][9] || '';
-    if (currentStatus !== 'ตีกลับ')
+    if (!BOUNCED_STATUSES.includes(currentStatus))
       return res.json({ success: false, message: `ยกเลิกการตีกลับได้เฉพาะงานที่อยู่ในสถานะ "ตีกลับ" เท่านั้น (ปัจจุบัน: ${currentStatus})` });
 
     const requesterName = rows[rowIndex][1] || '';
