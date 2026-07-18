@@ -844,7 +844,7 @@ function tpJobCardHTML(j,mode){
     'รออะไหล่':        {cls:'work',   text:'รออะไหล่'},
     'ขอหยุดเครื่อง':    {cls:'work',   text:'ขอหยุดเครื่อง'},
     'Workaround':      {cls:'work',   text:'Workaround'},
-    'ซ่อมเสร็จแล้ว':    {cls:'done-s', text:'รอ QC'},
+    'ซ่อมเสร็จแล้ว':    {cls:'done-s', text:'รอตรวจรับงาน'},
     'เสร็จแล้ว':        {cls:'done-s', text:'เสร็จแล้ว'},
     'ปิดงาน':          {cls:'done-s', text:'ปิดงานแล้ว'},
     'ตีกลับ':          {cls:'wait',   text:'↩ ตีกลับ'},
@@ -864,7 +864,7 @@ function tpJobCardHTML(j,mode){
     <button class="tp-jbtn-a" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#ef4444;margin-top:6px;width:100%" onclick="tpOpenRejectModal('${j.id}')">↩ ตีกลับ — ขอข้อมูลเพิ่ม</button>`;
 } else if(j.status==='ซ่อมเสร็จแล้ว'){
   // เสร็จแล้ว → รอ QC → ไม่มีปุ่มอัปเดต
-  actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:var(--teal)">⏳ รอ QC</div>`;
+  actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:var(--teal)">⏳ รอตรวจรับงาน</div>`;
 } else if(j.status==='กำลังซ่อม'||j.status==='รออะไหล่'||j.status==='Workaround'||j.status==='ขอหยุดเครื่อง'){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
     <button class="tp-jbtn-a upd" onclick="tpOpenUpdateModal('${j.id}')"><i class="ion-ios-create"></i> อัปเดต</button>
@@ -1160,7 +1160,7 @@ function tpRenderPMList(){
   const pmList=getPMData();
   const all=pmList.length,pend=pmList.filter(p=>p.status==='รอดำเนินการ').length,done=pmList.filter(p=>p.status==='เสร็จแล้ว').length,over=pmList.filter(p=>p.status==='เกินกำหนด').length;
   const filtered=pmList.filter(p=>{const mn=p.machine.toLowerCase().includes(tpPmSearch.toLowerCase());const ms=!tpPmStatusFilter||p.status===tpPmStatusFilter;return mn&&ms;});
-  const cardsHTML=filtered.length?filtered.map(p=>{const sc=tpStClass[p.status]||'pend';const isDone=p.status==='เสร็จแล้ว';return`<div class="tp-pcard${p.status==='เกินกำหนด'?' ov':''}"><div class="tp-pcleft"><div class="tp-pmach">${p.machine}</div><div class="tp-ptype">${p.title} <span class="tp-pfreq">${p.type}</span></div><div class="tp-pdate"><i class="ion-ios-calendar"></i> ${tpFmtThai(p.date)}</div></div><div class="tp-pcright"><span class="tp-ppill ${sc}">${p.status}</span>${isDone?`<span style="font-size:10px;color:#10b981"><i class="ion-ios-checkmark-circle"></i> เสร็จสิ้น</span>`:`<button class="tp-pcbtn" onclick="tpOpenPMChecklistModal('${p.id}')"><i class="ion-ios-checkmark-circle"></i> ตรวจเช็ก</button>`}</div></div>`;}).join(''):`<div class="tp-pm-empty">🔍 ไม่พบรายการที่ตรงกัน</div>`;
+  const cardsHTML=filtered.length?filtered.map(p=>{const sc=tpStClass[p.status]||'pend';const isDone=p.status==='เสร็จแล้ว';return`<div class="tp-pcard${p.status==='เกินกำหนด'?' ov':''}"><div class="tp-pcleft"><div class="tp-pmach">${p.machine}</div><div class="tp-ptype">${p.title} <span class="tp-pfreq">${p.type}</span></div><div class="tp-pdate"><i class="ion-ios-calendar"></i> แผนการดำเนินงาน: ${tpFmtThai(p.date)}</div></div><div class="tp-pcright"><span class="tp-ppill ${sc}">${p.status}</span>${isDone?`<span style="font-size:10px;color:#10b981"><i class="ion-ios-checkmark-circle"></i> เสร็จสิ้น</span>`:`<button class="tp-pcbtn" onclick="tpOpenPMChecklistModal('${p.id}')"><i class="ion-ios-checkmark-circle"></i> ตรวจเช็ก</button>`}</div></div>`;}).join(''):`<div class="tp-pm-empty">🔍 ไม่พบรายการที่ตรงกัน</div>`;
   el.innerHTML=`<div class="tp-pmini-stats"><div class="tp-pmini"><div class="tp-pmini-num" style="color:#8b949e">${all}</div><div class="tp-pmini-lbl">ทั้งหมด</div></div><div class="tp-pmini"><div class="tp-pmini-num" style="color:#f59e0b">${pend}</div><div class="tp-pmini-lbl">รอ</div></div><div class="tp-pmini"><div class="tp-pmini-num" style="color:#10b981">${done}</div><div class="tp-pmini-lbl">เสร็จ</div></div><div class="tp-pmini"><div class="tp-pmini-num" style="color:#ef4444">${over}</div><div class="tp-pmini-lbl">เกิน</div></div></div><div class="tp-sbar"><input class="tp-sinp" placeholder="🔍 ค้นหาเครื่องจักร..." value="${tpPmSearch}" oninput="tpPmSearchChange(this.value)"><select class="tp-ssel" onchange="tpPmStatusChange(this.value)"><option value="" ${!tpPmStatusFilter?'selected':''}>ทั้งหมด</option><option ${tpPmStatusFilter==='รอดำเนินการ'?'selected':''}>รอดำเนินการ</option><option ${tpPmStatusFilter==='กำลังดำเนินการ'?'selected':''}>กำลังดำเนินการ</option><option ${tpPmStatusFilter==='เสร็จแล้ว'?'selected':''}>เสร็จแล้ว</option><option ${tpPmStatusFilter==='เกินกำหนด'?'selected':''}>เกินกำหนด</option></select></div>${cardsHTML}`;
 }
 function tpPmSearchChange(v){tpPmSearch=v;tpRenderPMList();}
@@ -3083,7 +3083,7 @@ function teRenderPMTable() {
         <div class="tp-pcleft">
           <div class="tp-pmach">${p.machine}</div>
           <div class="tp-ptype">${p.title} <span class="tp-pfreq">${p.type}</span></div>
-          <div class="tp-pdate"><i class="ion-ios-calendar"></i> ${tpFmtThai(p.date)}</div>
+          <div class="tp-pdate"><i class="ion-ios-calendar"></i> แผนการดำเนินงาน: ${tpFmtThai(p.date)}</div>
         </div>
         <div class="tp-pcright">
           <span class="tp-ppill ${tpStClass[p.status]||'pend'}">${p.status}</span>
