@@ -954,7 +954,6 @@ function tpSubmitReject(id) {
         showToast(`↩ ตีกลับงาน ${j.machine} — ${reason}`, 'warning');
         tpCloseModal();
         teUpdateStats(); teRenderQueue(); teRenderMine();
-        tpUpdateStats(); tpRenderMine(); tpRenderQueue();
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
@@ -968,7 +967,6 @@ function tpSubmitReject(id) {
   j.note = reason;
   tpCloseModal();
   teUpdateStats(); teRenderQueue(); teRenderMine();
-  tpUpdateStats(); tpRenderMine(); tpRenderQueue();
   showToast(`↩ ตีกลับงาน ${j.machine} — ${reason}`, 'warning');
 }
 
@@ -1133,7 +1131,6 @@ function tpSaveUpdate(id) {
         showToast('บันทึกสำเร็จ!', 'success');
      tpCloseModal();
      teUpdateStats(); teRenderQueue(); teRenderMine();
-     tpUpdateStats(); tpRenderMine(); tpRenderQueue();
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
       }
@@ -1150,7 +1147,6 @@ function tpSaveUpdate(id) {
   if (finalStatus) j.status = finalStatus; 
   tpCloseModal();
   teUpdateStats(); teRenderQueue(); teRenderMine();
-  tpUpdateStats(); tpRenderMine(); tpRenderQueue();
   const label = ns === 'เสร็จแล้ว' ? 'ซ่อมเสร็จสิ้น' : `อัปเดตเป็น "${ns}"`;
   showToast(`${label} — ${j.title}`, ns === 'เสร็จแล้ว' ? 'success' : 'info');
   if (saveBtn) saveBtn.disabled = false;
@@ -1167,7 +1163,7 @@ function tpPmSearchChange(v){tpPmSearch=v;tpRenderPMList();}
 function tpPmStatusChange(v){tpPmStatusFilter=v;tpRenderPMList();}
 function tpCompletePM(id){
   const p=getPMData().find(p=>p.id===id);if(!p||p.status==='เสร็จแล้ว')return;
-  p.status='เสร็จแล้ว';tpUpdateStats();tpRenderPMList();showToast(`ตรวจเช็กเสร็จสิ้น — ${p.machine}`,'success');
+  p.status='เสร็จแล้ว';showToast(`ตรวจเช็กเสร็จสิ้น — ${p.machine}`,'success');
 }
 function tpOpenPMChecklistModal(pmId) {
   const p = getPMData().find(x => x.id === pmId);
@@ -1239,7 +1235,7 @@ function tpSubmitPMChecklist(pmId) {
     chkObj[`r${gi}_${ii}`] = { status: r ? r.value : 'ok', note: document.getElementById(`tppm_note_${gi}_${ii}`)?.value || '' };
   }));
   const finish = () => {
-    p.status = 'เสร็จแล้ว'; tpUpdateStats(); tpRenderPMList();
+    p.status = 'เสร็จแล้ว';
     if (tpSelDate) tpShowDayDetail(tpSelDate);
     tpCloseModal(); showToast(`ตรวจเช็ก PM เสร็จสิ้น — ${p.machine}`, 'success');
   };
@@ -1535,9 +1531,6 @@ function techSubmitUpdate(){
         console.log('Updated local job:', j);
         closeModal('job-detail-modal');
         loadAllData().then(() => {
-          tpUpdateStats(); 
-          tpRenderMine(); 
-          tpRenderQueue();
           showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success');
         });
       }
@@ -1552,9 +1545,6 @@ function techSubmitUpdate(){
   }
   if(status)j.status=status; if(note)j.note=note;
   closeModal('job-detail-modal'); 
-  tpUpdateStats(); 
-  tpRenderMine(); 
-  tpRenderQueue();
   showToast(`อัปเดตงาน ${j.machine} สำเร็จ!`,'success');
 }
 
@@ -3502,7 +3492,6 @@ function doAcceptJob(id, technicianName) {
         // refetch จริง แทนการ patch local — ต้องได้ acceptedDate (V) ที่ backend เพิ่ง auto-set ไปด้วย
         loadAllData().then(() => {
           teUpdateStats(); teRenderQueue(); teRenderMine();
-          tpUpdateStats(); tpRenderQueue(); tpRenderMine();
         });
       } else {
         showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
@@ -3517,7 +3506,6 @@ function doAcceptJob(id, technicianName) {
   j.technician = technicianName;
   showToast(`<i class="ion-ios-hand"></i> รับงาน ${j.machine} สำเร็จ`, 'success');
   teUpdateStats(); teRenderQueue(); teRenderMine();
-  tpUpdateStats(); tpRenderQueue(); tpRenderMine();
 }
 function populateDeptDropdown(departments) {
   // reg-dept เป็น <select> ให้เลือกตอนสมัครสมาชิก

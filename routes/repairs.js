@@ -379,7 +379,10 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
     const requesterName = rows[rowIndex][1]  || '';
     const techName      = rows[rowIndex][10] || '';
     const machine       = rows[rowIndex][3]  || '';
-    const newStatus     = result === 'ผ่าน QC' ? 'ปิดงาน' : 'แก้ไข (ตีกลับ)';
+    // QC ไม่ผ่าน = งานซ่อมยังไม่เรียบร้อย ต้องกลับไปให้ "ช่างคนเดิม" แก้ไขต่อ (ไม่ใช่ส่งกลับผู้แจ้งขอข้อมูลเพิ่ม
+    // แบบ /:id/reject) จึงตั้งสถานะกลับเป็น "กำลังซ่อม" และไม่แตะคอลัมน์ K (ชื่อช่าง) เพื่อให้ช่างเดิมยังเป็นเจ้าของงาน
+    const newStatus  = result === 'ผ่าน QC' ? 'ปิดงาน' : 'กำลังซ่อม';
+    const qcFailNote = `[QC ไม่ผ่าน ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${note || 'ไม่ระบุเหตุผล'}`;
     const sheetRow      = rowIndex + 2;
 
     const updateData = [
@@ -391,8 +394,13 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
     // เดิม route นี้เขียนเวลาทับคอลัมน์ L (doneDate) ซ้ำ ทำให้แยกไม่ออกว่า "เสร็จซ่อม" กับ
     // "ปิดงานจริง (QC ผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
     // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
-    if (result === 'ผ่าน QC')
+    if (result === 'ผ่าน QC') {
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+    } else {
+      // บันทึกเหตุผล QC ไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
+      // ทำให้ช่างเห็นเหตุผลที่ QC ตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
+      updateData.push({ range: `Repairs!N${sheetRow}`, values: [[qcFailNote]] });
+    }
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -413,19 +421,19 @@ router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res
       // แจ้ง admin ผ่าน LINE
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่าน QC - ${by}`);
     } else {
-      // TODO: เปิดใช้ภายหลัง — แจ้งเตือนช่าง
-      // const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
-      // if (techLineId) {
-      //   await sendLineMessage(techLineId,
-      //     `⚠️ งานซ่อมถูกตีกลับ!\n` +
-      //     `📋 รหัสงาน: ${id}\n` +
-      //     `🔧 เครื่องจักร: ${machine}\n` +
-      //     `📝 เหตุผล: ${note || 'ไม่ระบุ'}\n` +
-      //     `กรุณาแก้ไขและส่งใหม่อีกครั้ง`
-      //   );
-      // }
-      // แจ้ง admin ผ่าน LINE ตอน QC ไม่ผ่าน/ตีกลับ
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', note || '');
+      // แจ้งช่างคนที่รับงานนี้ไว้ — QC ไม่ผ่าน งานกลับเข้าสถานะ "กำลังซ่อม" ให้แก้ไขต่อ
+      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
+      if (techLineId) {
+        await sendLineMessage(techLineId,
+          `⚠️ งานซ่อมไม่ผ่าน QC!\n` +
+          `📋 รหัสงาน: ${id}\n` +
+          `🔧 เครื่องจักร: ${machine}\n` +
+          `📝 เหตุผล: ${note || 'ไม่ระบุ'}\n` +
+          `กรุณาดำเนินการแก้ไขต่อแล้วส่งตรวจ QC อีกครั้ง`
+        );
+      }
+      // แจ้ง admin ผ่าน LINE ตอน QC ไม่ผ่าน
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'QC ไม่ผ่าน', note || '');
     }
 
     res.json({ success: true });

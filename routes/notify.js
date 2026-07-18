@@ -26,6 +26,7 @@ const STATUS_CONFIG = {
   'รอ QC':        { color: '#00ACC1', title: '🔍 รอตรวจสอบ QC',             icon: '🔵' },
   'ปิดงาน':       { color: '#43A047', title: '🎉 ปิดงานเรียบร้อย!',          icon: '✅' },
   'ตีกลับ':       { color: '#E53935', title: '⚠️ ใบแจ้งซ่อมถูกตีกลับ',     icon: '🔴' },
+  'QC ไม่ผ่าน':   { color: '#E53935', title: '⚠️ QC ไม่ผ่าน — ส่งกลับให้ช่างแก้ไข', icon: '🔴' },
   'Workaround':   { color: '#F4511E', title: '🛠 แก้ไขชั่วคราว',            icon: '🟡' },
 };
 
