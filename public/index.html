@@ -180,6 +180,7 @@
   <option value="">ทุกสถานะ</option>
   <option>รอซ่อม</option><option>กำลังซ่อม</option>
   <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>
+  <option>ตีกลับ</option>
 </select>
 <select id="track-filter-dept" class="select-ctrl" style="width:120px;font-size:12px" onchange="renderRepairsTable()">
   <option value="">ทุกแผนก</option>
@@ -1190,10 +1191,92 @@
             </div>
           </div>
           <div class="form-field" style="margin-bottom:16px;margin-top:12px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
+          <div id="admin-action-cancel" class="d-none" style="margin-bottom:16px;padding:12px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.06);border-radius:10px">
+            <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px"><i class="ion-ios-warning"></i> งานนี้ถูกช่างตีกลับ — ถ้าเห็นว่าไม่สมควรตีกลับ สามารถยกเลิกการตีกลับและส่งกลับเข้าคิวซ่อมได้ทันที</div>
+            <button class="btn btn-accent" style="width:100%" onclick="adminOpenUndoRejectModal()"><i class="ion-ios-undo"></i> ยกเลิกการตีกลับ (ส่งกลับเข้าคิว)</button>
+          </div>
           <div style="display:flex;justify-content:space-between;gap:10px">
             <button class="btn btn-danger" onclick="adminDeleteSelectedJob()"><i class="ion-ios-trash"></i> ลบ</button>
             <button class="btn btn-accent" onclick="adminSubmitUpdateJob()"><i class="ion-ios-checkmark"></i> อัปเดต</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Undo Reject Modal — ยกเลิกการตีกลับของช่าง ส่งกลับเข้าคิวซ่อม -->
+  <div class="modal" id="admin-cancel-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">ยกเลิกการตีกลับ</span>
+        <button class="modal-close" onclick="closeModal('admin-cancel-modal')"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--accent)">
+          <i class="ion-ios-information-circle"></i> งานจะกลับไปอยู่สถานะ "รอซ่อม" เข้าคิวใหม่ให้ช่างคนไหนก็รับต่อได้ โดยผู้แจ้งไม่ต้องแก้ไขข้อมูลใดๆ — ระบบจะแจ้งผู้แจ้งผ่าน LINE ด้วย
+        </div>
+        <div class="form-field" style="margin-bottom:16px">
+          <label>หมายเหตุ (ถ้ามี)</label>
+          <textarea id="adm-cancel-reason" class="textarea-ctrl" placeholder="เช่น ตรวจสอบแล้วข้อมูลครบถ้วน ไม่จำเป็นต้องแก้ไขเพิ่ม..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-sec" onclick="closeModal('admin-cancel-modal')">ยกเลิก</button>
+          <button class="btn btn-accent" onclick="adminSubmitCancelJob()"><i class="ion-ios-undo"></i> ยืนยันส่งกลับเข้าคิว</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resubmit Modal — ผู้แจ้งแก้ไขรายละเอียด/แนบรูปเพิ่ม แล้วส่งกลับเข้าคิวซ่อม (หลังโดนช่างตีกลับ) -->
+  <div class="modal" id="resubmit-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">แก้ไขและส่งใหม่ — <span id="rs-job-id"></span></span>
+        <button class="modal-close" onclick="closeModal('resubmit-modal')"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="rs-reject-reason-box" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#ef4444">
+          <i class="ion-ios-warning"></i> ช่างตีกลับ — <span id="rs-reject-reason"></span>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label>ด้านปัญหา</label>
+            <select id="rs-side" class="select-ctrl">
+              <option value="">เลือกด้านปัญหา</option>
+              <option>ระบบไฟฟ้า (Electrical)</option>
+              <option>ระบบเครื่องกล (Mechanical)</option>
+              <option>ระบบลม (Pneumatic)</option>
+              <option>ระบบไฮดรอลิก (Hydraulic)</option>
+              <option>โครงสร้าง/สาธารณูปโภค (Utility)</option>
+              <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>ประเภทงานซ่อม</label>
+            <select id="rs-type" class="select-ctrl">
+              <option value="">เลือกประเภท</option>
+              <option>ซ่อมฉุกเฉิน (Break Down)</option>
+              <option>ซ่อมตามอาการ (Corrective)</option>
+              <option>ปรับปรุงประสิทธิภาพ (Modify)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field" style="margin-bottom:16px">
+          <label>รายละเอียดอาการชำรุด<span class="req">*</span></label>
+          <textarea id="rs-detail" class="textarea-ctrl" placeholder="กรุณาระบุรายละเอียดเพิ่มเติมตามที่ช่างขอ..."></textarea>
+        </div>
+        <div class="form-field" style="margin-bottom:20px">
+          <label>รูปภาพประกอบ</label>
+          <div class="dropzone" onclick="triggerFileInput('rs-file-input')">
+            <i class="ion-ios-cloud-upload"></i>
+            <span style="font-size:13px;color:var(--text2)">คลิกเพื่อเพิ่มรูปภาพ</span>
+          </div>
+          <input type="file" id="rs-file-input" accept="image/*" multiple style="display:none" onchange="userResubmitFileChange(this)">
+          <div class="thumb-grid" id="rs-thumb-grid"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-sec" onclick="closeModal('resubmit-modal')">ยกเลิก</button>
+          <button class="btn btn-accent" onclick="userSubmitResubmit()"><i class="ion-ios-send"></i> ส่งกลับเข้าคิวซ่อม</button>
         </div>
       </div>
     </div>

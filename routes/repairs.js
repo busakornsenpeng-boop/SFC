@@ -516,6 +516,137 @@ router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) =>
   }
 });
 
+// POST /api/repairs/:id/resubmit — ผู้แจ้งแก้ไขรายละเอียด/แนบรูปเพิ่ม แล้วส่งกลับเข้าคิวซ่อมอีกครั้ง
+// (หลังโดนช่างตีกลับขอข้อมูลเพิ่ม) — ใช้ได้เฉพาะตอนสถานะปัจจุบันเป็น "ตีกลับ" เท่านั้น
+router.post('/:id/resubmit', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { detail, side, opType, img, requesterName } = req.body;
+    if (!detail || !detail.trim())
+      return res.status(400).json({ success: false, message: 'กรุณากรอกรายละเอียดที่แก้ไข' });
+
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:AA1000' });
+    const rows     = getRes.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === id);
+    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
+
+    const currentStatus = rows[rowIndex][9] || '';
+    if (currentStatus !== 'ตีกลับ')
+      return res.json({ success: false, message: `ส่งงานนี้ใหม่ได้เฉพาะตอนสถานะเป็น "ตีกลับ" เท่านั้น (ปัจจุบัน: ${currentStatus})` });
+
+    // กันแก้ไขงานของคนอื่น — เช็คว่าชื่อผู้ส่งตรงกับผู้แจ้งเดิม (ถ้า frontend ส่งชื่อมาด้วย)
+    const originalRequester = rows[rowIndex][1] || '';
+    if (requesterName && originalRequester &&
+        requesterName.trim().toLowerCase() !== originalRequester.trim().toLowerCase()) {
+      return res.json({ success: false, message: 'คุณไม่มีสิทธิ์แก้ไขงานนี้ (ไม่ใช่ผู้แจ้งเดิม)' });
+    }
+
+    const machine = rows[rowIndex][3] || '';
+
+    let imgArr = [];
+    if (Array.isArray(img)) imgArr = img;
+    else if (typeof img === 'string') {
+      try { imgArr = JSON.parse(img); } catch { imgArr = [img]; }
+    }
+    const imgUrls = await processImages(imgArr, `${id}_resubmit`);
+    const imgStr  = JSON.stringify(imgUrls);
+
+    const now          = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    const resubmitNote = `[ผู้แจ้งแก้ไขและส่งใหม่ ${now}]`;
+    const sheetRow      = rowIndex + 2;
+
+    const resubmitData = [
+      { range: `Repairs!G${sheetRow}`, values: [[detail]] },
+      { range: `Repairs!H${sheetRow}`, values: [[imgStr]] },
+      { range: `Repairs!J${sheetRow}`, values: [['รอซ่อม']] },
+      { range: `Repairs!K${sheetRow}`, values: [['']] }, // ล้างชื่อช่างเดิม — เข้าคิวใหม่ให้ใครก็ได้รับ
+      { range: `Repairs!N${sheetRow}`, values: [[resubmitNote]] },
+    ];
+    if (side)   resubmitData.push({ range: `Repairs!E${sheetRow}`, values: [[side]] });
+    if (opType) resubmitData.push({ range: `Repairs!F${sheetRow}`, values: [[opType]] });
+    if (requesterName)
+      resubmitData.push({ range: `Repairs!U${sheetRow}`, values: [[requesterName]] });
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'USER_ENTERED', data: resubmitData },
+    });
+
+    // แจ้งผู้แจ้งยืนยันว่าส่งใหม่สำเร็จ
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, originalRequester);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `✅ ส่งข้อมูลแก้ไขเรียบร้อย!\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `📌 สถานะ: กลับเข้าคิวรอช่างรับงานอีกครั้ง`
+      );
+    }
+
+    // แจ้งแอดมิน เหมือนงานใหม่เข้าคิว
+    await broadcastToAdmins(id, originalRequester, machine, detail, 'รอซ่อม');
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/repairs/:id/admin-undo-reject — แอดมินยกเลิกการตีกลับของช่าง (เห็นว่าไม่สมควรตีกลับ)
+// (เฉพาะแอดมิน) ใช้ได้เฉพาะตอนสถานะปัจจุบันเป็น "ตีกลับ" เท่านั้น — ส่งงานกลับเข้าคิว "รอซ่อม"
+// ให้ช่างคนไหนก็ได้มารับต่อ โดยไม่ต้องรอผู้แจ้งแก้ไขข้อมูลใหม่ (ล้างชื่อช่างเดิมออกด้วย เพื่อให้เข้าคิวสะอาดๆ)
+router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note, by } = req.body;
+
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:AA1000' });
+    const rows     = getRes.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === id);
+    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
+
+    const currentStatus = rows[rowIndex][9] || '';
+    if (currentStatus !== 'ตีกลับ')
+      return res.json({ success: false, message: `ยกเลิกการตีกลับได้เฉพาะงานที่อยู่ในสถานะ "ตีกลับ" เท่านั้น (ปัจจุบัน: ${currentStatus})` });
+
+    const requesterName = rows[rowIndex][1] || '';
+    const machine        = rows[rowIndex][3] || '';
+    const now             = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    const undoNote        = `[แอดมินยกเลิกการตีกลับ ${now}]${note ? ' ' + note : ''}`;
+    const sheetRow         = rowIndex + 2;
+
+    const undoData = [
+      { range: `Repairs!J${sheetRow}`, values: [['รอซ่อม']] },
+      { range: `Repairs!K${sheetRow}`, values: [['']] }, // ล้างชื่อช่างเดิม — เข้าคิวใหม่ให้ใครก็ได้รับ
+      { range: `Repairs!N${sheetRow}`, values: [[undoNote]] },
+    ];
+    if (by)
+      undoData.push({ range: `Repairs!U${sheetRow}`, values: [[by]] });
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { valueInputOption: 'USER_ENTERED', data: undoData },
+    });
+
+    // แจ้งผู้แจ้งว่าแอดมินตรวจสอบแล้ว งานกลับเข้าคิวซ่อมอีกครั้ง (ไม่ต้องแก้ไขอะไรเพิ่ม)
+    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
+    if (requesterLineId) {
+      await sendLineMessage(requesterLineId,
+        `✅ แอดมินตรวจสอบใบแจ้งซ่อมของคุณแล้ว\n` +
+        `📋 รหัสงาน: ${id}\n` +
+        `🔧 เครื่องจักร: ${machine}\n` +
+        `งานของคุณกลับเข้าสู่คิวซ่อมอีกครั้ง ไม่ต้องแก้ไขข้อมูลเพิ่มเติมครับ`
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/repairs/:id/status — admin update (เฉพาะแอดมิน)
 router.post('/:id/status', requireRole('admin'), async (req, res) => {
   try {

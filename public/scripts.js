@@ -699,7 +699,7 @@ function engRenderRepairs() {
     (j.machine.toLowerCase().includes(q)||j.id.toLowerCase().includes(q))&&
     (!statusF||j.status===statusF)&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">ไม่พบข้อมูล</td></tr>`;return;}
-  const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed'};
+  const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'};
   tbody.innerHTML=filtered.map(j=>`
     <tr>
       <td style="font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:600">${j.id}</td>
@@ -1313,7 +1313,11 @@ function renderRepairsTable(){
   const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF))&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลรายการแจ้งซ่อม</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
-    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td><button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button></td>`;tbody.appendChild(tr);});
+    const isBounced = j.status==='ตีกลับ';
+    const actBtns = isBounced
+      ? `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button><button class="btn-action" style="border-color:var(--accent);color:var(--accent);margin-left:6px" onclick="userOpenResubmitModal('${escapeHtml(j.id)}')"><i class="ion-ios-create"></i> แก้ไขและส่งใหม่</button>`
+      : `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button>`;
+    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td>${actBtns}</td>`;tbody.appendChild(tr);});
 }
 
 // สลับ sub-view ในแท็บ "จัดการ PM" ระหว่าง รายการ (ตาราง) กับ ปฏิทิน
@@ -2227,7 +2231,7 @@ function renderAdminRepairsTable(){
   const tbody=document.getElementById('admin-rep-list-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getFilteredAdminRepairs();
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
-  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
+  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
 }
 
 // ── ดึงข้อมูลรูปภาพจาก URL มาเป็น buffer สำหรับฝังลง Excel ──
@@ -3744,9 +3748,155 @@ function viewJobDetail(id) {
     const s = document.getElementById('adm-job-status'); if(s) s.value = j.status;
     const t = document.getElementById('adm-job-tech');   if(t && j.technician) t.value = j.technician;
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
-
+    // ปุ่ม "ยกเลิกการตีกลับ" โชว์เฉพาะตอนงานถูกช่างตีกลับอยู่ (ให้แอดมิน override ส่งกลับเข้าคิวได้ถ้าเห็นว่าไม่สมควรตีกลับ)
+    document.getElementById('admin-action-cancel')?.classList.toggle('d-none', j.status !== 'ตีกลับ');
   }
   openModal('job-detail-modal');
+}
+
+// ============================================================
+// ADMIN — ยกเลิกการตีกลับของช่าง (ส่งกลับเข้าคิว "รอซ่อม" ให้ช่างคนไหนก็รับต่อได้)
+// ============================================================
+function adminOpenUndoRejectModal() {
+  if (!selectedJobForAction) return;
+  const ta = document.getElementById('adm-cancel-reason');
+  if (ta) ta.value = '';
+  openModal('admin-cancel-modal');
+}
+
+function adminSubmitCancelJob() {
+  if (!selectedJobForAction) return;
+  const note = document.getElementById('adm-cancel-reason')?.value.trim() || '';
+  const j = getRepairJobsData().find(x => x.id === selectedJobForAction);
+  if (!j) return;
+
+  if (!isLocalMode) {
+    showLoading('กำลังส่งกลับเข้าคิว...');
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/admin-undo-reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note, by: currentUser?.name || currentUser?.username || 'admin' })
+    })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if (res.success) {
+        closeModal('admin-cancel-modal');
+        closeModal('job-detail-modal');
+        showToast(`↩ ยกเลิกการตีกลับ ${j.machine} — ส่งกลับเข้าคิวแล้ว`, 'success');
+        loadAllData().then(() => { renderAdminRepairsTable(); renderRepairsTable(); });
+      } else {
+        showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
+      }
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+    return;
+  }
+
+  // Local Mode
+  j.status = 'รอซ่อม';
+  j.technician = '';
+  j.note = note;
+  closeModal('admin-cancel-modal');
+  closeModal('job-detail-modal');
+  showToast(`↩ ยกเลิกการตีกลับ ${j.machine} — ส่งกลับเข้าคิวแล้ว`, 'success');
+  renderAdminRepairsTable(); renderRepairsTable();
+}
+
+// ============================================================
+// USER — แก้ไขและส่งงานที่ถูกตีกลับกลับเข้าคิวซ่อมอีกครั้ง
+// ============================================================
+let resubmitJobId = null;
+let resubmitImgArr = []; // รวมทั้งรูปเดิม (URL) และรูปใหม่ (base64) — ส่งทั้งก้อนไปตอน submit
+
+function resubmitRenderThumbs() {
+  const tg = document.getElementById('rs-thumb-grid');
+  if (!tg) return;
+  tg.innerHTML = resubmitImgArr.map((src, idx) => `
+    <div class="thumb-wrapper">
+      <img src="${src}">
+      <button type="button" class="thumb-remove" onclick="userRemoveResubmitImg(${idx})"><i class="ion-ios-close"></i></button>
+    </div>`).join('');
+}
+
+function userOpenResubmitModal(id) {
+  const j = getRepairJobsData().find(x => x.id === id);
+  if (!j) return;
+  resubmitJobId = id;
+
+  document.getElementById('rs-job-id').textContent = j.id;
+  const reasonBox = document.getElementById('rs-reject-reason-box');
+  const reasonEl  = document.getElementById('rs-reject-reason');
+  if (j.note) { reasonEl.textContent = j.note; reasonBox.style.display = 'block'; }
+  else { reasonBox.style.display = 'none'; }
+
+  document.getElementById('rs-side').value   = j.side || '';
+  document.getElementById('rs-type').value   = j.opType || '';
+  document.getElementById('rs-detail').value = j.detail || '';
+
+  try { resubmitImgArr = JSON.parse(j.img || '[]'); } catch (e) { resubmitImgArr = j.img ? [j.img] : []; }
+  resubmitRenderThumbs();
+
+  openModal('resubmit-modal');
+}
+
+function userResubmitFileChange(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      resubmitImgArr.push(e.target.result);
+      resubmitRenderThumbs();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function userRemoveResubmitImg(idx) {
+  resubmitImgArr.splice(idx, 1);
+  resubmitRenderThumbs();
+}
+
+function userSubmitResubmit() {
+  if (!resubmitJobId) return;
+  const detail = document.getElementById('rs-detail')?.value.trim();
+  if (!detail) { showToast('กรุณากรอกรายละเอียดที่แก้ไข', 'warning'); return; }
+  const side   = document.getElementById('rs-side')?.value || '';
+  const opType = document.getElementById('rs-type')?.value || '';
+  const j = getRepairJobsData().find(x => x.id === resubmitJobId);
+  if (!j) return;
+
+  if (!isLocalMode) {
+    showLoading('กำลังส่งข้อมูลแก้ไข...');
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(resubmitJobId)}/resubmit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ detail, side, opType, img: resubmitImgArr, requesterName: currentUser?.name || j.name || j.requester })
+    })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if (res.success) {
+        closeModal('resubmit-modal');
+        showToast(`✅ ส่งงาน ${j.machine} กลับเข้าคิวซ่อมแล้ว`, 'success');
+        loadAllData().then(() => { renderRepairsTable(); });
+      } else {
+        showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
+      }
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+    return;
+  }
+
+  // Local Mode
+  j.detail = detail; j.side = side || j.side; j.opType = opType || j.opType;
+  j.img = JSON.stringify(resubmitImgArr);
+  j.status = 'รอซ่อม'; j.technician = '';
+  closeModal('resubmit-modal');
+  showToast(`✅ ส่งงาน ${j.machine} กลับเข้าคิวซ่อมแล้ว`, 'success');
+  renderRepairsTable();
 }
 
 function engSubmitQC() {
