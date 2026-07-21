@@ -3609,25 +3609,107 @@ function populateTechDropdown(technicians) {
   });
 }
 
-// หมายเหตุ: เดิมมีฟังก์ชัน loginWithLINE() ตรงนี้ที่ redirect ไป LINE OAuth login โดยตรง
-// แต่ไม่ได้ถูกเรียกใช้จากที่ไหนในระบบแล้ว (dead code) และ backend ก็ไม่มี route
-// /auth/line/callback รองรับด้วย — ลบออกเพื่อกันสับสน/กันมีคนเผลอเอาไปผูกปุ่มใหม่แล้วพัง
-// ระบบปัจจุบันใช้การผูกบัญชีผ่านแชท LINE OA แทน (ดู dashConnectLINE ด้านล่าง)
-// เดิม: เคย redirect ไป LINE OAuth login โดยตรง (loginWithLINE / connectLINE ด้านบน)
-// แต่ทีมงานเปลี่ยนมาใช้วิธีผูกบัญชีผ่านแชท LINE OA แทนแล้ว (ดู routes/linewebhook.js
-// คำสั่ง "ผูกไอดี username") เพราะไม่ต้องพึ่ง LINE Login channel แยกต่างหาก และปลอดภัยกว่า
-// ฟังก์ชันนี้เลยแค่แสดงคำแนะนำ ไม่มีการเรียก backend OAuth endpoint ที่ยังไม่มีอยู่จริงแล้ว
-function dashConnectLINE() {
+// ═══════════════════════════════════════════════════════════════
+// LINE CONNECT — ปุ่ม "เชื่อม LINE" บน Dashboard (สำหรับคนที่ login อยู่แล้ว)
+// เปิด popup ให้ล็อกอินด้วย LINE จริง (LINE Login OAuth) แบบเดียวกับหน้า
+// register (ดู regConnectLINE ด้านล่าง) แล้วผูก lineUserId เข้ากับบัญชีที่
+// login ค้างอยู่ทันที — ไม่ต้องพิมพ์คำสั่งในแชท LINE OA อีกต่อไป
+//
+// หมายเหตุสำคัญ: ฝั่ง backend (routes/users.js) มี route /line/auth-url,
+// /line/callback ให้ใช้อยู่แล้ว แต่ก่อนหน้านี้ "ไม่มีหน้า callback" ที่ LINE
+// จะ redirect กลับมาแล้วส่ง code กลับไปให้ popup นี้ (postMessage) เลยทำให้
+// ต่อ LINE ไม่ติดเลยไม่ว่าจะกดจากปุ่มไหน — ต้องสร้างไฟล์ line-callback.html
+// (แนบมาให้แล้ว) วางไว้เส้นทางเดียวกับ index.html แล้วตั้งค่า .env:
+//   LINE_REDIRECT_URI=https://<โดเมนของคุณ>/line-callback.html
+// และเอา URL เดียวกันนี้ไปใส่ใน LINE Developers Console → LINE Login
+// channel → Callback URL ด้วย ไม่งั้น LINE จะปฏิเสธ redirect_uri
+// ═══════════════════════════════════════════════════════════════
+let _dashLinePopupOpen = false;
+
+async function dashConnectLINE() {
   if (!currentUser?.username) return showToast('ไม่พบข้อมูล username กรุณา login ใหม่', 'error');
-  alert(
-    'วิธีเชื่อมบัญชี LINE เพื่อรับแจ้งเตือน:\n\n' +
-    '1) เพิ่มเพื่อน LINE OA ของบริษัท\n' +
-    `2) พิมพ์ข้อความ "ผูกไอดี ${currentUser.username}" ส่งไปในแชท\n` +
-    '3) ระบบจะตอบกลับยืนยันทันทีเมื่อเชื่อมสำเร็จ'
-  );
+  if (_dashLinePopupOpen) return;
+
+  const popup = window.open('', 'line_auth_dash',
+    'width=520,height=680,scrollbars=yes,resizable=yes');
+  if (!popup) {
+    showToast('เบราว์เซอร์บล็อก popup กรุณาอนุญาต popup แล้วลองกดใหม่อีกครั้ง', 'warning');
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API_URL}/users/line/auth-url?mode=popup`).then(r => r.json());
+    if (!r.url) {
+      popup.close();
+      return showToast(r.message || 'ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
+    }
+
+    _dashLinePopupOpen = true;
+    popup.location.href = r.url;
+
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'LINE_AUTH_CODE') return;
+      window.removeEventListener('message', onMsg);
+      _dashLinePopupOpen = false;
+      popup?.close();
+
+      if (!e.data.code) {
+        showToast('ยกเลิกการเชื่อมต่อ LINE หรือเกิดข้อผิดพลาดระหว่างล็อกอิน', 'warning');
+        return;
+      }
+
+      const cb = await fetch(`${API_URL}/users/line/callback`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ code: e.data.code }),
+      }).then(r => r.json());
+
+      if (!cb.success) {
+        showToast(cb.message || 'เชื่อมต่อ LINE ไม่สำเร็จ', 'error');
+        return;
+      }
+      if (cb.linked) {
+        // lineUserId นี้ผูกกับ "อีก" บัญชีนึงไปแล้ว (ไม่ใช่บัญชีที่ login อยู่ตอนนี้)
+        showToast('LINE นี้ผูกกับบัญชีอื่นอยู่แล้ว หากต้องการเปลี่ยนกรุณาติดต่อแอดมิน', 'error');
+        return;
+      }
+
+      // ยังไม่เคยผูกกับใคร → บันทึก lineUserId เข้ากับบัญชีที่ login ค้างอยู่ตอนนี้เลย
+      const link = await authFetch(`${API_URL}/users/${encodeURIComponent(currentUser.username)}/link-line`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ lineUserId: cb.lineUserId }),
+      }).then(r => r.json());
+
+      if (link.success) {
+        showToast('เชื่อมบัญชี LINE สำเร็จ! จะได้รับแจ้งเตือนผ่าน LINE นับจากนี้', 'success');
+        const lineBtn = document.getElementById('btn-line-connect');
+        if (lineBtn) {
+          lineBtn.innerHTML = '<i class="ion-ios-checkmark-circle"></i> เชื่อม LINE แล้ว';
+          lineBtn.disabled  = true;
+          lineBtn.style.opacity = '0.7';
+        }
+      } else {
+        showToast(link.message || 'บันทึก LINE ID ไม่สำเร็จ', 'error');
+      }
+    };
+
+    window.addEventListener('message', onMsg);
+
+    const checkClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkClosed);
+        window.removeEventListener('message', onMsg);
+        _dashLinePopupOpen = false;
+      }
+    }, 500);
+
+  } catch (err) {
+    _dashLinePopupOpen = false;
+    popup?.close();
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+  }
 }
-// หมายเหตุ: เดิมมีฟังก์ชัน connectLINE() ตรงนี้ที่ redirect ไป LINE OAuth login เช่นกัน
-// ไม่ได้ถูกเรียกใช้จากที่ไหนแล้ว ลบออกด้วยเหตุผลเดียวกับ loginWithLINE ด้านบน
 // ============================================================
 // MISSING FUNCTIONS — เพิ่มต่อท้าย scripts.js
 // ============================================================
@@ -4001,6 +4083,10 @@ async function regConnectLINE() {
       window.removeEventListener('message', onMsg);
       _regLinePopupOpen = false;
       popup?.close();
+      if (!e.data.code) {
+        showToast('ยกเลิกการเชื่อมต่อ LINE หรือเกิดข้อผิดพลาดระหว่างล็อกอิน', 'warning');
+        return;
+      }
       const cb = await fetch('/api/users/line/callback', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
