@@ -15,11 +15,31 @@ const techProfileRoutes = require('./routes/techprofiles');
 const { verifyAdminToken } = require('./middleware/adminAuth');
 const { broadcastToAdmins } = require('./routes/notify');
 
+// ตัดเครื่องหมาย "/" ท้าย URL ออก เพื่อกันปัญหา CORS_ORIGIN ตั้งค่าไม่ตรงเป๊ะ
+// เช่น "https://example.com/" กับ "https://example.com" ควรถือว่าเป็น origin เดียวกัน
+function normalizeOrigin(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
 function createCorsOptions() {
-  const origins = (process.env.CORS_ORIGIN || '').split(',').map(value => value.trim()).filter(Boolean);
+  const origins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(normalizeOrigin)
+    .filter(Boolean);
+
+  if (!origins.length) {
+    console.warn('[CORS] ⚠️  ไม่ได้ตั้งค่า CORS_ORIGIN ไว้ — จะไม่มี origin ไหนถูกอนุญาต (ยกเว้น request ที่ไม่มี Origin header เช่น server-to-server หรือ curl)');
+  }
+
   return {
     origin(origin, callback) {
-      if (!origin || origins.includes(origin)) return callback(null, true);
+      // request ที่ไม่มี Origin header (เช่น curl, server-to-server, LINE webhook) ให้ผ่านเสมอ
+      if (!origin) return callback(null, true);
+
+      const normalizedIncoming = normalizeOrigin(origin);
+      if (origins.includes(normalizedIncoming)) return callback(null, true);
+
+      console.warn(`[CORS] ❌ ปฏิเสธ origin: "${origin}" (ไม่อยู่ใน CORS_ORIGIN ที่ตั้งไว้: ${origins.join(', ') || '(ว่างเปล่า)'})`);
       return callback(new Error('Origin is not allowed by CORS'));
     },
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
