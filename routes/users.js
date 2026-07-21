@@ -43,12 +43,13 @@ const ADMIN_ACCOUNT = {
 // (ไม่ต้องผ่านระบบสมัครสมาชิก/ไม่มีแถวใน Users sheet) ใช้ร่วมกันหน้างานบนเครื่องเดียว
 // แล้วให้แต่ละคนเลือกชื่อ+กรอกรหัสพนักงานตอนรับงาน (ดู routes/techprofiles.js)
 //
-// ต้องตั้งค่า TE_SHARED_USERNAME / TE_SHARED_PASSWORD ใน Render เอง — ไม่มี default
-// ในซอร์สโค้ดแล้ว (เดิมมี default 'eng_team'/'Sfca2026' ฝังไว้ ซึ่งเป็นช่องโหว่ความปลอดภัย
-// เทียบเท่ากับ SEC-001) ถ้ายังไม่ได้ตั้งค่า บัญชีนี้จะถูกปิดใช้งานโดยอัตโนมัติ (login ไม่ได้)
+// มีค่า default สำรองไว้ (eng_team / Sfca2026) เผื่อยังไม่ได้ตั้งค่าใน Render
+// ถ้าตั้งค่า TE_SHARED_USERNAME / TE_SHARED_PASSWORD ใน Render ไว้แล้ว
+// ระบบจะใช้ค่าจาก Render ก่อนเสมอ (ไม่ใช้ default)
+// ⚠️ แนะนำให้เปลี่ยนไปตั้งค่าจริงผ่าน Render แทนการพึ่ง default นี้ในระยะยาว
 const TE_SHARED_ACCOUNT = {
-  username:   (process.env.TE_SHARED_USERNAME || '').trim(),
-  password:   (process.env.TE_SHARED_PASSWORD || '').trim(),
+  username:   (process.env.TE_SHARED_USERNAME || 'eng_team').trim(),
+  password:   (process.env.TE_SHARED_PASSWORD || 'Sfca2026').trim(),
   role:       'technician',
   fullname:   'ทีมช่างซ่อมบำรุง',
   dept:       'ENG',

@@ -3609,106 +3609,58 @@ function populateTechDropdown(technicians) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LINE CONNECT — ปุ่ม "เชื่อม LINE" บน Dashboard (สำหรับคนที่ login อยู่แล้ว)
-// เปิด popup ให้ล็อกอินด้วย LINE จริง (LINE Login OAuth) แบบเดียวกับหน้า
-// register (ดู regConnectLINE ด้านล่าง) แล้วผูก lineUserId เข้ากับบัญชีที่
-// login ค้างอยู่ทันที — ไม่ต้องพิมพ์คำสั่งในแชท LINE OA อีกต่อไป
-//
-// หมายเหตุสำคัญ: ฝั่ง backend (routes/users.js) มี route /line/auth-url,
-// /line/callback ให้ใช้อยู่แล้ว แต่ก่อนหน้านี้ "ไม่มีหน้า callback" ที่ LINE
-// จะ redirect กลับมาแล้วส่ง code กลับไปให้ popup นี้ (postMessage) เลยทำให้
-// ต่อ LINE ไม่ติดเลยไม่ว่าจะกดจากปุ่มไหน — ต้องสร้างไฟล์ line-callback.html
-// (แนบมาให้แล้ว) วางไว้เส้นทางเดียวกับ index.html แล้วตั้งค่า .env:
-//   LINE_REDIRECT_URI=https://<โดเมนของคุณ>/line-callback.html
-// และเอา URL เดียวกันนี้ไปใส่ใน LINE Developers Console → LINE Login
-// channel → Callback URL ด้วย ไม่งั้น LINE จะปฏิเสธ redirect_uri
-// ═══════════════════════════════════════════════════════════════
-let _dashLinePopupOpen = false;
-
+// เป็นแบบนี้
+function loginWithLINE() {
+  const clientId  = '2010534462';
+  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
+  window.location.href =
+    `https://access.line.me/oauth2/v2.1/authorize` +
+    `?response_type=code&client_id=${clientId}` +
+    `&redirect_uri=${redirectUri}&state=login&scope=profile`;
+}
 async function dashConnectLINE() {
   if (!currentUser?.username) return showToast('ไม่พบข้อมูล username กรุณา login ใหม่', 'error');
-  if (_dashLinePopupOpen) return;
-
-  const popup = window.open('', 'line_auth_dash',
-    'width=520,height=680,scrollbars=yes,resizable=yes');
-  if (!popup) {
-    showToast('เบราว์เซอร์บล็อก popup กรุณาอนุญาต popup แล้วลองกดใหม่อีกครั้ง', 'warning');
-    return;
-  }
-
   try {
-    const r = await fetch(`${API_URL}/users/line/auth-url?mode=popup`).then(r => r.json());
-    if (!r.url) {
-      popup.close();
-      return showToast(r.message || 'ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
-    }
+    const r = await fetch('/api/users/line/auth-url?mode=popup').then(r => r.json());
+    if (!r.url) return showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
 
-    _dashLinePopupOpen = true;
-    popup.location.href = r.url;
-
+    const popup = window.open(r.url, 'line_auth_dash', 'width=520,height=680');
     const onMsg = async (e) => {
       if (e.data?.type !== 'LINE_AUTH_CODE') return;
       window.removeEventListener('message', onMsg);
-      _dashLinePopupOpen = false;
       popup?.close();
 
-      if (!e.data.code) {
-        showToast('ยกเลิกการเชื่อมต่อ LINE หรือเกิดข้อผิดพลาดระหว่างล็อกอิน', 'warning');
-        return;
-      }
-
-      const cb = await fetch(`${API_URL}/users/line/callback`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ code: e.data.code }),
+      const cb = await fetch('/api/users/line/callback', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: e.data.code }),
       }).then(r => r.json());
 
-      if (!cb.success) {
-        showToast(cb.message || 'เชื่อมต่อ LINE ไม่สำเร็จ', 'error');
-        return;
-      }
-      if (cb.linked) {
-        // lineUserId นี้ผูกกับ "อีก" บัญชีนึงไปแล้ว (ไม่ใช่บัญชีที่ login อยู่ตอนนี้)
-        showToast('LINE นี้ผูกกับบัญชีอื่นอยู่แล้ว หากต้องการเปลี่ยนกรุณาติดต่อแอดมิน', 'error');
-        return;
-      }
-
-      // ยังไม่เคยผูกกับใคร → บันทึก lineUserId เข้ากับบัญชีที่ login ค้างอยู่ตอนนี้เลย
-      const link = await authFetch(`${API_URL}/users/${encodeURIComponent(currentUser.username)}/link-line`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ lineUserId: cb.lineUserId }),
-      }).then(r => r.json());
-
-      if (link.success) {
-        showToast('เชื่อมบัญชี LINE สำเร็จ! จะได้รับแจ้งเตือนผ่าน LINE นับจากนี้', 'success');
-        const lineBtn = document.getElementById('btn-line-connect');
-        if (lineBtn) {
-          lineBtn.innerHTML = '<i class="ion-ios-checkmark-circle"></i> เชื่อม LINE แล้ว';
-          lineBtn.disabled  = true;
-          lineBtn.style.opacity = '0.7';
-        }
-      } else {
-        showToast(link.message || 'บันทึก LINE ID ไม่สำเร็จ', 'error');
+      if (cb.lineUserId) {
+        const link = await fetch(`/api/users/${encodeURIComponent(currentUser.username)}/link-line`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId: cb.lineUserId }),
+        }).then(r => r.json());
+        if (link.success) showToast('เชื่อม LINE สำเร็จ!', 'success');
+        else showToast(link.message || 'เชื่อมไม่สำเร็จ', 'error');
+      } else if (cb.linked) {
+        showToast('LINE นี้ผูกกับบัญชีอื่นอยู่แล้ว', 'error');
       }
     };
-
     window.addEventListener('message', onMsg);
-
-    const checkClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(checkClosed);
-        window.removeEventListener('message', onMsg);
-        _dashLinePopupOpen = false;
-      }
-    }, 500);
-
   } catch (err) {
-    _dashLinePopupOpen = false;
-    popup?.close();
     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
   }
+}
+// เพิ่มฟังก์ชันใหม่ — สำหรับผูก LINE หลัง login แล้ว
+function connectLINE() {
+  if (!currentUser) { showToast('กรุณา login ก่อน', 'warning'); return; }
+  const clientId    = '2010534462';
+  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
+  const state       = encodeURIComponent('connect_' + currentUser.name);
+  window.location.href =
+    `https://access.line.me/oauth2/v2.1/authorize` +
+    `?response_type=code&client_id=${clientId}` +
+    `&redirect_uri=${redirectUri}&state=${state}&scope=profile`;
 }
 // ============================================================
 // MISSING FUNCTIONS — เพิ่มต่อท้าย scripts.js
@@ -4083,10 +4035,6 @@ async function regConnectLINE() {
       window.removeEventListener('message', onMsg);
       _regLinePopupOpen = false;
       popup?.close();
-      if (!e.data.code) {
-        showToast('ยกเลิกการเชื่อมต่อ LINE หรือเกิดข้อผิดพลาดระหว่างล็อกอิน', 'warning');
-        return;
-      }
       const cb = await fetch('/api/users/line/callback', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
