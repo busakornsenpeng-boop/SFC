@@ -1,0 +1,7 @@
+rules:
+  - id: no-hardcoded-jwt-fallback
+    patterns:
+      - pattern: process.env.JWT_SECRET || "..."
+    message: JWT secrets must not have source-code fallbacks.
+    languages: [javascript]
+    severity: ERROR

@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET     = process.env.JWT_SECRET || 'sfc-secret-key-change-this';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'sfc@2025';
+function getRequiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be configured.`);
+  return value;
+}
+
+function getJwtSecret() {
+  return getRequiredEnv('JWT_SECRET');
+}
 
 // ── เดิม: ใช้เฉพาะกับ /api/admin/* (เช็คว่าเป็น admin เท่านั้น) ──
 function verifyAdminToken(req, res, next) {
@@ -12,7 +18,7 @@ function verifyAdminToken(req, res, next) {
   }
   const token = auth.split(' ')[1];
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, getJwtSecret());
     if (payload.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'ไม่ใช่ admin' });
     }
@@ -25,7 +31,7 @@ function verifyAdminToken(req, res, next) {
 
 // ── ใหม่: เซ็น token ให้ user ทั่วไป (ใช้ตอน login ใน routes/users.js) ──
 function signToken(payload, expiresIn = '8h') {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn });
 }
 
 // ── ใหม่: เช็คแค่ว่า login แล้ว ไม่สนใจ role (ใช้ทั่วไป เช่น POST /api/repairs) ──
@@ -36,7 +42,7 @@ function requireAuth(req, res, next) {
   }
   const token = auth.split(' ')[1];
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, getJwtSecret());
     req.user  = payload;
     req.admin = payload; // เผื่อโค้ดเก่าบางจุดอ้าง req.admin
     next();
@@ -55,7 +61,7 @@ function requireRole(...roles) {
     }
     const token = auth.split(' ')[1];
     try {
-      const payload = jwt.verify(token, JWT_SECRET);
+      const payload = jwt.verify(token, getJwtSecret());
       if (!roles.includes(payload.role)) {
         return res.status(403).json({ success: false, message: 'ไม่มีสิทธิ์เข้าถึง' });
       }
@@ -69,9 +75,8 @@ function requireRole(...roles) {
 }
 
 module.exports = {
-  ADMIN_USERNAME,
-  ADMIN_PASSWORD,
-  JWT_SECRET,
+  getRequiredEnv,
+  getJwtSecret,
   verifyAdminToken,
   signToken,
   requireAuth,
