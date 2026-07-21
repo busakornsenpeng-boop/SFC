@@ -69,7 +69,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // POST /api/daily-pm/:code/ack (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/:code/ack', requireRole('engineer', 'admin'), async (req, res) => {
+router.post('/:code/ack', requireRole('technician', 'admin'), async (req, res) => {
   try {
     const { code } = req.params;
     const { by }   = req.body;

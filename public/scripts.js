@@ -23,7 +23,7 @@ let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = n
 let insDailyHistory = [];
 let authToken = null; // JWT ที่ได้จาก /api/users/login — เก็บไว้ใน memory เท่านั้น (ไม่ใส่ localStorage เพื่อลดความเสี่ยง XSS-token-theft)
 
-// ── บัญชี login กลางของทีมช่าง/วิศวกร — ต้องตรงกับ TE_SHARED_USERNAME ที่ตั้งไว้ใน Render ──
+// ── บัญชี login กลางของทีมช่างซ่อมบำรุง — ต้องตรงกับ TE_SHARED_USERNAME ที่ตั้งไว้ใน Render ──
 // (ถ้าไม่ได้ตั้งค่า TE_SHARED_USERNAME ใน Render ระบบฝั่ง backend จะ default เป็น 'eng_team')
 const TECH_PROFILE_PARENT_ACCOUNT = 'eng_team';
 
@@ -348,11 +348,10 @@ function handleLogout() {
 // ============================================================
 // ROLE HELPERS
 // ============================================================
-// ช่างซ่อมและวิศวกรถูกรวมเป็น role เดียวกัน ('engineer') ตั้งแต่ระดับ backend
-// (resolveRole ใน users.js จะ map แผนก MTN/ENG ให้เป็น 'engineer' เหมือนกันหมด)
-// ฟังก์ชันนี้เก็บไว้เผื่อมี user เก่าที่ยังมี role='technician' ค้างอยู่ใน Sheet
+// ช่างซ่อมและวิศวกรรวมเป็นบทบาทเดียวกันแล้วคือ "ช่าง" (role = 'technician')
+// ('engineer' ยังเช็คไว้เผื่อ session เก่าหรือแถวข้อมูลเก่าใน Sheet ที่ยังไม่ได้ย้ายออก)
 function isRepairStaff(role) {
-  return role === 'engineer' || role === 'technician';
+  return role === 'technician' || role === 'engineer';
 }
 
 // ============================================================
@@ -362,7 +361,7 @@ function isRepairStaff(role) {
 function setupDashboard() {
   document.getElementById('login-page').style.display = 'none';
 
-  // ทั้ง technician และ engineer → TE Panel (role เดียวกัน)
+  // ช่าง (role: technician) → TE Panel
   if (isRepairStaff(currentUser.role)) {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
@@ -390,9 +389,6 @@ function setupDashboard() {
     {panel:'track-repairs', label:'ติดตามงานซ่อม',   icon:'ion-ios-time'},
    {panel:'ins-daily-pm',  label:'เช็คก่อนผลิตทุกวัน',  icon:'ion-ios-clipboard'},
     {panel:'qc-panel',      label:'ตรวจรับงาน',      icon:'ion-ios-ribbon'}
-  ],
-  engineer: [
-    // แท็บสำหรับวิศวกร
   ],
  admin: [
     {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'ion-ios-pie'},
@@ -437,7 +433,6 @@ function switchViewPanel(panelId, tabBtn) {
   if(panelId==='track-repairs')   renderRepairsTable();
   if(panelId==='pm-table')        pmSwView(pmSubView);
   if(panelId==='pm-history')      renderPMHistoryTable();
-  if(panelId==='eng-main')        initEngPanel();
   if(panelId==='admin-dashboard') initAdminDashboard();
   if(panelId==='admin-repairs')   renderAdminRepairsTable();
 if(panelId==='admin-people')    initAdminPeoplePanel();
@@ -1497,7 +1492,7 @@ function submitPMForm(){
           renderPMTable(); 
           renderPMHistoryTable();
           
-          if(currentUser?.role === 'engineer' || currentUser?.role === 'admin') {
+          if(currentUser?.role === 'technician' || currentUser?.role === 'admin') {
             engRenderPMTable(); 
             engRenderHist(); 
             engRenderDash();
@@ -2387,7 +2382,7 @@ function renderAdminUsersTable() {
           <input type="text" id="admin-user-search" class="input-ctrl" style="flex:1;min-width:160px;font-size:13px" placeholder="🔍 ค้นหา username / ชื่อ..." oninput="filterAdminUsers()">
           <select id="admin-user-role-filter" class="select-ctrl" style="width:140px;font-size:12px" onchange="filterAdminUsers()">
             <option value="">ทุก Role</option><option value="user">พนักงาน (user)</option>
-            <option value="engineer">ช่าง/วิศวกร</option><option value="admin">แอดมิน</option>
+            <option value="technician">ช่าง</option><option value="admin">แอดมิน</option>
           </select>
           <select id="admin-user-status-filter" class="select-ctrl" style="width:120px;font-size:12px" onchange="filterAdminUsers()">
             <option value="">ทุกสถานะ</option><option value="active">Active</option><option value="inactive">Inactive</option>
@@ -2404,7 +2399,7 @@ function renderAdminUsersTable() {
   if (isLocalMode) {
     _renderUsersRows([
       {username:'demo_user',role:'user',fullname:'สมชาย ทดสอบ',dept:'ฝ่ายผลิต',contact:'081-000-0001',status:'active',avatar:''},
-      {username:'demo_tech',role:'engineer',fullname:'วิชัย ช่างดี',dept:'ฝ่ายวิศวกรรม',contact:'081-000-0002',status:'active',avatar:''},
+      {username:'demo_tech',role:'technician',fullname:'วิชัย ช่างดี',dept:'ฝ่ายซ่อมบำรุง',contact:'081-000-0002',status:'active',avatar:''},
     ]);
     return;
   }
@@ -2422,7 +2417,7 @@ function filterAdminUsers() {
   const statusF= document.getElementById('admin-user-status-filter')?.value|| '';
   const filtered = _allUsersCache.filter(u =>
     (!search  || u.username.toLowerCase().includes(search) || u.fullname.toLowerCase().includes(search)) &&
-    (!roleF   || u.role === roleF || (roleF === 'engineer' && isRepairStaff(u.role))) &&
+    (!roleF   || u.role === roleF || (roleF === 'technician' && isRepairStaff(u.role))) &&
     (!statusF || u.status === statusF)
   );
   _renderUsersRows(filtered);
@@ -2435,8 +2430,8 @@ function _renderUsersRows(users) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">ไม่พบข้อมูลผู้ใช้งาน</td></tr>`;
     return;
   }
-  const roleLabel = { user:'<i class="ion-ios-person"></i> พนักงาน', technician:'<i class="ion-ios-construct"></i> ช่าง/วิศวกร', engineer:'<i class="ion-ios-construct"></i> ช่าง/วิศวกร', admin:'<i class="ion-ios-checkmark-circle"></i> แอดมิน' };
-  const rolePill  = { user:'pill-waiting', technician:'pill-closed', engineer:'pill-closed', admin:'pill-fail' };
+  const roleLabel = { user:'<i class="ion-ios-person"></i> พนักงาน', technician:'<i class="ion-ios-construct"></i> ช่าง', admin:'<i class="ion-ios-checkmark-circle"></i> แอดมิน' };
+  const rolePill  = { user:'pill-waiting', technician:'pill-closed', admin:'pill-fail' };
   tbody.innerHTML = users.map((u, i) => {
     const avatarHtml = u.avatar && u.avatar.length > 10
       ? `<img src="${u.avatar}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border)">`
@@ -2502,7 +2497,7 @@ function adminDeleteUserConfirm(username) {
 }
 
 // ============================================================
-// ADMIN — TECH PROFILES (โปรไฟล์ช่าง/วิศวกร ในบัญชีกลาง)
+// ADMIN — TECH PROFILES (โปรไฟล์ช่าง ในบัญชีกลาง)
 // ============================================================
 let _allTechProfilesCache = [];
 let _editingTechProfileId = null;
@@ -2514,7 +2509,7 @@ function renderAdminTechProfiles() {
     panel.innerHTML = `
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-          <div class="card-title" style="margin-bottom:0"><i class="ion-ios-contact"></i> โปรไฟล์ช่าง/วิศวกร (บัญชีกลาง)</div>
+          <div class="card-title" style="margin-bottom:0"><i class="ion-ios-contact"></i> โปรไฟล์ช่าง (บัญชีกลาง)</div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-sec" style="font-size:12px" onclick="renderAdminTechProfiles()"><i class="ion-ios-refresh"></i> รีเฟรช</button>
             <button class="btn btn-accent" style="font-size:12px" onclick="openTechProfileModal()"><i class="ion-ios-add"></i> เพิ่มช่างใหม่</button>
@@ -2945,7 +2940,7 @@ function openTechIdentifySelf() {
   _pendingAcceptJobId = null; // ไม่ใช่ flow รับงาน — แค่ยืนยันตัวตนล่วงหน้า
   openTechIdentifyModal();
 }
-// ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง/วิศวกร ──
+// ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง ──
 // key ตรงกับ data-stat ของแต่ละการ์ดใน index.html
 const TE_JOB_FILTERS = {
   // "แจ้งซ่อม" = ยอดรวมงานทั้งหมด ยกเว้นงานที่ถูกตีกลับ (ตีกลับไม่มีการ์ดของตัวเอง จึงไม่รวม)
@@ -3739,7 +3734,7 @@ function viewJobDetail(id) {
     const n = document.getElementById('tup-note');   if(n && j.note) n.value = j.note;
     toggleDoneInputFields(j.status);
   }
-  if ((role==='engineer' || role==='user') && j.status==='ซ่อมเสร็จแล้ว') {
+  if (role==='user' && j.status==='ซ่อมเสร็จแล้ว') {
     document.getElementById('eng-action-qc')?.classList.remove('d-none');
     const b = document.getElementById('eqc-by'); if(b) b.value = currentUser.name;
   }
@@ -3924,7 +3919,6 @@ function engSubmitQC() {
         // มาด้วย ไม่งั้นการ์ดระยะเวลาในพาเนลแอดมินจะยังใช้ค่าเก่า/ว่างอยู่
         loadAllData().then(() => {
           renderRepairsTable(); renderAdminRepairsTable();
-          if (currentUser.role==='engineer') { engRenderQC(); teUpdateStats(); }
           renderUserQCPanel();
         });
       } else showToast('เกิดข้อผิดพลาด: '+(res.message||''), 'error');
@@ -4312,7 +4306,7 @@ function resetSearchableSelect(selectId) {
   setSearchableSelectValue(selectId, '');
 }
 // ============================================================
-// ADMIN — PEOPLE PANEL (รวม "จัดการ Users" + "โปรไฟล์ช่าง/วิศวกร")
+// ADMIN — PEOPLE PANEL (รวม "จัดการ Users" + "โปรไฟล์ช่าง")
 // ============================================================
 let _peopleSubTab = 'users';
 

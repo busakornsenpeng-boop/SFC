@@ -233,7 +233,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // POST /api/repairs/:id/accept — ช่างรับงาน (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) => {
+router.post('/:id/accept', requireRole('technician', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { technician } = req.body;
@@ -279,7 +279,7 @@ router.post('/:id/accept', requireRole('engineer', 'admin'), async (req, res) =>
 });
 
 // POST /api/repairs/:id/update — ช่างอัปเดตสถานะ (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) => {
+router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, note, imgAfter, updatedBy, repairDuration } = req.body;
@@ -362,8 +362,9 @@ router.post('/:id/update', requireRole('engineer', 'admin'), async (req, res) =>
   }
 });
 
-// POST /api/repairs/:id/qc (เฉพาะช่าง/วิศวกร/แอดมิน/ผู้แจ้งซ่อม — หน้าบ้านโชว์ปุ่มนี้ให้ user ตรวจรับได้ด้วย)
-router.post('/:id/qc', requireRole('user', 'engineer', 'admin'), async (req, res) => {
+// POST /api/repairs/:id/qc (เฉพาะผู้แจ้งซ่อม/แอดมิน — ช่างไม่มีสิทธิ์ตรวจรับงานตัวเอง
+// เพราะการตรวจรับเป็นหน้าที่ของผู้แจ้ง เพื่อรักษาการตรวจสอบแยกจากคนซ่อม)
+router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { result, by, note } = req.body;
@@ -476,7 +477,7 @@ router.post('/:id/approval', requireRole('admin'), async (req, res) => {
 });
 
 // POST /api/repairs/:id/reject — ช่างตีกลับ (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/:id/reject', requireRole('engineer', 'admin'), async (req, res) => {
+router.post('/:id/reject', requireRole('technician', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { reason, rejectedBy } = req.body;

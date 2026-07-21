@@ -39,7 +39,7 @@ const ADMIN_ACCOUNT = {
   avatar_url: '',
 };
 
-// บัญชีกลางของทีมช่าง/วิศวกร — กำหนด username/password ไว้เองผ่าน env var
+// บัญชีกลางของทีมช่างซ่อมบำรุง — กำหนด username/password ไว้เองผ่าน env var
 // (ไม่ต้องผ่านระบบสมัครสมาชิก/ไม่มีแถวใน Users sheet) ใช้ร่วมกันหน้างานบนเครื่องเดียว
 // แล้วให้แต่ละคนเลือกชื่อ+กรอกรหัสพนักงานตอนรับงาน (ดู routes/techprofiles.js)
 //
@@ -50,20 +50,21 @@ const ADMIN_ACCOUNT = {
 const TE_SHARED_ACCOUNT = {
   username:   (process.env.TE_SHARED_USERNAME || 'eng_team').trim(),
   password:   (process.env.TE_SHARED_PASSWORD || 'Sfca2026').trim(),
-  role:       'engineer',
-  fullname:   'ทีมช่าง/วิศวกร',
+  role:       'technician',
+  fullname:   'ทีมช่างซ่อมบำรุง',
   dept:       'ENG',
   status:     'active',
   is_chief:   'FALSE',
   avatar_url: '',
 };
 
-// เดิม: รวม role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ให้เป็น role เดียวกันคือ 'engineer'
-// ตอนนี้: ปิดการอัปสิทธิ์อัตโนมัติจากแผนกแล้ว — role 'engineer' มอบให้เฉพาะบัญชีกลาง
-// TE_SHARED_ACCOUNT เท่านั้น ใครสมัครสมาชิกเอง (ไม่ว่าจะเลือกแผนกไหน) จะได้ role 'user' เสมอ
+// เดิม: เคยแยก role ช่างซ่อม (แผนก MTN) และวิศวกร (แผนก ENG) ออกจากกัน
+// ตอนนี้: รวมเป็นบทบาทเดียวคือ "ช่าง" (role = 'technician') เพราะหน้าที่เหมือนกันทุกอย่าง
+// มอบให้เฉพาะบัญชีกลาง TE_SHARED_ACCOUNT เท่านั้น ใครสมัครสมาชิกเอง (ไม่ว่าจะเลือกแผนกไหน)
+// จะได้ role 'user' เสมอ
 function resolveRole(role, dept, username) {
   if (username === ADMIN_ACCOUNT.username) return 'admin';
-  if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) return 'engineer';
+  if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) return 'technician';
   return 'user';
 }
 
@@ -524,12 +525,13 @@ router.delete('/:username', requireRole('admin'), async (req, res) => {
 router.get('/technicians', async (req, res) => {
   try {
     const users = await getAllUsers();
-    // เก็บ role 'engineer'/'technician'/'tech' จาก Users sheet ไว้เผื่อมี user เก่าที่ยังไม่ย้ายออก
+    // เก็บ role 'engineer'/'technician'/'tech' จาก Users sheet ไว้เผื่อมี user เก่า (ก่อนย้ายมาใช้
+    // บัญชีกลาง) ที่ยังมีแถวค้างอยู่ — ไม่ใช่ role ที่ใช้งานจริงแล้วในระบบปัจจุบัน
     const legacyNames = users
       .filter(u => ['engineer', 'technician', 'tech'].includes((u.role || '').toLowerCase()))
       .map(u => u.fullname || u.username);
 
-    // ดึงชื่อช่างจากบัญชีกลาง (TechProfiles) — ที่นี่คือ roster หลักของช่าง/วิศวกรตอนนี้
+    // ดึงชื่อช่างจากบัญชีกลาง (TechProfiles) — ที่นี่คือ roster หลักของช่างตอนนี้
     let profileNames = [];
     try {
       const profRes = await sheets.spreadsheets.values.get({

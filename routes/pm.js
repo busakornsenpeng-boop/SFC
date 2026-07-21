@@ -213,7 +213,7 @@ router.post('/import', requireRole('admin'), async (req, res) => {
 });
 
 // POST /api/pm/checklist (เฉพาะช่าง/วิศวกร/แอดมิน)
-router.post('/checklist', requireRole('engineer', 'admin'), async (req, res) => {
+router.post('/checklist', requireRole('technician', 'admin'), async (req, res) => {
   try {
     const { pmCode, equip, productionLine, date, tech, shift, runningHr, parts, result, workDone, remarks, checklist } = req.body;
     console.log(`[PM Checklist] Submitting PM: ${pmCode}, Equipment: ${equip}, Tech: ${tech}`);
