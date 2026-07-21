@@ -50,8 +50,8 @@ router.get('/', async (req, res) => {
     if (auth && auth.startsWith('Bearer ')) {
       try {
         const jwt = require('jsonwebtoken');
-        const { JWT_SECRET } = require('../middleware/adminAuth');
-        const payload = jwt.verify(auth.split(' ')[1], JWT_SECRET);
+        const { getJwtSecret } = require('../middleware/adminAuth');
+        const payload = jwt.verify(auth.split(' ')[1], getJwtSecret());
         isAdmin = payload.role === 'admin';
       } catch (e) {
         // token ไม่ถูกต้อง/หมดอายุ — ถือว่าไม่ใช่ admin

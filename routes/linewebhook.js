@@ -4,6 +4,7 @@
 // แปลงมาจาก Google Apps Script doPost()
 // ─────────────────────────────────────────────────────────────
 const express        = require('express');
+const crypto         = require('crypto');
 const router         = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const {
@@ -67,8 +68,31 @@ async function linkLineAccount(username, lineUserId) {
   return { success: true, fullname };
 }
 
+// ── ตรวจสอบว่า request มาจาก LINE จริง ด้วย HMAC-SHA256 signature ──
+// LINE เซ็น request ทุกครั้งด้วย Channel Secret แล้วแนบมาใน header x-line-signature
+// ต้องเช็คก่อนประมวลผล event เสมอ ไม่งั้นใครก็ปลอม request มาได้ (เช่น ปลอมคำสั่ง "ผูกไอดี")
+function verifyLineSignature(req, res, next) {
+  const channelSecret = process.env.LINE_CHANNEL_SECRET;
+  if (!channelSecret) {
+    console.error('[LINE Webhook] LINE_CHANNEL_SECRET ยังไม่ได้ตั้งค่า — ปฏิเสธ request เพื่อความปลอดภัย');
+    return res.sendStatus(500);
+  }
+  const signature = req.headers['x-line-signature'];
+  if (!signature || !req.rawBody) {
+    return res.sendStatus(401);
+  }
+  const expected = crypto.createHmac('SHA256', channelSecret).update(req.rawBody).digest('base64');
+  // ใช้ timingSafeEqual กัน timing attack ตอนเทียบ signature
+  const expectedBuf = Buffer.from(expected);
+  const signatureBuf = Buffer.from(signature);
+  if (expectedBuf.length !== signatureBuf.length || !crypto.timingSafeEqual(expectedBuf, signatureBuf)) {
+    return res.sendStatus(401);
+  }
+  next();
+}
+
 // POST /api/line/webhook  ← ตั้งใน LINE Developers Console
-router.post('/', async (req, res) => {
+router.post('/', verifyLineSignature, async (req, res) => {
   // ตอบ 200 ทันทีเสมอ (LINE จะ retry ถ้าไม่ได้รับ 200)
   res.sendStatus(200);
 

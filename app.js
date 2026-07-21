@@ -42,7 +42,11 @@ function createApp() {
   // CSP is configured by the deployment proxy because this page loads trusted CDN assets.
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
   app.use(cors(createCorsOptions()));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({
+    limit: '10mb',
+    // เก็บ raw body ไว้ใช้ verify LINE webhook signature (HMAC ต้องคำนวณจาก raw bytes เท่านั้น)
+    verify: (req, res, buf) => { req.rawBody = buf; },
+  }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
   app.use('/api/users/login', authLimiter);
