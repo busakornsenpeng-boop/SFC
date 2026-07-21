@@ -60,6 +60,23 @@ function createApp() {
   app.use('/api/line/webhook', lineWebhookRoutes);
   app.use('/api/tech-profiles', techProfileRoutes);
 
+  // GET /auth/line/callback — ต้องตรงกับ "Callback URL" ที่ตั้งไว้ใน LINE Developers Console
+  // เป๊ะๆ (และตรงกับ LINE_REDIRECT_URI ที่ใช้ยิง /oauth2/v2.1/authorize) เพราะ LINE จะ redirect
+  // popup มาที่ path นี้หลังผู้ใช้ login/ยินยอมสิทธิ์เสร็จ — หน้านี้แค่ postMessage code กลับไป
+  // หา popup ต้นทาง (regConnectLINE ใน scripts.js) แล้วปิดตัวเอง ไม่มีการเรียก Sheets ที่นี่
+  app.get('/auth/line/callback', (req, res) => {
+    const { code = '', state = '', error = '', error_description = '' } = req.query;
+    res.type('html').send(`<!DOCTYPE html><html><body>
+<script>
+  window.opener && window.opener.postMessage(
+    { type: 'LINE_AUTH_CODE', code: ${JSON.stringify(String(code))}, state: ${JSON.stringify(String(state))}, error: ${JSON.stringify(String(error || error_description))} },
+    window.location.origin
+  );
+  window.close();
+</script>
+</body></html>`);
+  });
+
   if (process.env.ENABLE_LINE_TEST_ENDPOINT === 'true') {
     app.post('/api/test-line-notify', verifyAdminToken, async (req, res, next) => {
       try {
