@@ -3609,59 +3609,25 @@ function populateTechDropdown(technicians) {
   });
 }
 
-// เป็นแบบนี้
-function loginWithLINE() {
-  const clientId  = '2010534462';
-  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
-  window.location.href =
-    `https://access.line.me/oauth2/v2.1/authorize` +
-    `?response_type=code&client_id=${clientId}` +
-    `&redirect_uri=${redirectUri}&state=login&scope=profile`;
-}
-async function dashConnectLINE() {
+// หมายเหตุ: เดิมมีฟังก์ชัน loginWithLINE() ตรงนี้ที่ redirect ไป LINE OAuth login โดยตรง
+// แต่ไม่ได้ถูกเรียกใช้จากที่ไหนในระบบแล้ว (dead code) และ backend ก็ไม่มี route
+// /auth/line/callback รองรับด้วย — ลบออกเพื่อกันสับสน/กันมีคนเผลอเอาไปผูกปุ่มใหม่แล้วพัง
+// ระบบปัจจุบันใช้การผูกบัญชีผ่านแชท LINE OA แทน (ดู dashConnectLINE ด้านล่าง)
+// เดิม: เคย redirect ไป LINE OAuth login โดยตรง (loginWithLINE / connectLINE ด้านบน)
+// แต่ทีมงานเปลี่ยนมาใช้วิธีผูกบัญชีผ่านแชท LINE OA แทนแล้ว (ดู routes/linewebhook.js
+// คำสั่ง "ผูกไอดี username") เพราะไม่ต้องพึ่ง LINE Login channel แยกต่างหาก และปลอดภัยกว่า
+// ฟังก์ชันนี้เลยแค่แสดงคำแนะนำ ไม่มีการเรียก backend OAuth endpoint ที่ยังไม่มีอยู่จริงแล้ว
+function dashConnectLINE() {
   if (!currentUser?.username) return showToast('ไม่พบข้อมูล username กรุณา login ใหม่', 'error');
-  try {
-    const r = await fetch('/api/users/line/auth-url?mode=popup').then(r => r.json());
-    if (!r.url) return showToast('ไม่สามารถเชื่อมต่อ LINE ได้', 'error');
-
-    const popup = window.open(r.url, 'line_auth_dash', 'width=520,height=680');
-    const onMsg = async (e) => {
-      if (e.data?.type !== 'LINE_AUTH_CODE') return;
-      window.removeEventListener('message', onMsg);
-      popup?.close();
-
-      const cb = await fetch('/api/users/line/callback', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: e.data.code }),
-      }).then(r => r.json());
-
-      if (cb.lineUserId) {
-        const link = await fetch(`/api/users/${encodeURIComponent(currentUser.username)}/link-line`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lineUserId: cb.lineUserId }),
-        }).then(r => r.json());
-        if (link.success) showToast('เชื่อม LINE สำเร็จ!', 'success');
-        else showToast(link.message || 'เชื่อมไม่สำเร็จ', 'error');
-      } else if (cb.linked) {
-        showToast('LINE นี้ผูกกับบัญชีอื่นอยู่แล้ว', 'error');
-      }
-    };
-    window.addEventListener('message', onMsg);
-  } catch (err) {
-    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-  }
+  alert(
+    'วิธีเชื่อมบัญชี LINE เพื่อรับแจ้งเตือน:\n\n' +
+    '1) เพิ่มเพื่อน LINE OA ของบริษัท\n' +
+    `2) พิมพ์ข้อความ "ผูกไอดี ${currentUser.username}" ส่งไปในแชท\n` +
+    '3) ระบบจะตอบกลับยืนยันทันทีเมื่อเชื่อมสำเร็จ'
+  );
 }
-// เพิ่มฟังก์ชันใหม่ — สำหรับผูก LINE หลัง login แล้ว
-function connectLINE() {
-  if (!currentUser) { showToast('กรุณา login ก่อน', 'warning'); return; }
-  const clientId    = '2010534462';
-  const redirectUri = encodeURIComponent('https://sfc-xrww.onrender.com/auth/line/callback');
-  const state       = encodeURIComponent('connect_' + currentUser.name);
-  window.location.href =
-    `https://access.line.me/oauth2/v2.1/authorize` +
-    `?response_type=code&client_id=${clientId}` +
-    `&redirect_uri=${redirectUri}&state=${state}&scope=profile`;
-}
+// หมายเหตุ: เดิมมีฟังก์ชัน connectLINE() ตรงนี้ที่ redirect ไป LINE OAuth login เช่นกัน
+// ไม่ได้ถูกเรียกใช้จากที่ไหนแล้ว ลบออกด้วยเหตุผลเดียวกับ loginWithLINE ด้านบน
 // ============================================================
 // MISSING FUNCTIONS — เพิ่มต่อท้าย scripts.js
 // ============================================================
