@@ -371,6 +371,7 @@ function showLoginError() {
 }
 // ใหม่
 function handleLogout() {
+  stopAutoRefresh();
   // ── ล้างการระบุตัวตนของบัญชีกลาง กันชื่อคนก่อนหน้าค้างข้ามคน ──
   if (currentUser?.username) {
     sessionStorage.removeItem('identified_tech_' + currentUser.username);
@@ -416,6 +417,7 @@ function setupDashboard() {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
     initTEPanel();
+    startAutoRefresh();
     return;
   }
 
@@ -471,6 +473,7 @@ function setupDashboard() {
     const ed = document.getElementById('rep-dept');
    if (ed && currentUser) ed.value = currentUser.dept || ''; 
   }
+  startAutoRefresh();
 }
 
 function switchViewPanel(panelId, tabBtn) {
@@ -489,6 +492,69 @@ if(panelId==='admin-people')    initAdminPeoplePanel();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
 };
+
+// ============================================================
+// AUTO REFRESH — ทำให้หน้าจอ "เกือบเรียลไทม์" ด้วยการ poll ข้อมูลใหม่เป็นระยะ
+// (ระบบใช้ Google Sheets เป็น DB ซึ่งไม่รองรับ push event ตรงๆ จึงใช้วิธีนี้แทน
+// WebSocket — เบา ไม่ต้องแก้ backend และไม่เพิ่ม dependency)
+// ============================================================
+const AUTO_REFRESH_MS = 20000; // ดึงข้อมูลใหม่ทุก 20 วินาที
+let _autoRefreshTimer = null;
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  if (isLocalMode) return; // Local Mode ไม่มี backend จริงให้ poll
+  _autoRefreshTimer = setInterval(() => {
+    // ข้ามรอบถ้าผู้ใช้สลับไปแท็บอื่นของเบราว์เซอร์ หรือ logout ไปแล้ว — ประหยัด request
+    if (document.hidden || !currentUser) return;
+    silentRefreshData();
+  }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
+}
+
+// ดึงข้อมูลหลักใหม่แบบเงียบๆ (ไม่โชว์ loading overlay เต็มจอเหมือน loadAllData)
+// แล้วสั่งวาดใหม่เฉพาะ panel/tab ที่ผู้ใช้กำลังเปิดดูอยู่ ไม่ไปยุ่งฟอร์มที่กำลังกรอกอยู่ในแท็บอื่น
+function silentRefreshData() {
+  Promise.all([
+    fetch(`${API_URL}/repairs`).then(r => r.json()).catch(() => null),
+    fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => null),
+    fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => null),
+  ]).then(([repairsRes, pmRes, pmHistRes]) => {
+    if (repairsRes && repairsRes.data) cachedJobs      = repairsRes.data;
+    if (pmRes && pmRes.data)           cachedPM        = pmRes.data;
+    if (pmHistRes && pmHistRes.data)   cachedPMHistory = pmHistRes.data;
+    rerenderCurrentView();
+  }).catch(() => {}); // เงียบไว้ก่อน ถ้ารอบนี้พลาด รอบถัดไปใน 20 วิจะลองใหม่เอง
+}
+
+function rerenderCurrentView() {
+  if (!currentUser) return;
+
+  if (isRepairStaff(currentUser.role)) {
+    // ช่าง/วิศวกร — TE Panel
+    teUpdateStats();
+    const activeTab = document.querySelector('.te-tab.active');
+    const tabId = activeTab ? activeTab.id : '';
+    if (tabId === 'te-t-jobs')  teRenderQueue();
+    if (tabId === 'te-t-pm')    (tePmSub === 'list' ? teRenderPMTable() : teRenderCal());
+    if (tabId === 'te-t-hist')  teRenderHist();
+    if (tabId === 'te-t-daily') teRenderDailyPM();
+    return;
+  }
+
+  // user / admin — dashboard เดิม: รีเฟรชเฉพาะ panel ที่ active อยู่
+  const activePanel = document.querySelector('.view-panel.active');
+  const panelId = activePanel ? activePanel.id : '';
+  if (panelId === 'panel-track-repairs')    renderRepairsTable();
+  if (panelId === 'panel-admin-dashboard')  initAdminDashboard();
+  if (panelId === 'panel-admin-repairs')    renderAdminRepairsTable();
+  if (panelId === 'panel-qc-panel')         renderUserQCPanel();
+  if (panelId === 'panel-pm-table')         pmSwView(pmSubView);
+  if (panelId === 'panel-pm-history')       renderPMHistoryTable();
+}
 
 function refreshData(msg='กำลังอัปเดตข้อมูล...') {
   if(isLocalMode) return;
