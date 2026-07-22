@@ -45,6 +45,12 @@
     <label for="password">รหัสผ่าน</label>
     <input type="password" id="password" class="login-input" placeholder="••••" required>
   </div>
+  <div style="text-align:right;margin-top:-8px;margin-bottom:14px">
+    <button type="button" onclick="openModal('forgot-password-info-modal')"
+      style="border:none;background:none;color:var(--accent);font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:0;">
+      ลืมรหัสผ่าน?
+    </button>
+  </div>
   <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
 
 </form>
@@ -1131,6 +1137,33 @@
         <button id="tim-confirm-btn" class="btn btn-accent" style="width:100%" onclick="submitTechIdentify()">
           <i class="ion-ios-checkbox-outline"></i> ยืนยันและรับงาน
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ลืมรหัสผ่าน — คำแนะนำการรีเซ็ตผ่าน LINE OA -->
+  <div class="modal" id="forgot-password-info-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title"><i class="ion-ios-key"></i> ลืมรหัสผ่าน?</span>
+        <button class="modal-close" onclick="closeModal('forgot-password-info-modal')"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px">
+          หากคุณเคยผูกบัญชี LINE ไว้แล้ว สามารถขอรหัสผ่านชั่วคราวใหม่ได้ทันทีผ่าน LINE Official Account
+        </p>
+        <div style="background:var(--bg2);border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-size:13px;margin-bottom:6px">1. เปิดแชท LINE OA ของ SFC Maintenance Service</div>
+          <div style="font-size:13px;margin-bottom:6px">2. พิมพ์ข้อความว่า <b>"ลืมรหัสผ่าน"</b></div>
+          <div style="font-size:13px">3. ระบบจะส่งรหัสผ่านชั่วคราวกลับมาให้ทันที — ใช้เข้าสู่ระบบแล้วจะให้ตั้งรหัสใหม่</div>
+        </div>
+        <!-- TODO: ใส่ลิงก์ add-friend LINE OA จริงตรงนี้ เช่น https://line.me/R/ti/p/@your_line_id -->
+        <a href="#" target="_blank" class="btn btn-accent" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box">
+          <i class="ion-ios-chatbubbles"></i> เปิดแชท LINE OA
+        </a>
+        <p style="font-size:12px;color:var(--text3);margin-top:14px">
+          ยังไม่เคยผูกบัญชี LINE หรือติดปัญหา? กรุณาติดต่อแอดมินเพื่อรีเซ็ตรหัสผ่านให้โดยตรง
+        </p>
       </div>
     </div>
   </div>
