@@ -321,8 +321,12 @@
   .brand-subtitle{font-size:10px}
   .user-profile{width:100%;justify-content:space-between;padding:6px 10px}
 
-  /* Tab navigation: ยืนยันว่าปุ่มไม่บีบเล็กเกินไปตอน scroll แนวนอน */
-  .tab-btn{min-width:88px;padding:9px 10px;font-size:12px}
+  /* Tab navigation: เดิมเป็นแถบเลื่อนแนวนอน (overflow-x:auto) แต่ไม่มีสัญญาณบอกว่าเลื่อนได้
+     ทำให้ปุ่มสุดท้ายโดนตัดที่ขอบจอ ดูเหมือนพัง — เปลี่ยนเป็น grid 2x2 แทน เพราะแต่ละ role
+     มีพอดี 4 แท็บอยู่แล้ว จะได้เห็นครบทุกปุ่มโดยไม่ต้องปัด */
+  .tab-navigation{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;overflow-x:visible;white-space:normal}
+  .tab-btn{min-width:0;padding:10px 8px;font-size:12px;white-space:normal;text-align:center;line-height:1.25}
+  .tab-btn i{font-size:15px}
 
   /* Stat cards: ตัวเลขใหญ่เกินไปบนจอแคบ */
   .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
