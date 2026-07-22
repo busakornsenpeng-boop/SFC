@@ -60,12 +60,18 @@ async function resetPasswordForUsername(username, customPassword) {
 
   const tempPassword = (customPassword && String(customPassword).trim()) || generateTempPassword();
   const newHash = await bcrypt.hash(tempPassword, 10);
+  const sheetRow = rowIndex + 2;
 
-  await sheets.spreadsheets.values.update({
+  // อัปเดตรหัสผ่านใหม่ (คอลัมน์ B) และตั้ง flag บังคับให้เปลี่ยนรหัสผ่านตอน login ครั้งถัดไป (คอลัมน์ K)
+  await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Users!B${rowIndex + 2}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[newHash]] },
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: [
+        { range: `Users!B${sheetRow}`, values: [[newHash]] },
+        { range: `Users!K${sheetRow}`, values: [['TRUE']] },
+      ],
+    },
   });
 
   return {
@@ -122,7 +128,7 @@ function resolveRole(role, dept, username) {
 async function getAllUsers() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Users!A2:J1000',
+    range: 'Users!A2:K1000',
   });
   const rows = res.data.values || [];
  return rows.map(row => ({
@@ -136,6 +142,7 @@ async function getAllUsers() {
     is_chief:     row[7] || '',
     avatar_url:   row[8] || '',
     line_user_id: row[9] || '',
+    must_change_password: row[10] || '',
   }));
 }
 
@@ -161,6 +168,7 @@ router.post('/login', async (req, res) => {
         dept:    ADMIN_ACCOUNT.dept,
         avatar:  ADMIN_ACCOUNT.avatar_url,
         isChief: true,
+        mustChangePassword: false,
       });
     }
 
@@ -180,6 +188,7 @@ router.post('/login', async (req, res) => {
         avatar:     TE_SHARED_ACCOUNT.avatar_url,
         isChief:    false,
         lineLinked: false,
+        mustChangePassword: false,
       });
     }
 
@@ -220,6 +229,7 @@ router.post('/login', async (req, res) => {
       avatar:       user.avatar_url,
       isChief:      user.is_chief === 'TRUE' || user.is_chief === 'true' || user.is_chief === '1',
       lineLinked:   !!user.line_user_id,   // ← บอก frontend ว่าผูก LINE ไว้แล้วไหม
+      mustChangePassword: user.must_change_password === 'TRUE', // ← บังคับเปลี่ยนรหัสผ่านถ้าเพิ่งถูกรีเซ็ต
     });
   } catch (err) {
     console.error(err);
@@ -504,6 +514,73 @@ router.post('/:username/link-line', async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // /:username routes  ← ต้องอยู่หลัง /line/* เสมอ
 // ─────────────────────────────────────────────────────────────
+
+// POST /api/users/change-password  (ต้อง login ก่อน — ใช้เปลี่ยนรหัสผ่านตัวเอง)
+// body: { newPassword, currentPassword? }
+// currentPassword เป็น optional: ถ้าส่งมาจะตรวจสอบให้ (กรณีเปลี่ยนรหัสผ่านทั่วไปจากหน้าตั้งค่า)
+// ถ้าไม่ส่งมา จะข้ามการตรวจ (ใช้กรณีบังคับเปลี่ยนรหัสผ่านทันทีหลัง login ด้วยรหัสชั่วคราว
+// ซึ่ง token ที่ผ่าน requireAuth มาแล้วเป็นหลักฐานว่ารู้รหัสเดิมถูกต้องอยู่แล้ว)
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const authInfo = req.admin || req.user || {};
+    const username  = authInfo.username;
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!username) {
+      return res.status(401).json({ success: false, message: 'ไม่พบข้อมูลผู้ใช้จาก token' });
+    }
+    if (username === ADMIN_ACCOUNT.username) {
+      return res.json({ success: false, message: 'บัญชีนี้ตั้งค่าผ่าน ADMIN_PASSWORD บน Render กรุณาแก้ไขที่นั่นแทน' });
+    }
+    if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) {
+      return res.json({ success: false, message: 'บัญชีนี้ตั้งค่าผ่าน TE_SHARED_PASSWORD บน Render กรุณาแก้ไขที่นั่นแทน' });
+    }
+    if (!newPassword || String(newPassword).trim().length < 4) {
+      return res.json({ success: false, message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร' });
+    }
+
+    const users = await getAllUsers();
+    const user  = users.find(u => u.username === username);
+    if (!user) return res.json({ success: false, message: 'ไม่พบ user นี้ในระบบ' });
+
+    if (currentPassword) {
+      let currentOk = false;
+      if (isBcryptHash(user.password)) {
+        currentOk = await bcrypt.compare(currentPassword, user.password);
+      } else {
+        currentOk = currentPassword === user.password;
+      }
+      if (!currentOk) {
+        return res.json({ success: false, message: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+      }
+    }
+
+    const result   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
+    const rows     = result.data.values || [];
+    const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
+    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบ user นี้ในระบบ' });
+
+    const newHash  = await bcrypt.hash(String(newPassword).trim(), 10);
+    const sheetRow = rowIndex + 2;
+
+    // อัปเดตรหัสผ่านใหม่ + เคลียร์ flag บังคับเปลี่ยนรหัสผ่าน (คอลัมน์ K)
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `Users!B${sheetRow}`, values: [[newHash]] },
+          { range: `Users!K${sheetRow}`, values: [['FALSE']] },
+        ],
+      },
+    });
+
+    res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+  } catch (err) {
+    console.error('[users] change-password error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // POST /api/users/:username/reset-password  (admin เท่านั้น)
 // ตั้งรหัสผ่านชั่วคราวใหม่ให้ user — ถ้า user ผูก LINE ไว้แล้วจะ push รหัสใหม่ไปทาง LINE ให้อัตโนมัติ

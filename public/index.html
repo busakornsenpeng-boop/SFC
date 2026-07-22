@@ -1135,6 +1135,30 @@
     </div>
   </div>
 
+  <!-- บังคับเปลี่ยนรหัสผ่าน (หลัง login ด้วยรหัสผ่านชั่วคราว) — ปิดไม่ได้จนกว่าจะตั้งรหัสใหม่สำเร็จ -->
+  <div class="modal" id="force-change-password-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title"><i class="ion-ios-key"></i> กรุณาตั้งรหัสผ่านใหม่</span>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">คุณกำลังใช้รหัสผ่านชั่วคราว กรุณาตั้งรหัสผ่านใหม่ของคุณเองก่อนเข้าใช้งานระบบ</p>
+        <div class="form-field" style="margin-bottom:14px">
+          <label>รหัสผ่านใหม่</label>
+          <input type="password" id="fcp-new-password" class="input-ctrl" placeholder="อย่างน้อย 4 ตัวอักษร">
+        </div>
+        <div class="form-field" style="margin-bottom:14px">
+          <label>ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" id="fcp-confirm-password" class="input-ctrl" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง">
+        </div>
+        <div id="fcp-error" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--red-bg,#fee2e2);border-radius:6px;color:var(--red,#dc2626);font-size:12px;border-left:3px solid var(--red,#dc2626)"></div>
+        <button class="btn btn-accent" style="width:100%" onclick="submitForceChangePassword()">
+          <i class="ion-ios-checkmark-circle"></i> บันทึกรหัสผ่านใหม่
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Admin: Reset Password Result Modal -->
   <div class="modal" id="reset-password-modal">
     <div class="modal-content">

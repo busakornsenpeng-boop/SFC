@@ -279,13 +279,63 @@ function handleLoginSubmit(event) {
     sessionStorage.removeItem('identified_tech_' + currentUser.username);
     myIdentifiedName = null;
 
-    autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
-    setupDashboard();
+    if (res.mustChangePassword) {
+      // ล็อกอินด้วยรหัสผ่านชั่วคราว (เพิ่งถูกรีเซ็ต) — บังคับตั้งรหัสใหม่ก่อนเข้าใช้งานระบบ
+      showForceChangePasswordModal();
+    } else {
+      autoLinkPendingLineId(); // ผูก LINE ID อัตโนมัติถ้ามีค้างจากลิงก์ "แจ้งซ่อม"
+      setupDashboard();
+    }
   } else {
     showLoginError();
   }
 })
   .catch(() => { hideLoading(); showLoginError(); });
+}
+
+// ─────────────────────────────────────────────────────────────
+// บังคับเปลี่ยนรหัสผ่านหลัง login ด้วยรหัสผ่านชั่วคราว (จากการรีเซ็ตโดยแอดมิน/LINE self-service)
+// ปิด modal นี้ไม่ได้จนกว่าจะตั้งรหัสผ่านใหม่สำเร็จ
+// ─────────────────────────────────────────────────────────────
+function showForceChangePasswordModal() {
+  const p1 = document.getElementById('fcp-new-password');
+  const p2 = document.getElementById('fcp-confirm-password');
+  const err = document.getElementById('fcp-error');
+  if (p1) p1.value = '';
+  if (p2) p2.value = '';
+  if (err) err.style.display = 'none';
+  openModal('force-change-password-modal');
+}
+
+function submitForceChangePassword() {
+  const p1 = document.getElementById('fcp-new-password').value;
+  const p2 = document.getElementById('fcp-confirm-password').value;
+  const errEl = document.getElementById('fcp-error');
+  const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+
+  if (!p1 || p1.trim().length < 4) return showErr('รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร');
+  if (p1 !== p2) return showErr('รหัสผ่านใหม่และรหัสยืนยันไม่ตรงกัน');
+
+  showLoading('กำลังบันทึกรหัสผ่านใหม่...');
+  authFetch(`${API_URL}/users/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword: p1 }),
+  })
+  .then(r => r.json())
+  .then(res => {
+    hideLoading();
+    if (res && res.success) {
+      closeModal('force-change-password-modal');
+      showToast('ตั้งรหัสผ่านใหม่สำเร็จ', 'success');
+      autoLinkPendingLineId();
+      setupDashboard();
+    } else {
+      showErr((res && res.message) || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    }
+  })
+  .catch(() => { hideLoading(); showErr('เชื่อมต่อ server ไม่ได้'); });
 }
 
 // ─────────────────────────────────────────────────────────────
