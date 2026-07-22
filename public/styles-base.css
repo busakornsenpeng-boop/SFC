@@ -336,6 +336,14 @@
   /* Login card: ลด padding บนจอแคบมาก */
   .login-card{padding:28px 18px}
   .role-selector{grid-template-columns:repeat(3,1fr)}
+
+  /* ── แก้บั๊กมือถือ iOS: ถ้าตัวอักษรในช่องกรอกเล็กกว่า 16px, Safari จะซูมจอเข้าอัตโนมัติ
+     ทุกครั้งที่แตะกรอกข้อมูล แล้วไม่ซูมออกให้เอง ต้อง pinch-zoom เองทุกรอบ — ตั้ง 16px ให้ครบ
+     ทุกช่องกรอกเฉพาะบนมือถือ (ไม่กระทบดีไซน์บน desktop เพราะอยู่ใน media query นี้เท่านั้น) */
+  .input-ctrl, .select-ctrl, .textarea-ctrl,
+  .login-input, .tbl-search, .pm-search-eng, .tp-sinp, .tp-ssel {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 400px) {
