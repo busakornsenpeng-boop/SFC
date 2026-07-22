@@ -409,30 +409,9 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     });
 
    if (result === 'ผ่านตรวจรับ') {
-      const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
-      if (requesterLineId) {
-        await sendLineMessage(requesterLineId,
-          `🎉 งานซ่อมผ่านการตรวจรับและปิดงานแล้ว!\n` +
-          `📋 รหัสงาน: ${id}\n` +
-          `🔧 เครื่องจักร: ${machine}\n` +
-          `✅ ตรวจสอบโดย: ${by}`
-        );
-      }
-      // ตัดแจ้งเตือนช่างตอนตรวจรับผ่านออก (แอดมินเป็นผู้ประสานงานให้ช่างเอง)
-      // แจ้ง admin ผ่าน LINE
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ปิดงาน', `✅ ผ่านตรวจรับ - ${by}`);
+      // ตัดแจ้งเตือนออกทั้งหมดตอนตรวจรับผ่าน/ปิดงาน — ไม่ต้องแจ้งผู้แจ้งซ่อม/ช่าง/แอดมิน
     } else {
-      // แจ้งช่างคนที่รับงานนี้ไว้ — ตรวจรับไม่ผ่าน งานกลับเข้าสถานะ "กำลังซ่อม" ให้แก้ไขต่อ
-      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, techName);
-      if (techLineId) {
-        await sendLineMessage(techLineId,
-          `⚠️ งานซ่อมไม่ผ่านการตรวจรับ!\n` +
-          `📋 รหัสงาน: ${id}\n` +
-          `🔧 เครื่องจักร: ${machine}\n` +
-          `📝 เหตุผล: ${note || 'ไม่ระบุ'}\n` +
-          `กรุณาดำเนินการแก้ไขต่อแล้วส่งตรวจรับอีกครั้ง`
-        );
-      }
+      // ตัดแจ้งเตือนช่างตอนตรวจรับไม่ผ่านออก — แจ้งแค่แอดมินพอ
       // แจ้ง admin ผ่าน LINE ตอนตรวจรับไม่ผ่าน
       await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
     }
@@ -655,6 +634,9 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
         `งานของคุณกลับเข้าสู่คิวซ่อมอีกครั้ง ไม่ต้องแก้ไขข้อมูลเพิ่มเติมครับ`
       );
     }
+
+    // แจ้งแอดมิน (คนอื่น) ด้วยว่ามีการยกเลิกการตีกลับ งานกลับเข้าคิวแล้ว
+    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'รอซ่อม', undoNote);
 
     res.json({ success: true });
   } catch (err) {

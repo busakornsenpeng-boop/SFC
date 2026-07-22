@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
-const { sendLineMessage, getLineUserIdByName, broadcastToAdmins } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
 // หมายเหตุ: เดิมไฟล์นี้ require routes/Pmautoscheduler.js (ตัวจัดตาราง PM อัตโนมัติแบบ Tier
 // + cron รายเดือน) แต่ทีมงานแจ้งว่าไม่ต้องการจัดตารางอัตโนมัติแล้ว ให้แอดมินอัปโหลด
@@ -247,20 +246,7 @@ router.post('/checklist', requireRole('technician', 'admin'), async (req, res) =
       });
       console.log(`[PM Checklist] สถานะ PM อัปเดตสำเร็จ: ${pmCode}`);
 
-      // แจ้งเตือน LINE
-      const techLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, tech);
-      if (techLineId) {
-        await sendLineMessage(techLineId,
-          `✅ งาน PM บันทึกเสร็จสิ้น\n` +
-          `📋 รหัส: ${pmCode}\n` +
-          `🔧 เครื่องจักร: ${equip}\n` +
-          `📊 ผลการตรวจ: ${result}\n` +
-          `👤 ผู้ตรวจ: ${tech}`
-        );
-      }
-      
-      // แจ้ง admin
-      await broadcastToAdmins(pmCode, tech, equip, workDone, 'PM เสร็จแล้ว');
+      // ตัดแจ้งเตือน LINE ออกทั้งหมด (ทั้งช่างและแอดมิน) — ตามที่ทีมงานแจ้งว่าไม่ต้องการแจ้งเตือนตอน PM เสร็จแล้ว
     } else {
       console.warn(`[PM Checklist] ไม่พบ PM ID: ${pmCode}`);
     }
