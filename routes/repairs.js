@@ -39,25 +39,12 @@ function parseThaiDateTime(str) {
   } catch (e) { return null; }
 }
 
-// คำนวณการเปลี่ยนสถานะเข้า/ออกจากช่วง "รอ" (รออะไหล่/ขอหยุดเครื่อง)
-// - เพิ่งเข้าสถานะรอ  → บันทึกเวลาเริ่มรอ (Z)
-// - เพิ่งออกจากสถานะรอ → รวมเวลาที่รอไปสะสมไว้ (AA) แล้วเคลียร์เวลาเริ่มรอ (Z)
-// - ยังอยู่ในสถานะรอเหมือนเดิม (เช่นสลับ รออะไหล่ ↔ ขอหยุดเครื่อง) → ไม่แตะ ให้นับเวลาต่อเนื่อง
+// เดิมฟังก์ชันนี้ใช้บันทึก "เวลาเริ่มรอ" (Z) และ "นาทีที่รอสะสม" (AA) เวลาเข้า/ออก
+// สถานะรออะไหล่/ขอหยุดเครื่อง — ทีมงานแจ้งว่าไม่ได้ใช้ฟีเจอร์นี้แล้ว จึงปิดการเขียนไว้
+// (คงฟังก์ชัน + จุดเรียกใช้ไว้เฉยๆ เพื่อไม่ต้องแก้โค้ดจุดอื่น แค่ทำให้ไม่เขียนอะไรลงชีตอีก
+// ซึ่งแก้ปัญหา error "Range (Repairs!AA2) exceeds grid limits" ไปด้วยในตัว)
 function buildWaitUpdateData(sheetRow, currentStatus, newStatus, waitStartRaw, waitMinutesRaw) {
-  const wasWaiting = WAIT_STATUSES.includes(currentStatus);
-  const isWaiting   = !!newStatus && WAIT_STATUSES.includes(newStatus);
-  const data = [];
-
-  if (!wasWaiting && isWaiting) {
-    data.push({ range: `Repairs!Z${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
-  } else if (wasWaiting && !isWaiting) {
-    const start     = parseThaiDateTime(waitStartRaw);
-    const prevTotal = parseFloat(waitMinutesRaw) || 0;
-    const elapsed   = start ? Math.max(0, (Date.now() - start.getTime()) / 60000) : 0;
-    data.push({ range: `Repairs!AA${sheetRow}`, values: [[Math.round(prevTotal + elapsed)]] });
-    data.push({ range: `Repairs!Z${sheetRow}`,  values: [['']] });
-  }
-  return data;
+  return [];
 }
 
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──

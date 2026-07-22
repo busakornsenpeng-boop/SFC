@@ -1111,7 +1111,7 @@ function tpOpenJobModal(id){
     ${raw&&raw.repairDuration?`<div class="tp-mrow"><div class="tp-mrow-lbl">เวลาที่ใช้ซ่อม</div><div class="tp-mrow-val">${raw.repairDuration}</div></div>`:''}
     <div class="tp-mdivider"></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แท็ก</div><div class="tp-mrow-tags">${[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-mtag">${t}</span>`).join('')}</div></div>
-    ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):(computeWaitDurationText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลารออะไหล่</div><div class="tp-mrow-val">${computeWaitDurationText(j).replace('ใช้เวลารออะไหล่ ','')}</div></div>`:'')}
+    ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):''}
   ${j.overdue?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;color:#ef4444;font-size:12px"><i class="ion-ios-warning"></i> เกินกำหนด ${j.overdueHrs} ชั่วโมง</div>`:''}
   ${(() => {
   let imgs = [];
@@ -3846,10 +3846,7 @@ function viewJobDetail(id) {
       return fixText ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(fixText)}</span></div>` : '';
     })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
-    ${(() => {
-      const waitText = computeWaitDurationText(j);
-      return waitText ? `<div class="spec-row"><span class="spec-lbl">ใช้เวลารออะไหล่</span><span class="spec-val">${escapeHtml(waitText.replace('ใช้เวลารออะไหล่ ',''))}</span></div>` : '';
-    })()}`;
+    `;
 
   let imgHtml = '';
   try {
