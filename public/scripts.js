@@ -2456,6 +2456,10 @@ function _renderUsersRows(users) {
             onclick="adminToggleUserStatus('${u.username}','${u.status === 'active' ? 'inactive' : 'active'}',this)">
             ${toggleLabel}
           </button>
+          <button class="btn btn-sec" style="font-size:11px;padding:4px 10px"
+            onclick="adminResetPasswordConfirm('${u.username}', ${!!u.lineLinked})" title="รีเซ็ตรหัสผ่าน">
+            <i class="ion-ios-key"></i>
+          </button>
           <button class="btn btn-danger" style="font-size:11px;padding:4px 10px"
             onclick="adminDeleteUserConfirm('${u.username}')">
             <i class="ion-ios-trash"></i>
@@ -2494,6 +2498,56 @@ function adminDeleteUserConfirm(username) {
     else showToast((res&&res.message)||'เกิดข้อผิดพลาด','error');
   })
   .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
+}
+
+// ── รีเซ็ตรหัสผ่าน (แอดมิน) ──
+function adminResetPasswordConfirm(username, lineLinked) {
+  const warnMsg = lineLinked
+    ? `รีเซ็ตรหัสผ่านของ "${username}" ?\nระบบจะส่งรหัสผ่านชั่วคราวไปทาง LINE ให้ผู้ใช้อัตโนมัติ`
+    : `รีเซ็ตรหัสผ่านของ "${username}" ?\nผู้ใช้ยังไม่ได้ผูก LINE ไว้ — ระบบจะแสดงรหัสผ่านชั่วคราวให้คุณคัดลอกไปแจ้งเอง`;
+  if (!confirm(warnMsg)) return;
+  if (isLocalMode) { showToast('Local Mode — ไม่สามารถรีเซ็ตรหัสผ่านได้','warning'); return; }
+  showLoading('กำลังรีเซ็ตรหัสผ่าน...');
+  authFetch(`${API_URL}/users/${encodeURIComponent(username)}/reset-password`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})
+  })
+  .then(r => r.json())
+  .then(res => {
+    hideLoading();
+    if (res && res.success) {
+      showResetPasswordResult(username, res.tempPassword, res.sentViaLine);
+    } else {
+      showToast((res&&res.message)||'เกิดข้อผิดพลาด','error');
+    }
+  })
+  .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
+}
+
+function showResetPasswordResult(username, tempPassword, sentViaLine) {
+  const body = document.getElementById('reset-password-modal-body');
+  if (!body) return;
+  body.innerHTML = `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">
+      ${sentViaLine
+        ? `ส่งรหัสผ่านชั่วคราวให้ <b>${username}</b> ทาง LINE เรียบร้อยแล้ว`
+        : `ผู้ใช้ <b>${username}</b> ยังไม่ได้ผูก LINE — กรุณาคัดลอกรหัสด้านล่างไปแจ้งผู้ใช้เอง`}
+    </p>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+      <input type="text" readonly id="reset-pw-value" class="input-ctrl" style="flex:1;font-family:var(--font-mono);font-weight:700;letter-spacing:1px" value="${tempPassword}">
+      <button class="btn btn-accent" style="font-size:12px;white-space:nowrap" onclick="copyResetPassword()"><i class="ion-ios-copy"></i> คัดลอก</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3)">⚠️ แจ้งให้ผู้ใช้เปลี่ยนรหัสผ่านหลังเข้าสู่ระบบครั้งแรกด้วย</p>`;
+  openModal('reset-password-modal');
+  renderAdminUsersTable();
+}
+
+function copyResetPassword() {
+  const input = document.getElementById('reset-pw-value');
+  if (!input) return;
+  input.select();
+  navigator.clipboard?.writeText(input.value)
+    .then(() => showToast('คัดลอกรหัสผ่านแล้ว', 'success'))
+    .catch(() => document.execCommand('copy'));
 }
 
 // ============================================================

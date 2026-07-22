@@ -12,9 +12,15 @@ const {
   findJobById,
   getLineUserIdByName,
   saveLineUserId,
+  findUsernameByLineId,
 } = require('./notify');
+const { resetPasswordForUsername } = require('./users');
 
 const APP_URL = process.env.APP_URL || 'https://yourdomain.com';
+
+// บัญชีที่ตั้งค่ารหัสผ่านผ่าน env var บน Render (ไม่มีแถวใน Users sheet) — reset ผ่าน LINE ไม่ได้
+const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
+const TE_SHARED_USERNAME  = (process.env.TE_SHARED_USERNAME || 'eng_team').trim();
 
 // ── บันทึก userId ลง Users sheet (ถ้ายังไม่มี) ──
 async function saveUserIfNew(userId) {
@@ -39,6 +45,10 @@ async function saveUserIfNew(userId) {
 // ใช้แทนการ login ผ่าน LINE OAuth (ไม่ต้องพึ่ง LINE Login channel เลย)
 // ─────────────────────────────────────────────────────────────
 const LINK_CMD_REGEX = /^(?:ผูกไอดี|ผูกบัญชี|เชื่อมบัญชี|เชื่อมไอดี)\s+(.+)$/i;
+
+// คำสั่งขอรหัสผ่านใหม่: "ลืมรหัสผ่าน" / "ขอรหัสผ่านใหม่" — ใช้ได้เฉพาะบัญชีที่ผูก LINE ไว้แล้วเท่านั้น
+// (ยืนยันตัวตนด้วยการที่ LINE นี้ผูกกับ username อยู่แล้ว เหมือนกับที่ใช้ตอน "ผูกไอดี")
+const FORGOT_PW_REGEX = /^(?:ลืมรหัสผ่าน|ขอรหัสผ่านใหม่|reset\s*password)$/i;
 
 async function linkLineAccount(username, lineUserId) {
   const res  = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
@@ -108,6 +118,36 @@ router.post('/', async (req, res) => {
         continue;
       }
 
+      // คำสั่งลืมรหัสผ่าน: "ลืมรหัสผ่าน" / "ขอรหัสผ่านใหม่"
+      if (FORGOT_PW_REGEX.test(text)) {
+        try {
+          const username = await findUsernameByLineId(userId);
+          if (!username) {
+            await sendTextReply(replyToken,
+              `❌ LINE นี้ยังไม่ได้ผูกกับบัญชีผู้ใช้ใดๆ\nกรุณาผูกบัญชีก่อนด้วยคำสั่ง "ผูกไอดี username"`
+            );
+          } else if (username === ADMIN_USERNAME || username === TE_SHARED_USERNAME) {
+            await sendTextReply(replyToken,
+              `❌ บัญชี "${username}" เป็นบัญชีกลาง ไม่สามารถรีเซ็ตรหัสผ่านผ่าน LINE ได้\nกรุณาติดต่อแอดมินโดยตรง`
+            );
+          } else {
+            const result = await resetPasswordForUsername(username);
+            if (result.success) {
+              await sendTextReply(replyToken,
+                `🔑 รีเซ็ตรหัสผ่านสำเร็จ!\n👤 บัญชี: ${username}\n🔐 รหัสผ่านชั่วคราว: ${result.tempPassword}\n\n` +
+                `กรุณาเข้าสู่ระบบด้วยรหัสนี้ และเปลี่ยนรหัสผ่านโดยเร็ว\n⚠️ ห้ามบอกรหัสนี้กับผู้อื่น`
+              );
+            } else {
+              await sendTextReply(replyToken, `❌ ${result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'}`);
+            }
+          }
+        } catch (err) {
+          console.error('[LINE Webhook] forgot-password error:', err.message);
+          await sendTextReply(replyToken, '❌ เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน กรุณาลองใหม่อีกครั้ง');
+        }
+        continue;
+      }
+
       if (text.includes('ติดต่อ')) {
         await sendTextReply(replyToken, '📞 ติดต่อเจ้าหน้าที่ ENG: 098-182-5072');
         continue;
@@ -148,7 +188,8 @@ router.post('/', async (req, res) => {
         `🔍 "REP-XXXXXXXX-XXX" — เช็คสถานะงาน\n` +
         `📞 "ติดต่อ" — ติดต่อเจ้าหน้าที่\n` +
         `🔗 "ผูกไอดี username" — เชื่อมบัญชี LINE เพื่อรับแจ้งเตือน\n` +
-        `   (เช่น พิมพ์ "ผูกไอดี somchai01")`
+        `   (เช่น พิมพ์ "ผูกไอดี somchai01")\n` +
+        `🔑 "ลืมรหัสผ่าน" — ขอรหัสผ่านชั่วคราวใหม่ (เฉพาะบัญชีที่ผูก LINE ไว้แล้ว)`
       );
     }
   } catch (err) {

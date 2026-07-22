@@ -1,9 +1,11 @@
 const axios   = require('axios');
 const bcrypt  = require('bcryptjs');
+const crypto  = require('crypto');
 const express = require('express');
 const router  = express.Router();
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { signToken, requireAuth, requireRole } = require('../middleware/adminAuth');
+const { sendLineMessage } = require('./notify');
 
 // เกณฑ์เช็คว่าค่าที่เก็บไว้เป็น bcrypt hash แล้วหรือยัง (hash ของ bcrypt ขึ้นต้นด้วย $2a$/$2b$/$2y$ เสมอ)
 const isBcryptHash = (val) => typeof val === 'string' && /^\$2[aby]\$/.test(val);
@@ -26,6 +28,55 @@ async function upgradePasswordHash(username, plainPassword) {
   } catch (err) {
     console.error('[users] upgradePasswordHash error:', err.message);
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// สร้างรหัสผ่านชั่วคราวแบบสุ่ม — ใช้ตอนรีเซ็ตรหัสผ่าน (ทั้งจากแอดมินและจาก LINE self-service)
+// ตัดตัวอักษรที่สับสนง่ายออก (0/O, 1/l/I) เพื่อให้พิมพ์ตามง่ายตอนแจ้งด้วยเสียง/ข้อความ
+// ─────────────────────────────────────────────────────────────
+function generateTempPassword(length = 8) {
+  const charset = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    out += charset[bytes[i] % charset.length];
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────
+// resetPasswordForUsername — ตั้งรหัสผ่านใหม่ให้ user ใน Users sheet
+// ใช้ร่วมกันทั้งจาก endpoint /reset-password (แอดมินกดในระบบ) และ
+// จาก routes/linewebhook.js (ผู้ใช้พิมพ์ "ลืมรหัสผ่าน" ใน LINE)
+// คืนค่า { success, tempPassword, user } หรือ { success:false, message }
+// ─────────────────────────────────────────────────────────────
+async function resetPasswordForUsername(username, customPassword) {
+  const result   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Users!A2:J1000' });
+  const rows     = result.data.values || [];
+  const rowIndex = rows.findIndex(r => String(r[0]) === String(username));
+  if (rowIndex === -1) {
+    return { success: false, message: 'ไม่พบ user นี้ในระบบ' };
+  }
+
+  const tempPassword = (customPassword && String(customPassword).trim()) || generateTempPassword();
+  const newHash = await bcrypt.hash(tempPassword, 10);
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Users!B${rowIndex + 2}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [[newHash]] },
+  });
+
+  return {
+    success: true,
+    tempPassword,
+    user: {
+      username:     rows[rowIndex][0] || '',
+      fullname:     rows[rowIndex][3] || '',
+      line_user_id: rows[rowIndex][9] || '',
+    },
+  };
 }
 
 const ADMIN_ACCOUNT = {
@@ -454,6 +505,48 @@ router.post('/:username/link-line', async (req, res) => {
 // /:username routes  ← ต้องอยู่หลัง /line/* เสมอ
 // ─────────────────────────────────────────────────────────────
 
+// POST /api/users/:username/reset-password  (admin เท่านั้น)
+// ตั้งรหัสผ่านชั่วคราวใหม่ให้ user — ถ้า user ผูก LINE ไว้แล้วจะ push รหัสใหม่ไปทาง LINE ให้อัตโนมัติ
+// body: { newPassword? } — ไม่ส่งมาก็ได้ ระบบจะสุ่มรหัสชั่วคราวให้เอง
+// หมายเหตุ: ใช้ได้เฉพาะบัญชีที่อยู่ใน Users sheet เท่านั้น (ไม่รวมบัญชีแอดมิน/ทีมช่างที่ตั้งค่าผ่าน
+// env var บน Render — ถ้าต้องการเปลี่ยนรหัส 2 บัญชีนี้ต้องไปแก้ ADMIN_PASSWORD / TE_SHARED_PASSWORD ที่ Render โดยตรง)
+router.post('/:username/reset-password', requireRole('admin'), async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { newPassword } = req.body || {};
+
+    if (username === ADMIN_ACCOUNT.username) {
+      return res.json({ success: false, message: 'บัญชีนี้ตั้งค่าผ่าน ADMIN_PASSWORD บน Render กรุณาแก้ไขที่นั่นแทน' });
+    }
+    if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) {
+      return res.json({ success: false, message: 'บัญชีนี้ตั้งค่าผ่าน TE_SHARED_PASSWORD บน Render กรุณาแก้ไขที่นั่นแทน' });
+    }
+
+    const result = await resetPasswordForUsername(username, newPassword);
+    if (!result.success) return res.json(result);
+
+    let sentViaLine = false;
+    if (result.user.line_user_id) {
+      try {
+        await sendLineMessage(result.user.line_user_id,
+          `🔑 แอดมินได้รีเซ็ตรหัสผ่านของคุณ\n` +
+          `👤 บัญชี: ${username}\n` +
+          `🔐 รหัสผ่านชั่วคราว: ${result.tempPassword}\n\n` +
+          `กรุณาเข้าสู่ระบบด้วยรหัสนี้ และเปลี่ยนเป็นรหัสของคุณเองโดยเร็ว`
+        );
+        sentViaLine = true;
+      } catch (e) {
+        console.error('[users] ส่งรหัสผ่านใหม่ทาง LINE ไม่สำเร็จ:', e.message);
+      }
+    }
+
+    res.json({ success: true, tempPassword: result.tempPassword, sentViaLine });
+  } catch (err) {
+    console.error('[users] reset-password error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/users/:username/status  (admin เท่านั้น — ระงับ/เปิดใช้งานบัญชี)
 router.post('/:username/status', requireRole('admin'), async (req, res) => {
   try {
@@ -555,5 +648,9 @@ router.get('/technicians', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// เปิดให้ route อื่น (routes/linewebhook.js) เรียกใช้ฟังก์ชันรีเซ็ตรหัสผ่านร่วมกันได้
+// โดยไม่ต้องแยกไฟล์ใหม่ — router เป็น function object จึงแนบ property เพิ่มได้ตามปกติ
+router.resetPasswordForUsername = resetPasswordForUsername;
 
 module.exports = router;
