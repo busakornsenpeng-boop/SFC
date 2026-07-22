@@ -1955,19 +1955,6 @@ function initAdminDashboard(){
   const lb=sv('leaderboard-tbody');if(lb){lb.innerHTML='';calculateTechPerformance(filtered).forEach((t,i)=>{const rankCls=['rank-1','rank-2','rank-3'][i]||'rank-n';const slaNum=t.total>0?Math.min(100,Math.round(t.perfScore*0.9+10)):null;const slaText=slaNum!==null?slaNum+'%':'—';const slaColor=slaNum>=80?'#10b981':slaNum>=60?'#f59e0b':'#ef4444';const tr=document.createElement('tr');tr.innerHTML=`<td><span class="rank-badge ${rankCls}">${i+1}</span></td><td style="font-weight:600;color:var(--text)">${t.name}</td><td style="color:var(--text2);text-align:center">${t.total}</td><td style="color:var(--text2);text-align:center">${t.done}</td><td style="color:#10b981;font-weight:600;text-align:center">${t.closed}</td><td style="color:#ef4444;text-align:center">${t.back}</td><td style="font-family:var(--font-mono);font-weight:700;color:${slaColor};text-align:center">${slaText}</td><td><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:${t.perfScore}%"></div></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal);min-width:36px;text-align:right">${t.perfScore}<span style="font-size:10px;color:var(--text3)">/100</span></span></div></td>`;lb.appendChild(tr);});}
 }
 
-// เปิดจาก "ชี้ (hover)" การ์ด KPI แทนการคลิก — ปิดเร็วเกือบทันที (150ms) ตอนเลิกชี้
-// ต้องมีดีเลย์สั้นๆ นี้ไว้ (ไม่ใช่ 0ms) เพราะกล่อง dialog เปิดอยู่กลางจอ คนละตำแหน่งกับการ์ด
-// ถ้าปิดทันที 0ms เมาส์จะไปไม่ถึงกล่องเพื่อคลิกแผนกได้เลยเพราะมันจะปิดไปก่อนระหว่างทาง
-// ถ้าเมาส์เข้าไปอยู่ในกล่อง dialog ทัน ตัวจับเวลานี้จะถูกยกเลิกโดย cancelCloseDeptBreakdown()
-let dbmCloseTimer = null;
-function scheduleCloseDeptBreakdown(){
-  clearTimeout(dbmCloseTimer);
-  dbmCloseTimer = setTimeout(() => closeModal('dept-breakdown-modal'), 150);
-}
-function cancelCloseDeptBreakdown(){
-  clearTimeout(dbmCloseTimer);
-}
-
 // ── KPI Card → Dept Breakdown Modal ──
 const DBM_CONFIG = {
   total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
@@ -1977,7 +1964,6 @@ const DBM_CONFIG = {
 };
 
 function openDeptBreakdown(kind){
-  cancelCloseDeptBreakdown(); // ยกเลิกตัวจับเวลาปิดค้างไว้ (ถ้ามี) — เผื่อลาก mouse จากการ์ดหนึ่งไปอีกการ์ดเร็วๆ
   const cfg = DBM_CONFIG[kind]; if(!cfg) return;
   const filtered = filterJobsByTimeRange(getRepairJobsData(), currentAdminTimeFilter).filter(cfg.match);
 
