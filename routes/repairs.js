@@ -11,6 +11,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+console.log('[repairs.js] loaded — DOWNTIME_DEBUG_BUILD v1');
+
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ', 'แก้ไข (ตีกลับ)'];
 const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอตรวจรับ'];
 
@@ -381,8 +383,11 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
       // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - วันที่แจ้งซ่อม (R)
       const reportDateStr    = rows[rowIndex][17] || ''; // R
       const downtimeMinutes  = calcDowntimeMinutes(reportDateStr, nowDate);
+      console.log(`[DOWNTIME-DEBUG][qc] id=${id} reportDateStr="${reportDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
+      } else {
+        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — reportDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
@@ -658,8 +663,11 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - วันที่แจ้งซ่อม (R)
       const reportDateStr    = rows[rowIndex][17] || ''; // R
       const downtimeMinutes  = calcDowntimeMinutes(reportDateStr, nowDate);
+      console.log(`[DOWNTIME-DEBUG][status] id=${id} reportDateStr="${reportDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
+      } else {
+        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — reportDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     }
 
