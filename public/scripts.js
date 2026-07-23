@@ -900,7 +900,7 @@ let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
 function mapJobToTechPanel(j) {
   const statusMap={'ปิดงาน':'เสร็จแล้ว'}; 
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?j.date.split(',')[0].trim():'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||'',waitStart:j.waitStart||'',waitMinutes:j.waitMinutes||''};
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||'',waitStart:j.waitStart||'',waitMinutes:j.waitMinutes||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -1929,19 +1929,30 @@ function viewPMDoc(pmCode,arrIdx){
 // ============================================================
 // ADMIN DASHBOARD
 // ============================================================
-function parseJobDate(str){if(!str)return null;try{const parts=str.split(',')[0].trim().split('/');if(parts.length!==3)return null;let y=parseInt(parts[2]);if(y>2400)y-=543;return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]));}catch(e){return null;}}
+// หมายเหตุ: ระบบเก็บวันที่แบบ toLocaleString('th-TH') ซึ่ง "ไม่มี" comma คั่นวันที่กับเวลา
+// (เช่น "22/7/2569 18:48:30") ใช้ regex จับเฉพาะส่วนวันที่แทนการ split(',') ที่พึ่งพา comma ซึ่งไม่มีจริง
+function parseJobDate(str){
+  if(!str)return null;
+  try{
+    const match=String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if(!match)return null;
+    let[,d,m,y]=match;y=parseInt(y);if(y>2400)y-=543;
+    return new Date(y,parseInt(m)-1,parseInt(d));
+  }catch(e){return null;}
+}
 // แปลงข้อความวันที่แบบที่ระบบเก็บ "D/M/YYYY, HH:mm:ss" (รองรับทั้งปี พ.ศ./ค.ศ.) ให้เป็นค่าที่ใช้กับ <input type="datetime-local">
 // ใช้ตอนเปิดพาเนลแก้ไข (Admin) เพื่อโชว์ค่าวันที่แจ้ง/วันที่ปิดงานเดิมของงานนั้น
 function thaiDateToInputValue(str){
   if(!str)return '';
   try{
-    const[dPart,tPart]=str.split(',').map(s=>(s||'').trim());
-    const parts=dPart.split('/');
-    if(parts.length!==3)return '';
-    let y=parseInt(parts[2]);if(y>2400)y-=543;
-    const mo=String(parts[1]).padStart(2,'0');
-    const da=String(parts[0]).padStart(2,'0');
-    const[hh,mm]=(tPart||'00:00').split(':');
+    // แก้บั๊กเดิม: โค้ดคาดว่ามี comma คั่นวันที่กับเวลา แต่ toLocaleString('th-TH') จริงไม่มี comma
+    // ("22/7/2569 18:48:30") ทำให้ split(',') หาเวลาไม่เจอ กลายเป็น 00:00 เสมอ — ใช้ regex แทน
+    // รองรับทั้งแบบมี/ไม่มี comma คั่น
+    const match=String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})[, ]+(\d{1,2}):(\d{1,2})/);
+    if(!match)return '';
+    let[,d,m,y,hh,mm]=match;y=parseInt(y);if(y>2400)y-=543;
+    const mo=String(m).padStart(2,'0');
+    const da=String(d).padStart(2,'0');
     return `${y}-${mo}-${da}T${(hh||'00').padStart(2,'0')}:${(mm||'00').padStart(2,'0')}`;
   }catch(e){return '';}
 }
@@ -1950,12 +1961,16 @@ function thaiDateToInputValue(str){
 function parseJobDateTime(str){
   if(!str)return null;
   try{
-    const[dPart,tPart]=str.split(',').map(s=>(s||'').trim());
-    const parts=dPart.split('/');
-    if(parts.length!==3)return null;
-    let y=parseInt(parts[2]);if(y>2400)y-=543;
-    const[hh,mm,ss]=(tPart||'00:00:00').split(':').map(Number);
-    return new Date(y,parseInt(parts[1])-1,parseInt(parts[0]),hh||0,mm||0,ss||0);
+    // แก้บั๊กเดิม: โค้ดคาดว่ามี comma คั่นวันที่กับเวลา เช่น "22/7/2569, 18:48:30"
+    // แต่ toLocaleString('th-TH') จริงไม่มี comma เลย ("22/7/2569 18:48:30") ทำให้ split(',')
+    // หาเวลาไม่เจอ เวลาที่ parse ได้กลายเป็น 00:00:00 ทุกครั้ง (Downtime/ระยะเวลาซ่อมเลยเพี้ยน
+    // กลายเป็นตัวคูณของ 1 วันเสมอ) — แก้ด้วย regex ที่รองรับทั้งแบบมี/ไม่มี comma คั่น
+    // (แพทเทิร์นเดียวกับ parseThaiDateTime ฝั่ง backend ใน routes/repairs.js)
+    const match=String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})[, ]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if(!match)return null;
+    let[,d,m,y,hh,mm,ss]=match;
+    y=parseInt(y);if(y>2400)y-=543;
+    return new Date(y,parseInt(m)-1,parseInt(d),parseInt(hh)||0,parseInt(mm)||0,parseInt(ss)||0);
   }catch(e){return null;}
 }
 // จัดรูปแบบนาทีให้อ่านง่าย เช่น 135 → "2 ชม. 15 นาที", 1600 → "1 วัน 2 ชม."
