@@ -54,15 +54,6 @@
   <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
 
 </form>
-
-        <!-- Register Link -->
-        <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-          <span style="font-size:13px;color:var(--text2)">ยังไม่มีบัญชี? </span>
-          <button type="button" onclick="openRegisterModal()"
-            style="border:none;background:none;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">
-            สมัครใช้งาน
-          </button>
-        </div>
       </div>
     </section>
 
@@ -834,8 +825,8 @@
     <!-- Header -->
     <div style="background:var(--accent);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
       <div>
-        <div style="color:#fff;font-size:16px;font-weight:700;"><i class="ion-ios-person-add"></i> ลงทะเบียนใช้งาน</div>
-        <div style="color:rgba(255,255,255,.82);font-size:12px;margin-top:2px;">สร้างบัญชีสำหรับ SFC Maintenance Service</div>
+        <div style="color:#fff;font-size:16px;font-weight:700;"><i class="ion-ios-person-add"></i> เพิ่มผู้ใช้ใหม่</div>
+        <div style="color:rgba(255,255,255,.82);font-size:12px;margin-top:2px;">สร้างบัญชีผู้แจ้งซ่อมให้พนักงาน (เฉพาะแอดมิน)</div>
       </div>
       <button onclick="closeRegisterModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
@@ -921,8 +912,8 @@
           <i class="ion-ios-chatbubbles"></i> รับแจ้งเตือนผ่าน LINE
         </div>
         <div style="font-size:12px;color:var(--text2,#5d6b84);line-height:1.6;">
-          หลังสมัครสมาชิกเสร็จ เปิดแชท LINE OA ของโรงงาน แล้วพิมพ์<br>
-          <b>"ผูกไอดี [username ของคุณ]"</b><br>
+          แจ้งพนักงานให้เปิดแชท LINE OA ของโรงงาน แล้วพิมพ์<br>
+          <b>"ผูกไอดี [username ที่ตั้งไว้]"</b><br>
           เพื่อเชื่อมบัญชีรับการแจ้งเตือนเมื่อช่างรับงาน อัปเดตสถานะ และงานผ่านตรวจรับ
         </div>
       </div>
@@ -935,13 +926,8 @@
         </button>
         <button type="button" id="reg-submit-btn" onclick="submitRegister()"
           style="flex:2;padding:12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
-          <i class="ion-ios-person"></i> ลงทะเบียน
+          <i class="ion-ios-person"></i> สร้างบัญชี
         </button>
-      </div>
-
-      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3,#98a2b8);">
-        มีบัญชีแล้ว?
-        <button type="button" onclick="closeRegisterModal()" style="border:none;background:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;">เข้าสู่ระบบ</button>
       </div>
 
     </div>

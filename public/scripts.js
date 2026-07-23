@@ -2493,7 +2493,10 @@ function renderAdminUsersTable() {
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
           <div class="card-title" style="margin-bottom:0"><i class="ion-ios-people"></i> จัดการผู้ใช้งานระบบ</div>
-          <button class="btn btn-sec" style="font-size:12px" onclick="renderAdminUsersTable()"><i class="ion-ios-refresh"></i> รีเฟรช</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sec" style="font-size:12px" onclick="renderAdminUsersTable()"><i class="ion-ios-refresh"></i> รีเฟรช</button>
+            <button class="btn" style="font-size:12px" onclick="openRegisterModal()"><i class="ion-ios-person-add"></i> เพิ่มผู้ใช้ใหม่</button>
+          </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
           <input type="text" id="admin-user-search" class="input-ctrl" style="flex:1;min-width:160px;font-size:13px" placeholder="🔍 ค้นหา username / ชื่อ..." oninput="filterAdminUsers()">
@@ -4289,10 +4292,10 @@ async function submitRegister() {
 
   const btn = document.getElementById('reg-submit-btn');
   btn.disabled     = true;
-  btn.textContent  = 'กำลังสมัคร...';
+  btn.textContent  = 'กำลังบันทึก...';
 
   try {
-    const res = await fetch('/api/users/register', {
+    const res = await authFetch(`${API_URL}/users/register`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -4302,28 +4305,33 @@ async function submitRegister() {
     }).then(r => r.json());
 
     if (!res.success) {
-      showErr(res.message || 'สมัครไม่สำเร็จ');
+      showErr(res.message || 'เพิ่มผู้ใช้ไม่สำเร็จ');
     } else {
       // สำเร็จ!
       closeRegisterModal();
-      showToast(
-        _regLineUserId
-          ? 'ลงทะเบียนสำเร็จ! เชื่อม LINE เรียบร้อย'
-          : 'ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ',
-        'success'
-      );
+      showToast('เพิ่มผู้ใช้ใหม่สำเร็จ', 'success');
       _regLineUserId = null;
+      renderAdminUsersTable();
     }
   } catch (err) {
     showErr('เกิดข้อผิดพลาด: ' + err.message);
   } finally {
     btn.disabled    = false;
-    btn.innerHTML   = '<i class="ion-ios-person"></i> ลงทะเบียน';
+    btn.innerHTML   = '<i class="ion-ios-person"></i> สร้างบัญชี';
   }
 }
 
 // ── openRegisterModal ──
 function openRegisterModal() {
+  ['reg-fullname','reg-contact','reg-username','reg-password','reg-password2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const deptEl = document.getElementById('reg-dept');
+  if (deptEl) deptEl.value = '';
+  const errEl = document.getElementById('reg-error');
+  if (errEl) errEl.style.display = 'none';
+  clearRegAvatar();
   document.getElementById('register-modal').style.display = 'block';
 }
 // ============================================================

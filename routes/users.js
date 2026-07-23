@@ -239,8 +239,11 @@ router.post('/login', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/users/register
+// (เดิม: ผู้แจ้งซ่อมสมัครเองได้จากหน้า login — ตอนนี้เปลี่ยนนโยบายแล้ว
+//  ปิดการสมัครเอง ให้เฉพาะแอดมินเท่านั้นที่สร้างบัญชีให้พนักงานได้ ผ่านหน้า
+//  "จัดการผู้ใช้งาน" → ปุ่ม "เพิ่มผู้ใช้ใหม่" — จึงเพิ่ม requireRole('admin') ไว้)
 // ─────────────────────────────────────────────────────────────
-router.post('/register', async (req, res) => {
+router.post('/register', requireRole('admin'), async (req, res) => {
   try {
     const { username, password, fullname, dept, contact, lineUserId } = req.body;
 
