@@ -60,6 +60,28 @@ function buildWaitUpdateData(sheetRow, currentStatus, newStatus, waitStartRaw, w
   return data;
 }
 
+// ── คำนวณ "นาทีสะสม" (AA) ตอนปิดงานจริง ──
+// บั๊กเดิม: AA เก็บแค่ "เวลารออะไหล่/ขอหยุดเครื่องสะสม" ไม่ใช่ downtime จริงของงาน
+// แก้เป็น: AA = (วันที่ปิดงาน − วันที่แจ้งซ่อม) หักลบเวลาที่เคยอยู่ในสถานะ
+// "รออะไหล่"/"ขอหยุดเครื่อง" ออกทั้งหมด (เวลารอไม่นับเป็น downtime ของช่าง)
+// เผื่อ edge case ปิดงานขณะยังอยู่ในสถานะรอพอดี (ไม่ผ่าน buildWaitUpdateData มาก่อน) ก็บวกเวลารอ
+// ช่วงที่ยังไม่ปิดเข้าไปในยอดรอด้วย ก่อนหักออกจาก downtime รวม
+function computeNetDowntimeMinutes(reportDateRaw, closedDateRaw, currentStatus, waitStartRaw, waitMinutesRaw) {
+  const reportDate = parseThaiDateTime(reportDateRaw);
+  const closedDate = parseThaiDateTime(closedDateRaw) || new Date();
+  if (!reportDate) return 0;
+
+  const totalMinutes = Math.max(0, (closedDate.getTime() - reportDate.getTime()) / 60000);
+
+  let totalWaitMinutes = parseFloat(waitMinutesRaw) || 0;
+  if (WAIT_STATUSES.includes(currentStatus)) {
+    const waitStart = parseThaiDateTime(waitStartRaw);
+    if (waitStart) totalWaitMinutes += Math.max(0, (closedDate.getTime() - waitStart.getTime()) / 60000);
+  }
+
+  return Math.round(Math.max(0, totalMinutes - totalWaitMinutes));
+}
+
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
 // ปรับลิสต์นี้ได้ตามที่คิดว่าสำคัญจริงกับผู้แจ้งงาน
 const NOTIFY_REQUESTER_STATUSES = ['ซ่อมเสร็จ', 'ซ่อมเสร็จแล้ว'];
@@ -365,7 +387,7 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     const { id } = req.params;
     const { result, by, note } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:AA1000' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -373,9 +395,12 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     const currentStatus = rows[rowIndex][9] || '';
     if (currentStatus === 'ปิดงาน') return res.json({ success: false, message: 'งานนี้ปิดแล้ว' });
 
-    const requesterName = rows[rowIndex][1]  || '';
-    const techName      = rows[rowIndex][10] || '';
-    const machine       = rows[rowIndex][3]  || '';
+    const requesterName  = rows[rowIndex][1]  || '';
+    const techName       = rows[rowIndex][10] || '';
+    const machine        = rows[rowIndex][3]  || '';
+    const reportDateRaw  = rows[rowIndex][17] || ''; // ← วันที่แจ้งซ่อม (R) — ใช้คำนวณ downtime
+    const waitStartRaw   = rows[rowIndex][25] || '';
+    const waitMinutesRaw = rows[rowIndex][26] || '';
     // ตรวจรับไม่ผ่าน = งานซ่อมยังไม่เรียบร้อย ต้องกลับไปให้ "ช่างคนเดิม" แก้ไขต่อ (ไม่ใช่ส่งกลับผู้แจ้งขอข้อมูลเพิ่ม
     // แบบ /:id/reject) จึงตั้งสถานะกลับเป็น "กำลังซ่อม" และไม่แตะคอลัมน์ K (ชื่อช่าง) เพื่อให้ช่างเดิมยังเป็นเจ้าของงาน
     const newStatus  = result === 'ผ่านตรวจรับ' ? 'ปิดงาน' : 'กำลังซ่อม';
@@ -392,7 +417,15 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     // "ปิดงานจริง (ตรวจรับผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
     // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
     if (result === 'ผ่านตรวจรับ') {
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+      const nowStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
+      // "นาทีสะสม" (AA) = downtime จริง (แจ้งซ่อม → ปิดงาน) หักเวลารออะไหล่/ขอหยุดเครื่องออกทั้งหมด
+      const netDowntime = computeNetDowntimeMinutes(reportDateRaw, nowStr, currentStatus, waitStartRaw, waitMinutesRaw);
+      updateData.push({ range: `Repairs!AA${sheetRow}`, values: [[netDowntime]] });
+      if (WAIT_STATUSES.includes(currentStatus)) {
+        // เผื่อ edge case ปิดงานขณะยังอยู่ในสถานะรอพอดี — เคลียร์เวลาเริ่มรอทิ้ง เพราะรวมเข้า downtime แล้ว
+        updateData.push({ range: `Repairs!Z${sheetRow}`, values: [['']] });
+      }
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
       // ทำให้ช่างเห็นเหตุผลที่ตรวจรับตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
@@ -663,16 +696,28 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     }
 
     // "เวลาปิดงานจริง" (W) — auto-set เฉพาะตอนสถานะ "เปลี่ยนเข้า" ปิดงาน (กันเขียนทับซ้ำถ้าปิดงานอยู่แล้วแค่แก้หมายเหตุ)
-    if (status === 'ปิดงาน' && currentStatus !== 'ปิดงาน') {
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+    const isClosingNow = status === 'ปิดงาน' && currentStatus !== 'ปิดงาน';
+    if (isClosingNow) {
+      const nowStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
+      // "นาทีสะสม" (AA) = downtime จริง (แจ้งซ่อม → ปิดงาน) หักเวลารออะไหล่/ขอหยุดเครื่องออกทั้งหมด
+      const reportDateRaw = rows[rowIndex][17] || '';
+      const netDowntime   = computeNetDowntimeMinutes(reportDateRaw, nowStr, currentStatus, waitStartRaw, waitMinutesRaw);
+      updateData.push({ range: `Repairs!AA${sheetRow}`, values: [[netDowntime]] });
+      if (WAIT_STATUSES.includes(currentStatus)) {
+        updateData.push({ range: `Repairs!Z${sheetRow}`, values: [['']] });
+      }
     }
 
     // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
     if (status === 'รออะไหล่' || status === 'ขอหยุดเครื่อง') {
       updateData.push({ range: `Repairs!X${sheetRow}`, values: [['TRUE']] });
     }
-    // เข้า/ออกสถานะ "รออะไหล่-ขอหยุดเครื่อง" — จับเวลาอัตโนมัติเพื่อคำนวณ "ใช้เวลารออะไหล่"
-    updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, status, waitStartRaw, waitMinutesRaw));
+    if (!isClosingNow) {
+      // เข้า/ออกสถานะ "รออะไหล่-ขอหยุดเครื่อง" (ตอนงานยังไม่ปิด) — จับเวลาอัตโนมัติเพื่อคำนวณ "ใช้เวลารออะไหล่"
+      // (ตอนปิดงานคำนวณ AA จาก downtime สุทธิด้านบนไปแล้ว ไม่ต้องเขียนทับซ้ำ)
+      updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, status, waitStartRaw, waitMinutesRaw));
+    }
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
