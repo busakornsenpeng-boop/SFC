@@ -900,7 +900,7 @@ let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
 function mapJobToTechPanel(j) {
   const statusMap={'ปิดงาน':'เสร็จแล้ว'}; 
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||'',repairDuration:j.repairDuration||'',waitStart:j.waitStart||'',waitMinutes:j.waitMinutes||''};
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -942,23 +942,9 @@ function tpTimeInfoText(j){
   if (j.status==='เสร็จแล้ว' || j.status==='ปิดงาน') {
     const dur = computeJobDurations({acceptedDate:j.acceptedDate, doneDate:j.doneDate});
     if (dur.fix) return 'ใช้เวลาซ่อม '+dur.fix;
-    if (j.repairDuration) return 'ใช้เวลาซ่อม '+j.repairDuration;
     return '';
   }
-  return computeWaitDurationText(j);
-}
-// คำนวณ "ใช้เวลารออะไหล่" (รวมทุกช่วงที่เคยเข้าสถานะรออะไหล่/ขอหยุดเครื่อง)
-// ถ้ากำลังอยู่ในสถานะรอตอนนี้ ให้บวกเวลาที่รอไปแล้วนับจากตอนเริ่มรอจนถึงตอนนี้เข้าไปด้วย
-const WAIT_STATUSES_FE = ['รออะไหล่','ขอหยุดเครื่อง'];
-function computeWaitDurationText(j){
-  if (!j) return '';
-  let totalMins = parseFloat(j.waitMinutes) || 0;
-  if (WAIT_STATUSES_FE.includes(j.status) && j.waitStart) {
-    const start = parseJobDateTime(j.waitStart);
-    if (start) totalMins += Math.max(0, (Date.now() - start.getTime()) / 60000);
-  }
-  if (totalMins <= 0) return '';
-  return 'ใช้เวลารออะไหล่ '+formatDurationHM(totalMins);
+  return '';
 }
 function tpJobCardHTML(j,mode){
   const statusLabelMap = {
@@ -1108,7 +1094,6 @@ function tpOpenJobModal(id){
     <div class="tp-mrow"><div class="tp-mrow-lbl">ด้านปัญหา</div><div class="tp-mrow-val desc">${raw&&raw.side?raw.side:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">รายละเอียด</div><div class="tp-mrow-val desc">${j.desc}</div></div>
     ${j.progress?`<div class="tp-mrow"><div class="tp-mrow-lbl">ความคืบหน้า</div><div class="tp-mrow-val desc">${j.progress}</div></div>`:''}
-    ${raw&&raw.repairDuration?`<div class="tp-mrow"><div class="tp-mrow-lbl">เวลาที่ใช้ซ่อม</div><div class="tp-mrow-val">${raw.repairDuration}</div></div>`:''}
     <div class="tp-mdivider"></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แท็ก</div><div class="tp-mrow-tags">${[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-mtag">${t}</span>`).join('')}</div></div>
     ${(j.status==='เสร็จแล้ว'||j.status==='ปิดงาน')?(tpTimeInfoText(j)?`<div class="tp-mrow"><div class="tp-mrow-lbl">ใช้เวลาซ่อม</div><div class="tp-mrow-val">${tpTimeInfoText(j).replace('ใช้เวลาซ่อม ','')}</div></div>`:''):''}
@@ -1167,7 +1152,6 @@ function tpOpenUpdateModal(id) {
         <span style="font-size:12px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:6px"><i class="ion-ios-checkmark"></i> วันที่ซ่อมเสร็จจริง</span>
         <span style="font-size:13px;font-weight:500;color:var(--green);font-family:var(--font-mono)">${todayDisplay} <span style="font-size:10px;opacity:.7">บันทึกอัตโนมัติ</span></span>
       </div>
-      <input type="text" id="tp-upd-repair-duration" placeholder="เวลาที่ใช้ซ่อม เช่น 45 นาที / 2 ชม." style="width:100%;background:var(--bg);border:0.5px solid rgba(16,185,129,.3);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
     </div>
     <div id="tp-upd-stop-box" style="display:none;margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px"><i class="ion-ios-calendar"></i> วันที่วางแผนหยุดเครื่อง</div>
@@ -1229,13 +1213,12 @@ function tpSaveUpdate(id) {
   const note     = document.getElementById('tp-upd-note')?.value.trim() || '';
   const ns       = document.getElementById('tp-upd-status')?.value || '';
   const stopDate = document.getElementById('tp-upd-stop-date')?.value || '';
-  const repairDuration = document.getElementById('tp-upd-repair-duration')?.value.trim() || '';
  const statusMap = {
     'เสร็จแล้ว':  'ซ่อมเสร็จแล้ว',
     'Workaround': 'Workaround'
   };
   const finalStatus = statusMap[ns] || ns;
-  const upd = { status: finalStatus, note, planStopDate: stopDate, repairDuration };
+  const upd = { status: finalStatus, note, planStopDate: stopDate };
   if (!isLocalMode) {
     showLoading('กำลังบันทึก...');
  authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/update`, {
@@ -1249,7 +1232,7 @@ function tpSaveUpdate(id) {
       hideLoading();
       if (saveBtn) saveBtn.disabled = false;
      if (res.success) {
-        Object.assign(j, { note, planStopDate: stopDate, repairDuration });
+        Object.assign(j, { note, planStopDate: stopDate });
         if (finalStatus) j.status = finalStatus;
         showToast('บันทึกสำเร็จ!', 'success');
      tpCloseModal();
@@ -1635,13 +1618,12 @@ function techSubmitUpdate(){
   const j = getRepairJobsData().find(x => x.id===selectedJobForAction); if(!j) return;
   const status = document.getElementById('tup-status')?.value;
   const note   = document.getElementById('tup-note')?.value;
-  const repairDuration = document.getElementById('tup-repair-duration')?.value;
-  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note, repairDuration});
+  console.log('techSubmitUpdate:', {selectedJobForAction, currentStatus: j.status, newStatus: status, note});
   if(!isLocalMode){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/update`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, note, repairDuration, updatedBy: myIdentifiedName || ME })
+      body: JSON.stringify({ status, note, updatedBy: myIdentifiedName || ME })
     })
     .then(r => r.json())
     .then(res => {
@@ -1650,7 +1632,6 @@ function techSubmitUpdate(){
       if(res.success){ 
         if(status) j.status=status; 
         if(note) j.note=note; 
-        if(repairDuration) j.repairDuration=repairDuration;
         console.log('Updated local job:', j);
         closeModal('job-detail-modal');
         loadAllData().then(() => {
@@ -1965,7 +1946,7 @@ function parseJobDateTime(str){
     // แต่ toLocaleString('th-TH') จริงไม่มี comma เลย ("22/7/2569 18:48:30") ทำให้ split(',')
     // หาเวลาไม่เจอ เวลาที่ parse ได้กลายเป็น 00:00:00 ทุกครั้ง (Downtime/ระยะเวลาซ่อมเลยเพี้ยน
     // กลายเป็นตัวคูณของ 1 วันเสมอ) — แก้ด้วย regex ที่รองรับทั้งแบบมี/ไม่มี comma คั่น
-    // (แพทเทิร์นเดียวกับ parseThaiDateTime ฝั่ง backend ใน routes/repairs.js)
+    // (แพทเทิร์นเดียวกับที่ backend เคยใช้ใน routes/repairs.js ก่อนตัดฟีเจอร์จับเวลารอออก)
     const match=String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})[, ]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
     if(!match)return null;
     let[,d,m,y,hh,mm,ss]=match;
@@ -1986,7 +1967,6 @@ function formatDurationHM(totalMinutes){
   return `${remMins} นาที`;
 }
 // คำนวณ "ใช้เวลาแก้ไข" (รับงาน→เสร็จซ่อม) และ "รอปิดงาน" (เสร็จซ่อม→ปิดงานจริง) ของงานหนึ่งรายการ
-// รวมเวลาช่วงรออะไหล่/ขอหยุดเครื่องไปด้วย (ไม่หักออก) — hadWait ใช้แสดงป้ายเตือนเฉยๆ
 function computeJobDurations(j){
   const accepted=parseJobDateTime(j.acceptedDate);
   const done=parseJobDateTime(j.doneDate);
@@ -1996,7 +1976,6 @@ function computeJobDurations(j){
   return{
     fix: fixMins!=null?formatDurationHM(fixMins):null,
     close: closeMins!=null?formatDurationHM(closeMins):null,
-    hadWait: j.hadWait==='TRUE',
   };
 }
 // Downtime = นับตั้งแต่ "วันที่แจ้งซ่อม" จนถึง "วันที่ปิดงาน" (ยังไม่ปิดงาน → คืน null)
@@ -2426,7 +2405,6 @@ async function exportAdminRepairsExcel(){
       { header:'สถานะ',        key:'status',  width:14 },
       { header:'วันที่เสร็จ',    key:'doneDate',width:14 },
       { header:'เวลาที่ใช้ซ่อม',  key:'fixDuration',  width:16 },
-      { header:'เวลาที่ใช้รออะไหล่',key:'waitDuration', width:18 },
       { header:'Downtime (นาที)', key:'downtime', width:16 },
       { header:'หมายเหตุ',      key:'note',    width:24 },
       { header:'ผลตรวจรับ',    key:'qc',      width:12 },
@@ -2451,15 +2429,13 @@ async function exportAdminRepairsExcel(){
 
     filtered.forEach((j, i) => {
       const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
-      const fixDuration  = dur.fix || j.repairDuration || '-';
-      const waitMinsTot  = parseFloat(j.waitMinutes) || 0;
-      const waitDuration = waitMinsTot > 0 ? formatDurationHM(waitMinsTot) : '-';
+      const fixDuration  = dur.fix || '-';
       const downtime     = computeDowntimeMinutes(j) ?? '-';
       const row = sheet.addRow({
         id: j.id, date: j.date, name: j.name || j.requester || '-', dept: j.dept || '-',
         machine: j.machine || '-', side: j.side || '-', opType: j.opType || '-',
         detail: j.detail || '-', tech: j.technician || 'ยังไม่กำหนด', status: j.status || '-',
-        doneDate: j.doneDate || '-', fixDuration, waitDuration, downtime, note: j.note || '-', qc: j.qcResult || '-',
+        doneDate: j.doneDate || '-', fixDuration, downtime, note: j.note || '-', qc: j.qcResult || '-',
         imgBefore: '', imgAfter: ''
       });
       row.font = { name:'Arial', size:10 };
@@ -3880,16 +3856,14 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">สถานะ</span><span class="spec-val">${j.status}</span></div>
     ${j.doneDate ? `<div class="spec-row"><span class="spec-lbl">วันที่ซ่อมเสร็จ</span><span class="spec-val">${escapeHtml(j.doneDate)}</span></div>` : ''}
     ${(() => {
-      const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate, hadWait: j.hadWait });
-      const fixText = dur.fix || j.repairDuration || '';
+      const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
+      const fixText = dur.fix || '';
       return fixText ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(fixText)}</span></div>` : '';
     })()}
     ${(() => {
       const downtimeText = computeDowntimeText(j);
       if (!downtimeText) return '';
-      // downtime นับรวมเวลารออะไหล่/ขอหยุดเครื่องไปด้วย ไม่หักออก — ติดป้ายกำกับไว้เฉยๆ ให้รู้ว่าตัวเลขนี้รวมเวลารอด้วย
-      const waitBadge = j.hadWait === 'TRUE' ? ' <span class="badge badge-amber" title="ตัวเลข Downtime นี้รวมเวลารออะไหล่/ขอหยุดเครื่องไว้ด้วย">เคยรออะไหล่/ขอหยุดเครื่อง</span>' : '';
-      return `<div class="spec-row"><span class="spec-lbl">Downtime (แจ้ง→ปิดงาน)</span><span class="spec-val">${escapeHtml(downtimeText)}${waitBadge}</span></div>`;
+      return `<div class="spec-row"><span class="spec-lbl">Downtime (แจ้ง→ปิดงาน)</span><span class="spec-val">${escapeHtml(downtimeText)}</span></div>`;
     })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
     `;
