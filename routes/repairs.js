@@ -63,32 +63,9 @@ function buildWaitUpdateData(sheetRow, currentStatus, newStatus, waitStartRaw, w
   return data;
 }
 
-// ── คำนวณ "นาทีสะสม" (AA) ตอนปิดงานจริง ──
-// บั๊กเดิม: AA เก็บแค่ "เวลารออะไหล่/ขอหยุดเครื่องสะสม" ไม่ใช่ downtime จริงของงาน
-// แก้เป็น: AA = (วันที่ปิดงาน − วันที่แจ้งซ่อม) หักลบเวลาที่เคยอยู่ในสถานะ
-// "รออะไหล่"/"ขอหยุดเครื่อง" ออกทั้งหมด (เวลารอไม่นับเป็น downtime ของช่าง)
-// เผื่อ edge case ปิดงานขณะยังอยู่ในสถานะรอพอดี (ไม่ผ่าน buildWaitUpdateData มาก่อน) ก็บวกเวลารอ
-// ช่วงที่ยังไม่ปิดเข้าไปในยอดรอด้วย ก่อนหักออกจาก downtime รวม
-function computeNetDowntimeMinutes(reportDateRaw, closedDateRaw, currentStatus, waitStartRaw, waitMinutesRaw) {
-  const reportDate = parseThaiDateTime(reportDateRaw);
-  const closedDate = parseThaiDateTime(closedDateRaw) || new Date();
-  if (!reportDate) return 0;
-
-  const totalMinutes = Math.max(0, (closedDate.getTime() - reportDate.getTime()) / 60000);
-
-  let totalWaitMinutes = parseFloat(waitMinutesRaw) || 0;
-  if (WAIT_STATUSES.includes(currentStatus)) {
-    const waitStart = parseThaiDateTime(waitStartRaw);
-    if (waitStart) totalWaitMinutes += Math.max(0, (closedDate.getTime() - waitStart.getTime()) / 60000);
-  }
-
-  // กันข้อมูล wait เก่าเพี้ยน (จากบั๊ก parseThaiDateTime ก่อนหน้านี้ ที่ทำให้ waitMinutes
-  // ที่บันทึกไว้มากกว่าเวลารวมทั้งงานได้ — เป็นไปไม่ได้ในทางตรรกะ) ถ้าเจอแบบนี้ ถือว่า
-  // ข้อมูล wait ไม่น่าเชื่อถือ ไม่หักออกเลย ใช้เวลารวมทั้งหมดเป็น downtime แทน
-  if (totalWaitMinutes > totalMinutes) totalWaitMinutes = 0;
-
-  return Math.round(Math.max(0, totalMinutes - totalWaitMinutes));
-}
+// (เดิมมีฟังก์ชัน computeNetDowntimeMinutes ไว้คำนวณ "downtime สุทธิ" หักเวลารอออก แล้วเขียนทับคอลัมน์ AA
+// ตอนปิดงาน — ตัดออกแล้ว เพราะทำให้ AA (ซึ่งควรเก็บแค่ "นาทีรออะไหล่สะสม") มีความหมายเพี้ยนไปเป็น downtime แทน
+// Downtime ที่โชว์หน้าเว็บ/Excel คำนวณจาก reportDate/closedDate ตรงๆ อยู่แล้ว ไม่ต้องพึ่งค่านี้)
 
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
 // ปรับลิสต์นี้ได้ตามที่คิดว่าสำคัญจริงกับผู้แจ้งงาน
@@ -426,7 +403,6 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     const requesterName  = rows[rowIndex][1]  || '';
     const techName       = rows[rowIndex][10] || '';
     const machine        = rows[rowIndex][3]  || '';
-    const reportDateRaw  = rows[rowIndex][17] || ''; // ← วันที่แจ้งซ่อม (R) — ใช้คำนวณ downtime
     const waitStartRaw   = rows[rowIndex][25] || '';
     const waitMinutesRaw = rows[rowIndex][26] || '';
     // ตรวจรับไม่ผ่าน = งานซ่อมยังไม่เรียบร้อย ต้องกลับไปให้ "ช่างคนเดิม" แก้ไขต่อ (ไม่ใช่ส่งกลับผู้แจ้งขอข้อมูลเพิ่ม
@@ -447,13 +423,10 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     if (result === 'ผ่านตรวจรับ') {
       const nowStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
-      // "นาทีสะสม" (AA) = downtime จริง (แจ้งซ่อม → ปิดงาน) หักเวลารออะไหล่/ขอหยุดเครื่องออกทั้งหมด
-      const netDowntime = computeNetDowntimeMinutes(reportDateRaw, nowStr, currentStatus, waitStartRaw, waitMinutesRaw);
-      updateData.push({ range: `Repairs!AA${sheetRow}`, values: [[netDowntime]] });
-      if (WAIT_STATUSES.includes(currentStatus)) {
-        // เผื่อ edge case ปิดงานขณะยังอยู่ในสถานะรอพอดี — เคลียร์เวลาเริ่มรอทิ้ง เพราะรวมเข้า downtime แล้ว
-        updateData.push({ range: `Repairs!Z${sheetRow}`, values: [['']] });
-      }
+      // AA เก็บ "นาทีรออะไหล่/ขอหยุดเครื่องสะสม" เท่านั้น — Downtime ฝั่งหน้าเว็บคำนวณเองแบบ "รวม" (แจ้งซ่อม →
+      // ปิดงาน) โดยตรงอยู่แล้ว ไม่หักเวลารอ จึงไม่ต้องคำนวณ net downtime มาทับ AA ที่นี่ (ดูเหตุผลเดียวกับ
+      // route /:id/status) — ถ้าปิดงานขณะยังอยู่ในสถานะรอพอดี ก็แค่ flush เวลารอช่วงสุดท้ายเข้า AA ตามปกติ
+      updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, null, waitStartRaw, waitMinutesRaw));
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
       // ทำให้ช่างเห็นเหตุผลที่ตรวจรับตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
@@ -725,13 +698,11 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     if (isClosingNow) {
       const nowStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
-      // "นาทีสะสม" (AA) = downtime จริง (แจ้งซ่อม → ปิดงาน) หักเวลารออะไหล่/ขอหยุดเครื่องออกทั้งหมด
-      const reportDateRaw = rows[rowIndex][17] || '';
-      const netDowntime   = computeNetDowntimeMinutes(reportDateRaw, nowStr, currentStatus, waitStartRaw, waitMinutesRaw);
-      updateData.push({ range: `Repairs!AA${sheetRow}`, values: [[netDowntime]] });
-      if (WAIT_STATUSES.includes(currentStatus)) {
-        updateData.push({ range: `Repairs!Z${sheetRow}`, values: [['']] });
-      }
+      // AA เก็บ "นาทีรออะไหล่/ขอหยุดเครื่องสะสม" เท่านั้น (ไม่ใช่ downtime) — Downtime ฝั่งหน้าเว็บคำนวณเองแบบ
+      // "รวม" (แจ้งซ่อม → ปิดงาน) โดยตรงอยู่แล้ว ไม่ต้องหักเวลารอออกที่นี่ (ไม่งั้น AA จะถูกเขียนทับด้วยตัวเลข
+      // downtime แทนค่ารอจริง ทำให้ "เวลาที่ใช้รออะไหล่" ที่โชว์หน้าเว็บ/Excel ผิดไป) — ถ้าปิดงานขณะยังอยู่
+      // ในสถานะรอพอดี (edge case) ก็แค่ flush เวลารอช่วงสุดท้ายเข้า AA เหมือนตอนออกจากสถานะรอปกติ
+      updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, null, waitStartRaw, waitMinutesRaw));
     }
 
     // ติดธง "เคยรอ" ไว้ถาวร — ใช้เตือนตอนแสดงระยะเวลาว่าตัวเลขรวมช่วงรออะไหล่/หยุดเครื่องด้วย
@@ -740,7 +711,7 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     }
     if (!isClosingNow) {
       // เข้า/ออกสถานะ "รออะไหล่-ขอหยุดเครื่อง" (ตอนงานยังไม่ปิด) — จับเวลาอัตโนมัติเพื่อคำนวณ "ใช้เวลารออะไหล่"
-      // (ตอนปิดงานคำนวณ AA จาก downtime สุทธิด้านบนไปแล้ว ไม่ต้องเขียนทับซ้ำ)
+      // (ตอนปิดงาน flush เวลารอช่วงสุดท้ายไปแล้วด้านบน ไม่ต้องเขียนทับซ้ำ)
       updateData.push(...buildWaitUpdateData(sheetRow, currentStatus, status, waitStartRaw, waitMinutesRaw));
     }
 
