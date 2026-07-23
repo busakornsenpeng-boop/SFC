@@ -1984,6 +1984,19 @@ function computeJobDurations(j){
     hadWait: j.hadWait==='TRUE',
   };
 }
+// Downtime = นับตั้งแต่ "วันที่แจ้งซ่อม" จนถึง "วันที่ปิดงาน" (ยังไม่ปิดงาน → คืน null)
+// หน่วยเป็น "นาที" ตามที่หัวหน้าต้องการ (ไม่ใช่ format วัน/ชม.)
+function computeDowntimeMinutes(j){
+  const reported=parseJobDateTime(j.date);
+  const closed=parseJobDateTime(j.closedDate);
+  if(!reported||!closed)return null;
+  const mins=Math.round((closed-reported)/60000);
+  return mins>=0?mins:null;
+}
+function computeDowntimeText(j){
+  const mins=computeDowntimeMinutes(j);
+  return mins!=null?`${mins} นาที`:null;
+}
 function filterJobsByTimeRange(jobs,ft){
   if(ft==='all')return jobs;
   const today=new Date();today.setHours(0,0,0,0);
@@ -2395,6 +2408,7 @@ async function exportAdminRepairsExcel(){
       { header:'วันที่เสร็จ',    key:'doneDate',width:14 },
       { header:'เวลาที่ใช้ซ่อม',  key:'fixDuration',  width:16 },
       { header:'เวลาที่ใช้รออะไหล่',key:'waitDuration', width:18 },
+      { header:'Downtime (นาที)', key:'downtime', width:16 },
       { header:'หมายเหตุ',      key:'note',    width:24 },
       { header:'ผลตรวจรับ',    key:'qc',      width:12 },
       { header:'รูปก่อนซ่อม',   key:'imgBefore',width:20 },
@@ -2421,11 +2435,12 @@ async function exportAdminRepairsExcel(){
       const fixDuration  = dur.fix || j.repairDuration || '-';
       const waitMinsTot  = parseFloat(j.waitMinutes) || 0;
       const waitDuration = waitMinsTot > 0 ? formatDurationHM(waitMinsTot) : '-';
+      const downtime     = computeDowntimeMinutes(j) ?? '-';
       const row = sheet.addRow({
         id: j.id, date: j.date, name: j.name || j.requester || '-', dept: j.dept || '-',
         machine: j.machine || '-', side: j.side || '-', opType: j.opType || '-',
         detail: j.detail || '-', tech: j.technician || 'ยังไม่กำหนด', status: j.status || '-',
-        doneDate: j.doneDate || '-', fixDuration, waitDuration, note: j.note || '-', qc: j.qcResult || '-',
+        doneDate: j.doneDate || '-', fixDuration, waitDuration, downtime, note: j.note || '-', qc: j.qcResult || '-',
         imgBefore: '', imgAfter: ''
       });
       row.font = { name:'Arial', size:10 };
@@ -3434,6 +3449,7 @@ function submitRepairForm(event) {
     side:    document.getElementById('rep-side').value,
     op_type: document.getElementById('rep-type').value,
     detail:  document.getElementById('rep-detail').value,
+    phone:   document.getElementById('rep-phone').value,
    img: uploadedFilesBase64 || []
   };
 
@@ -3832,6 +3848,7 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">JobID</span><span class="spec-val mono">${j.id}</span></div>
     <div class="spec-row"><span class="spec-lbl">วันที่แจ้ง</span><span class="spec-val">${j.date}</span></div>
     <div class="spec-row"><span class="spec-lbl">ผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.name||j.requester||'-')}</span></div>
+    <div class="spec-row"><span class="spec-lbl">เบอร์โทรผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.reporterPhone||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">แผนก</span><span class="spec-val">${j.dept||'-'}</span></div>
     <div class="spec-row"><span class="spec-lbl">เครื่องจักร</span><span class="spec-val">${escapeHtml(j.machine)}</span></div>
     <div class="spec-row"><span class="spec-lbl">ด้านปัญหา</span><span class="spec-val">${j.side||'-'}</span></div>
@@ -3844,6 +3861,10 @@ function viewJobDetail(id) {
       const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
       const fixText = dur.fix || j.repairDuration || '';
       return fixText ? `<div class="spec-row"><span class="spec-lbl">เวลาที่ใช้ซ่อม</span><span class="spec-val">${escapeHtml(fixText)}</span></div>` : '';
+    })()}
+    ${(() => {
+      const downtimeText = computeDowntimeText(j);
+      return downtimeText ? `<div class="spec-row"><span class="spec-lbl">Downtime (แจ้ง→ปิดงาน)</span><span class="spec-val">${escapeHtml(downtimeText)}</span></div>` : '';
     })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
     `;

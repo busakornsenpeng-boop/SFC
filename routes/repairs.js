@@ -39,12 +39,25 @@ function parseThaiDateTime(str) {
   } catch (e) { return null; }
 }
 
-// เดิมฟังก์ชันนี้ใช้บันทึก "เวลาเริ่มรอ" (Z) และ "นาทีที่รอสะสม" (AA) เวลาเข้า/ออก
-// สถานะรออะไหล่/ขอหยุดเครื่อง — ทีมงานแจ้งว่าไม่ได้ใช้ฟีเจอร์นี้แล้ว จึงปิดการเขียนไว้
-// (คงฟังก์ชัน + จุดเรียกใช้ไว้เฉยๆ เพื่อไม่ต้องแก้โค้ดจุดอื่น แค่ทำให้ไม่เขียนอะไรลงชีตอีก
-// ซึ่งแก้ปัญหา error "Range (Repairs!AA2) exceeds grid limits" ไปด้วยในตัว)
+// คำนวณการเปลี่ยนสถานะเข้า/ออกจากช่วง "รอ" (รออะไหล่/ขอหยุดเครื่อง)
+// - เพิ่งเข้าสถานะรอ  → บันทึกเวลาเริ่มรอ (Z)
+// - เพิ่งออกจากสถานะรอ → รวมเวลาที่รอไปสะสมไว้ (AA) แล้วเคลียร์เวลาเริ่มรอ (Z)
+// - ยังอยู่ในสถานะรอเหมือนเดิม (เช่นสลับ รออะไหล่ ↔ ขอหยุดเครื่อง) → ไม่แตะ ให้นับเวลาต่อเนื่อง
 function buildWaitUpdateData(sheetRow, currentStatus, newStatus, waitStartRaw, waitMinutesRaw) {
-  return [];
+  const wasWaiting = WAIT_STATUSES.includes(currentStatus);
+  const isWaiting   = !!newStatus && WAIT_STATUSES.includes(newStatus);
+  const data = [];
+
+  if (!wasWaiting && isWaiting) {
+    data.push({ range: `Repairs!Z${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+  } else if (wasWaiting && !isWaiting) {
+    const start     = parseThaiDateTime(waitStartRaw);
+    const prevTotal = parseFloat(waitMinutesRaw) || 0;
+    const elapsed   = start ? Math.max(0, (Date.now() - start.getTime()) / 60000) : 0;
+    data.push({ range: `Repairs!AA${sheetRow}`, values: [[Math.round(prevTotal + elapsed)]] });
+    data.push({ range: `Repairs!Z${sheetRow}`,  values: [['']] });
+  }
+  return data;
 }
 
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
@@ -122,8 +135,7 @@ async function getAllRepairs() {
     status:       row[9]  || '',
     technician:   row[10] || '',
     doneDate:     row[11] || '', // เวลาที่ช่างแจ้งว่าซ่อมเสร็จ ("ซ่อมเสร็จ/ซ่อมเสร็จแล้ว/รอตรวจรับ")
-    // หมายเหตุ: column M (กำหนดเสร็จ (เดิม)) เลิกใช้แล้ว — ไม่มีที่ไหนอ้างอิง field นี้อีก
-    // ปล่อยคอลัมน์ M ในชีตว่างไว้เฉยๆ ไม่ได้ลบออกจริง เพื่อไม่กระทบ index คอลัมน์ N เป็นต้นไป
+    reporterPhone: row[12] || '', // ← เบอร์โทรผู้แจ้ง (M) — เดิมคอลัมน์นี้เก็บ "กำหนดเสร็จ (เดิม)" ที่เลิกใช้แล้ว นำมาใช้เก็บเบอร์โทรแทน
     note:         row[13] || '',
     qcResult:     row[14] || '',
     qcBy:         row[15] || '',
@@ -173,7 +185,7 @@ router.get('/', async (req, res) => {
 // POST /api/repairs — แจ้งซ่อมใหม่ (ต้อง login ก่อน)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { requester, dept, machine, side, op_type, detail, img, job_type } = req.body;
+    const { requester, dept, machine, side, op_type, detail, img, job_type, phone } = req.body;
     let imgArr = [];
     if (Array.isArray(img)) imgArr = img;
     else if (typeof img === 'string') {
@@ -194,7 +206,7 @@ router.post('/', requireAuth, async (req, res) => {
       requestBody: {
         values: [[
           jobId, requester, dept, machine, side, op_type,
-          detail, imgStr, '', 'รอซ่อม', '', '', '', '', '', '', '',
+          detail, imgStr, '', 'รอซ่อม', '', '', phone || '', '', '', '', '',
           dateStr, resolvedJobType, approval,
         ]],
       },
