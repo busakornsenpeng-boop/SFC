@@ -2181,11 +2181,12 @@ async function exportAdminDashboardExcel(){
       { header:'เสร็จ',        key:'done',  width:12 },
       { header:'ปิดงาน',       key:'closed',width:12 },
       { header:'ตีกลับ',       key:'back',  width:12 },
+      { header:'เวลาซ่อมเฉลี่ย',key:'avgFix', width:18 },
       { header:'คะแนนรวม /100',key:'score', width:16 },
     ];
     styleHeaderRow(sLeader.getRow(1));
-    leaders.forEach((t,i) => sLeader.addRow({ rank:i+1, name:t.name, total:t.total, done:t.done, closed:t.closed, back:t.back, score:t.perfScore }));
-    ['rank','total','done','closed','back','score'].forEach(k => sLeader.getColumn(k).alignment = { horizontal:'center' });
+    leaders.forEach((t,i) => sLeader.addRow({ rank:i+1, name:t.name, total:t.total, done:t.done, closed:t.closed, back:t.back, avgFix:t.avgFixText, score:t.perfScore }));
+    ['rank','total','done','closed','back','avgFix','score'].forEach(k => sLeader.getColumn(k).alignment = { horizontal:'center' });
 
     const buf = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
