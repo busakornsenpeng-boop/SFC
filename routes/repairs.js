@@ -141,8 +141,6 @@ async function getAllRepairs() {
     qcBy:         row[15] || '',
     qcNote:       row[16] || '',
     date:         row[17] || '',
-    jobType:      row[18] || 'ซ่อมปกติ',
-    approval:     row[19] || '',
     actionBy:     row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
     acceptedDate: row[21] || '', // ← เวลาที่ช่างกดรับงาน (V)
     closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลังตรวจรับผ่าน/แอดมินปิดงาน (W)
@@ -185,7 +183,7 @@ router.get('/', async (req, res) => {
 // POST /api/repairs — แจ้งซ่อมใหม่ (ต้อง login ก่อน)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { requester, dept, machine, side, op_type, detail, img, job_type, phone } = req.body;
+    const { requester, dept, machine, side, op_type, detail, img, phone } = req.body;
     let imgArr = [];
     if (Array.isArray(img)) imgArr = img;
     else if (typeof img === 'string') {
@@ -196,8 +194,6 @@ router.post('/', requireAuth, async (req, res) => {
     const dateStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }); // ✅ บรรทัดเดียว
     const imgUrls = await processImages(imgArr, `${jobId}_before`);
     const imgStr  = JSON.stringify(imgUrls);
-    const resolvedJobType = job_type || 'ซ่อมปกติ';
-    const approval = ['ติดตั้งใหม่', 'งานโครงการ'].includes(resolvedJobType) ? 'รออนุมัติ' : '';
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -207,7 +203,7 @@ router.post('/', requireAuth, async (req, res) => {
         values: [[
           jobId, requester, dept, machine, side, op_type,
           detail, imgStr, '', 'รอซ่อม', '', '', phone || '', '', '', '', '',
-          dateStr, resolvedJobType, approval,
+          dateStr, '', '', // S,T (เดิม jobType/approval — ตัดฟีเจอร์อนุมัติงานโครงการออกแล้ว ไม่มี UI ใช้งานจริง)
         ]],
       },
     });
@@ -419,38 +415,6 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('ตรวจรับงาน error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// POST /api/repairs/:id/approval (เฉพาะแอดมิน — อนุมัติงานติดตั้งใหม่/งานโครงการ)
-router.post('/:id/approval', requireRole('admin'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { result, progressNote } = req.body;
-
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
-    const rows     = getRes.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === id);
-    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
-
-    const sheetRow   = rowIndex + 2;
-    const updateData = [{ range: `Repairs!T${sheetRow}`, values: [[result || '']] }];
-    if (result === 'อนุมัติ') {
-      updateData.push({ range: `Repairs!J${sheetRow}`, values: [['ปิดงาน']] });
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
-    }
-    if (result === 'รออนุมัติ' && progressNote)
-      updateData.push({ range: `Repairs!N${sheetRow}`, values: [[`[${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}] ${progressNote}`]] });
-
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
-      requestBody: { valueInputOption: 'USER_ENTERED', data: updateData },
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
