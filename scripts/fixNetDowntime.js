@@ -77,7 +77,16 @@ async function main() {
 
     if (status !== 'ปิดงาน' || !closedRaw) { skippedNoClose++; return; }
 
-    const netDowntime = computeNetDowntimeMinutes(reportRaw, closedRaw, status, waitStart, waitMin);
+    // เดิม: ส่ง status ('ปิดงาน') ตรงๆ เข้า computeNetDowntimeMinutes ทำให้เงื่อนไข
+    // WAIT_STATUSES.includes(currentStatus) ข้างในไม่มีทางเป็นจริงเลย (เพราะ status
+    // ที่ส่งมาคือสถานะสุดท้ายหลังปิดงานเสมอ ไม่ใช่สถานะก่อนปิด) — งานที่ถูกปิดตรงจาก
+    // "รออะไหล่/ขอหยุดเครื่อง" (ข้ามขั้นตอนกลับมา "กำลังซ่อม" ก่อน) จะไม่ถูกหักเวลารอ
+    // ช่วงสุดท้ายออก ทำให้ downtime สูงเกินจริง — แก้โดยเช็คจาก Z (waitStart) แทน:
+    // ถ้า Z ยังมีค่าค้างอยู่ แปลว่าตอนปิดงานยังอยู่ในสถานะรอ ยังไม่เคย flush เข้า AA
+    const wasStillWaitingAtClose = !!parseThaiDateTime(waitStart);
+    const effectiveStatus = wasStillWaitingAtClose ? WAIT_STATUSES[0] : status;
+
+    const netDowntime = computeNetDowntimeMinutes(reportRaw, closedRaw, effectiveStatus, waitStart, waitMin);
     if (netDowntime === null) { skippedBadDate++; console.warn(`  ⚠️  แปลงวันที่ไม่ได้ ข้าม: ${id} (row ${sheetRow}) R="${reportRaw}" W="${closedRaw}"`); return; }
 
     const oldValue = parseFloat(waitMin) || 0;
@@ -105,14 +114,43 @@ async function main() {
     return;
   }
 
+  // ── รีเซ็ต number format ของคอลัมน์ AA ทั้งคอลัมน์ก่อนเขียนค่า ──
+  // สาเหตุของ bug "23/3/1902 0:00:00" ที่เห็นในชีต: บั๊กเดิมเคยเขียนค่าที่หน้าตา
+  // คล้ายวันที่ลงคอลัมน์นี้ด้วย valueInputOption: 'USER_ENTERED' ทำให้ Sheets
+  // auto-detect แล้ว "ล็อก" format ของเซลล์นั้นเป็น Date ค้างไว้ถาวร — ต่อให้เขียน
+  // เลขธรรมดาทับไปใหม่ Sheets ก็ยังโชว์เป็นวันที่อยู่ดี เพราะ format เซลล์ไม่ได้ถูกรีเซ็ต
+  // ไปพร้อมกับค่า ต้องสั่ง reset format เป็น NUMBER ตรงๆ ผ่าน batchUpdate (repeatCell)
+  const sheetMeta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const repairsSheet = sheetMeta.data.sheets.find(s => s.properties.title === 'Repairs');
+  if (repairsSheet) {
+    const sheetId = repairsSheet.properties.sheetId;
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          repeatCell: {
+            range: { sheetId, startRowIndex: 1, startColumnIndex: 26, endColumnIndex: 27 }, // คอลัมน์ AA ทั้งคอลัมน์ (ข้าม header แถว 1)
+            cell: { userEnteredFormat: { numberFormat: { type: 'NUMBER', pattern: '0' } } },
+            fields: 'userEnteredFormat.numberFormat',
+          },
+        }],
+      },
+    });
+    console.log('รีเซ็ต number format คอลัมน์ AA เป็นตัวเลขธรรมดาแล้ว');
+  } else {
+    console.warn('⚠️  ไม่พบชีตชื่อ "Repairs" — ข้ามขั้นตอนรีเซ็ต format (ค่าที่เขียนอาจยังโชว์เป็นวันที่ถ้าเซลล์เคยเพี้ยน)');
+  }
+
   const data = updates.map(u => ({
     range:  `Repairs!AA${u.sheetRow}`,
     values: [[u.netDowntime]],
   }));
 
+  // RAW แทน USER_ENTERED — กันไม่ให้ Sheets ตีความเลขเป็น date serial number ซ้ำอีก
+  // (เหมือนแพทเทิร์นที่ใช้ใน routes/pm.js อยู่แล้ว)
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
-    requestBody: { valueInputOption: 'USER_ENTERED', data },
+    requestBody: { valueInputOption: 'RAW', data },
   });
 
   console.log(`\n✅ อัปเดตสำเร็จ ${updates.length} แถว`);
