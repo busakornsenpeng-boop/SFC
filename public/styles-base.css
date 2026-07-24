@@ -224,8 +224,13 @@
   .sign-date-txt{font-size:11px;color:var(--text3)}
 
   /* ── Modal ── */
-  .modal{position:fixed;inset:0;background:rgba(16,24,40,0.42);backdrop-filter:blur(8px);z-index:5000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s ease;padding:16px}
-  .modal.active{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(16,24,40,0.42);backdrop-filter:blur(8px);z-index:5000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.25s ease,visibility 0s linear 0.25s;padding:16px}
+  /* หมายเหตุ: เพิ่ม visibility:hidden ตอนปิด (เดิมใช้แค่ opacity:0) — ก่อนหน้านี้ modal ทั้ง 14 ตัวในหน้านี้
+     ยังถูก browser paint/composite เลเยอร์ backdrop-filter:blur เต็มจอตลอดเวลาแม้จะมองไม่เห็น ทำให้เครื่อง
+     Android (โดยเฉพาะรุ่นกลาง-ล่าง) กระตุก/ขาดๆ หายๆ ทั่วทั้งแอป เพราะต้อง composite เลเยอร์เบลอซ้อนกันหลายสิบชั้น
+     ตลอดเวลา — visibility:hidden ทำให้ browser ข้าม paint/composite element นี้ไปเลยตอนปิดอยู่ แต่ยังคง fade
+     transition ได้เหมือนเดิม (ใช้ transition-delay หน่วงตอนซ่อนจนกว่า fade-out จะจบก่อน) */
+  .modal.active{opacity:1;visibility:visible;transition-delay:0s}
   .modal-content{background:var(--surface);border:1px solid var(--border);border-radius:8px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:modalScale 0.22s ease-out;pointer-events:none}
   .modal.active .modal-content{pointer-events:auto}
   @keyframes modalScale{from{transform:scale(0.96);opacity:.6}to{transform:scale(1);opacity:1}}
