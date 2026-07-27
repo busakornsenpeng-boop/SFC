@@ -206,18 +206,32 @@ function loadAllData() {
 }
 
 let _loadingWatchdog = null;
-function showLoading(txt='กำลังประมวลผล...') {
+// ── ปุ่มที่ถูก disable ไว้ระหว่างรอ (เช่น ปุ่มส่งฟอร์ม) ──
+// เก็บ reference ไว้กลาง เพื่อให้ watchdog timeout ปลดล็อกคืนให้ได้เช่นกัน
+// ไม่งั้นถ้า watchdog ยิงก่อน (เช่น request ค้างนานผิดปกติ) ปุ่มจะค้าง disabled ตลอดไป
+let _pendingButtons = [];
+function setPendingButton(btn) {
+  if (!btn) return;
+  _pendingButtons.push({ btn, html: btn.innerHTML });
+}
+function restorePendingButtons() {
+  _pendingButtons.forEach(({ btn, html }) => { btn.disabled = false; btn.innerHTML = html; });
+  _pendingButtons = [];
+}
+function showLoading(txt='กำลังประมวลผล...', timeoutMs=20000) {
   const o = document.getElementById('loading-overlay');
   o.style.display='flex'; o.style.opacity=1; o.style.pointerEvents='auto';
   document.getElementById('loading-txt').textContent=txt;
   // ── กันเคสค้าง: ถ้า fetch ค้างนาน (เช่น Render cold-start) แล้วไม่มีใครเรียก hideLoading()
   // overlay จะบัง pointer-events ทั้งหน้าตลอดไป กดปุ่ม/แท็บอะไรก็ไม่ขยับ — ตั้ง timeout สำรอง
-  // บังคับปลดล็อกอัตโนมัติหลัง 20 วิ กันไม่ให้ผู้ใช้ค้างจริงๆ
+  // บังคับปลดล็อกอัตโนมัติหลัง timeoutMs (ดีฟอลต์ 20 วิ) กันไม่ให้ผู้ใช้ค้างจริงๆ
+  // action ที่มีการอัปโหลดรูป (เช่น แจ้งซ่อม) ควรส่ง timeoutMs ที่นานขึ้น เพราะอัปโหลดรูปจากมือถือช้ากว่าปกติ
   if (_loadingWatchdog) clearTimeout(_loadingWatchdog);
   _loadingWatchdog = setTimeout(() => {
     hideLoading();
+    restorePendingButtons(); // ปลดล็อกปุ่มด้วย เผื่อกรณี request ยังไม่ตอบกลับจริงๆ ผู้ใช้จะได้กดใหม่ได้
     showToast('การเชื่อมต่อช้าผิดปกติ กรุณาลองใหม่อีกครั้ง', 'warning');
-  }, 20000);
+  }, timeoutMs);
 }
 function hideLoading() {
   if (_loadingWatchdog) { clearTimeout(_loadingWatchdog); _loadingWatchdog = null; }
@@ -2962,27 +2976,70 @@ function insShowDetail(i){
 // ============================================================
 // MISC / FILE UPLOAD
 // ============================================================
+// ── บีบอัด/ย่อรูปฝั่ง client ก่อนแนบ ──
+// สาเหตุหลักที่ error "เชื่อมต่อช้าผิดปกติ" เกิดกับผู้ใช้ Android บ่อยกว่า iOS:
+// กล้อง Android ส่วนใหญ่ให้ไฟล์รูปต้นฉบับเต็มความละเอียด (มักหลาย MB ถึง 10+ MB)
+// ผ่าน <input type="file" accept="image/*"> ตรงๆ ไม่ถูกย่อให้อัตโนมัติเหมือนบน iOS Safari
+// ถ้าไม่ย่อก่อนแปลงเป็น base64 (ซึ่งขนาดใหญ่กว่าไฟล์ดิบ ~33%) แล้วส่งเป็น JSON body
+// จะทำให้ request ใช้เวลาอัปโหลดนานมากบนเน็ตมือถือ จนชนกับ watchdog timeout
+function compressImageFile(file, maxWidth = 1600, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    if (!file.type || !file.type.startsWith('image/')) {
+      reject(new Error('ไม่ใช่ไฟล์รูปภาพที่ canvas อ่านได้'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error('อ่านไฟล์ไม่สำเร็จ'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode รูปไม่สำเร็จ'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round(height * (maxWidth / width));
+          width  = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        // ส่งออกเป็น JPEG เสมอ (เล็กกว่า PNG มาก) — ใช้กับรูปถ่ายเครื่องจักร/อาการชำรุด ไม่ใช่กราฟิกโปร่งใส
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function triggerFileInput(id){document.getElementById(id)?.click();}
 function previewUploadedFile(input, thumbGridId) {
   const files = Array.from(input.files);
   if (!files.length) return;
   const tg = document.getElementById(thumbGridId);
 
+  function addThumb(dataUrl) {
+    uploadedFilesBase64.push(dataUrl);
+    if (tg) {
+      const idx = uploadedFilesBase64.length - 1;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'thumb-wrapper';
+      wrapper.innerHTML = `<img src="${dataUrl}">
+        <button type="button" class="thumb-remove"
+          onclick="removeUploadedFile(${idx},'${thumbGridId}',this)"><i class="ion-ios-close"></i></button>`;
+      tg.appendChild(wrapper);
+    }
+  }
+
   files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      uploadedFilesBase64.push(e.target.result);
-      if (tg) {
-        const idx = uploadedFilesBase64.length - 1;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'thumb-wrapper';
-        wrapper.innerHTML = `<img src="${e.target.result}">
-          <button type="button" class="thumb-remove"
-            onclick="removeUploadedFile(${idx},'${thumbGridId}',this)"><i class="ion-ios-close"></i></button>`;
-        tg.appendChild(wrapper);
-      }
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then(addThumb)
+      .catch(err => {
+        // บีบอัดไม่สำเร็จ (เช่นไฟล์แปลกๆ ที่ canvas วาดไม่ได้) — ใช้ไฟล์ดิบแทน กันไม่ให้แนบรูปไม่ได้เลย
+        console.warn('[compressImageFile] fallback ใช้ไฟล์ต้นฉบับ:', err.message);
+        const reader = new FileReader();
+        reader.onload = e => addThumb(e.target.result);
+        reader.readAsDataURL(file);
+      });
   });
 }
 
@@ -3439,6 +3496,18 @@ function teAckDailyPM(code) {
 // ============================================================
 function submitRepairForm(event) {
   event.preventDefault();
+
+  // ── กันกดส่งซ้ำ (double-submit) ──
+  // เดิมไม่มีการ disable ปุ่ม ถ้าผู้ใช้กดซ้ำหลายรอบระหว่างรอ (เช่น ตอนอัปโหลดรูปช้า)
+  // อาจเกิดใบแจ้งซ่อมซ้ำหลายใบ ทั้งที่จริงแล้ว request แรกกำลังทำงานอยู่เบื้องหลัง ไม่ได้ล้มเหลว
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  if (submitBtn && submitBtn.disabled) return; // กำลังส่งอยู่แล้ว ห้ามส่งซ้ำ
+  if (submitBtn) {
+    setPendingButton(submitBtn);
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ion-ios-hourglass"></i> กำลังส่ง...';
+  }
+
   const formData = {
     requester: currentUser ? currentUser.name : document.getElementById('rep-requester').value,
     dept:    document.getElementById('rep-dept').value,
@@ -3453,7 +3522,10 @@ function submitRepairForm(event) {
 
   // ── GAS Mode ──
   if (!isLocalMode) {
-    showLoading('กำลังส่งใบแจ้งซ่อม...');
+    // ถ้ามีรูปแนบมาด้วย ให้เผื่อเวลามากขึ้น เพราะต้องอัปโหลดรูปไป Cloudinary ก่อน
+    // (จากมือถือ/เน็ตช้า อาจใช้เวลาเกิน 20 วิได้ง่าย ทำให้ error "เชื่อมต่อช้าผิดปกติ" ขึ้นทั้งที่จริงยังทำงานอยู่)
+    const hasImages = Array.isArray(formData.img) && formData.img.length > 0;
+    showLoading('กำลังส่งใบแจ้งซ่อม...', hasImages ? 45000 : 20000);
     authFetch(`${API_URL}/repairs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3462,6 +3534,7 @@ function submitRepairForm(event) {
     .then(r => r.json())
     .then(res => {
       hideLoading();
+      restorePendingButtons();
       if (res.success) {
         const loc = [formData.dept, formData.line].filter(Boolean).join(' • ');
         showSuccessModal(res.jobId, formData.machine, loc);
@@ -3471,9 +3544,11 @@ function submitRepairForm(event) {
         showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
       }
     })
-    .catch(() => { hideLoading(); showToast('เกิดข้อผิดพลาด', 'error'); });
+    .catch(() => { hideLoading(); restorePendingButtons(); showToast('เกิดข้อผิดพลาด', 'error'); });
     return; // ← สำคัญมาก! หยุดตรงนี้
   }
+
+  restorePendingButtons();
 
   // ── Local Mode ──
   const deptMapLocal = {
@@ -4012,12 +4087,14 @@ function userResubmitFileChange(input) {
   const files = Array.from(input.files);
   if (!files.length) return;
   files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      resubmitImgArr.push(e.target.result);
-      resubmitRenderThumbs();
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then(dataUrl => { resubmitImgArr.push(dataUrl); resubmitRenderThumbs(); })
+      .catch(err => {
+        console.warn('[compressImageFile] fallback ใช้ไฟล์ต้นฉบับ:', err.message);
+        const reader = new FileReader();
+        reader.onload = e => { resubmitImgArr.push(e.target.result); resubmitRenderThumbs(); };
+        reader.readAsDataURL(file);
+      });
   });
   input.value = '';
 }

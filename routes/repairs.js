@@ -176,6 +176,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── กันแจ้งซ่อมซ้ำจากการกดปุ่มรัวๆ (เช่น ตอน request ค้างแล้วผู้ใช้เข้าใจว่าไม่สำเร็จ) ──
+// เก็บ key ล่าสุดไว้ในหน่วยความจำ ถ้ามีคนส่งข้อมูลเดียวกันซ้ำภายใน 15 วิ ให้ตอบ jobId เดิมกลับไปแทนที่จะสร้างใหม่
+// หมายเหตุ: กันได้เฉพาะใน process เดียวกัน (เพียงพอสำหรับเคสกดซ้ำระยะสั้นๆ ซึ่งเป็นสาเหตุหลัก)
+const _recentSubmits = new Map(); // key → { jobId, expiresAt }
+const DUP_GUARD_MS = 15000;
+function _dupKey({ requester, dept, machine, detail }) {
+  return [requester, dept, machine, detail].map(v => String(v || '').trim()).join('|');
+}
+function _cleanupDupGuard() {
+  const now = Date.now();
+  for (const [k, v] of _recentSubmits) if (v.expiresAt < now) _recentSubmits.delete(k);
+}
+
 // POST /api/repairs — แจ้งซ่อมใหม่ (ต้อง login ก่อน)
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -186,10 +199,28 @@ router.post('/', requireAuth, async (req, res) => {
       try { imgArr = JSON.parse(img); } catch { imgArr = [img]; }
     }
 
-    const jobId   = await generateJobId(dept);          // ✅ PDF-001-300626
+    _cleanupDupGuard();
+    const dupKey = _dupKey({ requester, dept, machine, detail });
+    const existing = _recentSubmits.get(dupKey);
+    if (existing) {
+      // ส่งซ้ำภายในเวลาสั้นๆ — ถือว่าเป็นการกดซ้ำ ไม่ใช่งานใหม่ ตอบ jobId เดิมกลับไปเลย
+      return res.json({ success: true, jobId: existing.jobId, duplicate: true });
+    }
+
     const dateStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }); // ✅ บรรทัดเดียว
-    const imgUrls = await processImages(imgArr, `${jobId}_before`);
-    const imgStr  = JSON.stringify(imgUrls);
+
+    // ── รันขนาน: หา jobId (อ่าน Sheet) กับอัปโหลดรูปไป Cloudinary พร้อมกัน ──
+    // เดิมทำทีละอย่าง (jobId ก่อน แล้วค่อยรอรูปอัปโหลดเสร็จ) ทำให้ request รวมช้า
+    // จนชนกับ watchdog timeout ฝั่ง frontend (20 วิ) โดยเฉพาะตอนแนบรูปจากมือถือ
+    // ใช้ prefix ชั่วคราวสำหรับชื่อไฟล์ (ไม่ต้องพึ่ง jobId เพราะยังไม่รู้ตอนนี้)
+    const tempPrefix = `${(dept || 'GEN').replace(/\s+/g, '')}_${Date.now()}`;
+    const [jobId, imgUrls] = await Promise.all([
+      generateJobId(dept),                          // ✅ PDF-001-300626
+      processImages(imgArr, `${tempPrefix}_before`),
+    ]);
+    const imgStr = JSON.stringify(imgUrls);
+
+    _recentSubmits.set(dupKey, { jobId, expiresAt: Date.now() + DUP_GUARD_MS });
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -204,20 +235,30 @@ router.post('/', requireAuth, async (req, res) => {
       },
     });
 
-    const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requester);
-    if (requesterLineId) {
-      await sendLineMessage(requesterLineId,
-        `✅ รับแจ้งซ่อมเรียบร้อย!\n` +
-        `📋 รหัสงาน: ${jobId}\n` +
-        `🔧 เครื่องจักร: ${machine}\n` +
-        `📌 สถานะ: รอช่างรับงาน\n` +
-        `📅 วันที่แจ้ง: ${dateStr}`
-      );
-    }
-
-    // แจ้ง admin ผ่าน LINE — แอดมินเป็นผู้กระจายงานให้ช่างเอง (ไม่แจ้งช่างผ่านระบบ)
-    await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
+    // ── ตอบกลับ client ทันทีที่บันทึกลง Sheet เสร็จ ──
+    // ไม่ต้องรอ LINE notification (เดิม await ก่อน res.json ทำให้ผู้ใช้รอนานขึ้นโดยไม่จำเป็น
+    // และถ้า LINE API ช้า/ล่ม จะดันไปชนกับ watchdog timeout ฝั่ง frontend)
     res.json({ success: true, jobId });
+
+    // ── ส่งแจ้งเตือน LINE แบบไม่บล็อก response (fire-and-forget) ──
+    (async () => {
+      try {
+        const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requester);
+        if (requesterLineId) {
+          await sendLineMessage(requesterLineId,
+            `✅ รับแจ้งซ่อมเรียบร้อย!\n` +
+            `📋 รหัสงาน: ${jobId}\n` +
+            `🔧 เครื่องจักร: ${machine}\n` +
+            `📌 สถานะ: รอช่างรับงาน\n` +
+            `📅 วันที่แจ้ง: ${dateStr}`
+          );
+        }
+        // แจ้ง admin ผ่าน LINE — แอดมินเป็นผู้กระจายงานให้ช่างเอง (ไม่แจ้งช่างผ่านระบบ)
+        await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
+      } catch (notifyErr) {
+        console.error('[Repairs] LINE notify error (ไม่กระทบการบันทึกงาน):', notifyErr.message);
+      }
+    })();
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
