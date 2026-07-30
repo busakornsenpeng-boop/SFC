@@ -2054,10 +2054,39 @@ function initAdminDashboard(){
   const stats=calculateAdminStats(filtered);const pm=getPMData();const sv=id=>document.getElementById(id);
   if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
   const overdue=getRepairJobsData().filter(j=>j.slaOverdue).length;const pmToday=pm.filter(p=>p.date===new Date().toISOString().split('T')[0]).length;
-  if(sv('adm-trend-total'))sv('adm-trend-total').innerHTML=buildTrend('+12','%','↑','kv-trend up','จากเดือนก่อน');
+  const allJobs=getRepairJobsData();
+  // เทียบจำนวนงานแจ้งซ่อม "เดือนนี้" กับ "เดือนก่อน" — ใช้ monthlyData ทั้งหมด (ไม่ผูกกับ time filter ที่เลือกอยู่)
+  const allStats=calculateAdminStats(allJobs);
+  const now=new Date();
+  const curMKey=`${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  const prevMDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevMKey=`${String(prevMDate.getMonth()+1).padStart(2,'0')}/${prevMDate.getFullYear()}`;
+  const curMCount=allStats.monthlyData[curMKey]||0;
+  const prevMCount=allStats.monthlyData[prevMKey]||0;
+  let totalTrendHtml;
+  if(prevMCount===0){
+    totalTrendHtml=curMCount>0?buildTrend('+100','%','↑','kv-trend up','จากเดือนก่อน'):'<span class="kv-trend">ยังไม่มีข้อมูลเทียบ</span>';
+  }else{
+    const pct=Math.round(((curMCount-prevMCount)/prevMCount)*100);
+    totalTrendHtml=buildTrend((pct>=0?'+':'')+pct,'%',pct>=0?'↑':'↓',pct>=0?'kv-trend up':'kv-trend warn','จากเดือนก่อน');
+  }
+  if(sv('adm-trend-total'))sv('adm-trend-total').innerHTML=totalTrendHtml;
   if(sv('adm-trend-wait'))sv('adm-trend-wait').innerHTML=overdue>0?buildTrend(overdue,' งาน','<i class="ion-ios-warning"></i>','kv-trend warn','เกิน 24 ชม.'):'<span class="kv-trend up">✓ ทุกงานยังในกำหนด</span>';
   if(sv('adm-trend-work'))sv('adm-trend-work').innerHTML=buildTrend(stats.working,' งาน','<i class="ion-ios-construct"></i>','kv-trend','กำลังดำเนินการ');
-  if(sv('adm-trend-closed'))sv('adm-trend-closed').innerHTML=buildTrend('+5',' งาน','↑','kv-trend up','สัปดาห์นี้');
+  // เทียบจำนวนงานที่ "ปิดงาน" ใน 7 วันล่าสุด กับ 7 วันก่อนหน้า (อิง closedDate จริง)
+  const today0=new Date();today0.setHours(0,0,0,0);
+  const wEnd=new Date(today0);
+  const wStart=new Date(today0);wStart.setDate(wStart.getDate()-6);
+  const pwEnd=new Date(wStart);pwEnd.setDate(pwEnd.getDate()-1);
+  const pwStart=new Date(pwEnd);pwStart.setDate(pwStart.getDate()-6);
+  const closedInRange=(s,e)=>allJobs.filter(j=>{const cd=parseJobDateTime(j.closedDate);if(!cd)return false;cd.setHours(0,0,0,0);return cd.getTime()>=s.getTime()&&cd.getTime()<=e.getTime();}).length;
+  const closedThisWeek=closedInRange(wStart,wEnd);
+  const closedLastWeek=closedInRange(pwStart,pwEnd);
+  const closedDiff=closedThisWeek-closedLastWeek;
+  const closedTrendHtml=(closedDiff===0&&closedThisWeek===0)
+    ?'<span class="kv-trend">ยังไม่มีงานปิดในสัปดาห์นี้</span>'
+    :buildTrend((closedDiff>=0?'+':'')+closedDiff,' งาน',closedDiff>=0?'↑':'↓',closedDiff>=0?'kv-trend up':'kv-trend warn','เทียบสัปดาห์ก่อน');
+  if(sv('adm-trend-closed'))sv('adm-trend-closed').innerHTML=closedTrendHtml;
   if(sv('adm-trend-pm'))sv('adm-trend-pm').innerHTML=buildTrend(pmToday,' กำหนดวันนี้','<i class="ion-ios-calendar"></i>','kv-trend','');
   const palette=['#ef4444','#3b82f6','#10b981','#f59e0b','#a855f7','#14b8a6'];
   const chartCfg=(type,data,extra={})=>({type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a1a1aa',font:{size:11},boxWidth:10}}},scales:type==='bar'||type==='line'?{x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}:undefined,...extra}});
