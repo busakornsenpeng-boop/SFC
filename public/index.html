@@ -562,7 +562,7 @@
                 placeholder="ค้นหา JobID / ชื่อ / เครื่องจักร..."
                 oninput="renderAdminRepairsTable()">
             </div>
-          <select id="admin-filter-status-rep" class="select-ctrl" style="width:140px;font-size:12px" onchange="renderAdminRepairsTable()">
+          <select id="admin-filter-status-rep" class="select-ctrl" style="width:140px;font-size:12px" onchange="adminRepStatusGroupFilter=null;renderAdminRepairsTable()">
   <option value="">ทุกสถานะ</option>
   <option>รอซ่อม</option><option>กำลังซ่อม</option>
   <option>ซ่อมเสร็จแล้ว</option><option>ปิดงาน</option>

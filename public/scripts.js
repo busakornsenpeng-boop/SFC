@@ -8,6 +8,10 @@ let currentAdminCustomFrom = null;
 let currentAdminCustomTo = null;
 let adminRepDateFrom = null;
 let adminRepDateTo = null;
+// สถานะกลุ่ม "กำลังซ่อม" ที่แท้จริง (ทุกสถานะที่ไม่ใช่รอซ่อม/ปิดงาน) — ใช้ตอนกด drilldown
+// จาก dashboard เพราะ dropdown สถานะปกติเลือกได้ทีละสถานะ ไม่รองรับกลุ่ม
+const WORKING_STATUS_GROUP = ['กำลังซ่อม', 'รออะไหล่', 'Workaround', 'ขอหยุดเครื่อง'];
+let adminRepStatusGroupFilter = null; // null = ไม่ได้ใช้ตัวกรองกลุ่ม, ใช้ dropdown ปกติแทน
 let currentUser = null;
 let localRepairs = [];
 let localPMCalendar = [];
@@ -2111,6 +2115,10 @@ function goToRepairsFiltered(kind, dept){
   const statusSel = document.getElementById('admin-filter-status-rep');
   if(statusSel) statusSel.value = statusMap[kind] ?? '';
 
+  // "กำลังซ่อม" ไม่ใช่สถานะเดียว แต่เป็นกลุ่มสถานะ (กำลังซ่อม/รออะไหล่/Workaround/ขอหยุดเครื่อง)
+  // dropdown ปกติเลือกได้ทีละสถานะ จึงต้องใช้ตัวกรองกลุ่มแยกต่างหาก ไม่งั้นจะโชว์ทุกสถานะ (บั๊กเดิม)
+  adminRepStatusGroupFilter = (kind === 'working') ? WORKING_STATUS_GROUP : null;
+
   const deptSel = document.getElementById('admin-filter-dept-rep');
   if(deptSel){
     let opt = Array.from(deptSel.options).find(o => o.value === dept);
@@ -2292,7 +2300,8 @@ function getFilteredAdminRepairs(){
   const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
   const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
   const deptF=document.getElementById('admin-filter-dept-rep')?.value||'';
-  let list=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF)));
+  const groupF=adminRepStatusGroupFilter;
+  let list=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(groupF?groupF.includes(j.status):true)&&(!deptF||j.dept.includes(deptF)));
   if(adminRepDateFrom && adminRepDateTo){
     const[fy,fm,fd]=adminRepDateFrom.split('-').map(Number);
     const[ty,tm,td]=adminRepDateTo.split('-').map(Number);
@@ -2351,7 +2360,19 @@ function clearAdminRepDateFilter(){
   renderAdminRepairsTable();
 }
 
+// แสดง chip แจ้งเตือนเมื่อกำลังดูรายการผ่านตัวกรองกลุ่มสถานะ "กำลังซ่อม" (มาจาก dashboard drilldown)
+// เพื่อไม่ให้แอดมินสับสนว่าทำไม dropdown สถานะโชว์ "ทุกสถานะ" แต่ตารางไม่ครบทุกสถานะจริง
+function renderAdminRepStatusGroupChip(){
+  const box=document.getElementById('admin-rep-summary'); if(!box) return;
+  if(!adminRepStatusGroupFilter){ box.innerHTML=''; return; }
+  box.innerHTML = `<span class="pill pill-repairing" style="display:inline-flex;align-items:center;gap:6px;cursor:default">
+      <i class="ion-ios-construct"></i> กำลังกรอง: กำลังซ่อม (รวมรออะไหล่ / Workaround / ขอหยุดเครื่อง)
+      <span onclick="adminRepStatusGroupFilter=null;renderAdminRepairsTable()" style="cursor:pointer;font-weight:700;margin-left:4px" title="ล้างตัวกรองนี้">✕</span>
+    </span>`;
+}
+
 function renderAdminRepairsTable(){
+  renderAdminRepStatusGroupChip();
   const tbody=document.getElementById('admin-rep-list-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getFilteredAdminRepairs();
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
