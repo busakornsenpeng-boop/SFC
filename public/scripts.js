@@ -2048,15 +2048,31 @@ function initAdminDashboard(){
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
     const mKeys=Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
     const monthPalette=['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
-    const barColors=mKeys.map((_,i)=>monthPalette[i%monthPalette.length]);
+    const ptColors=mKeys.map((_,i)=>monthPalette[i%monthPalette.length]);
     chartMonthlyInstance=new Chart(mc,{
-      type:'bar',
-      data:{labels:mKeys,datasets:[{label:'จำนวนแจ้งซ่อม',data:mKeys.map(k=>stats.monthlyData[k]),backgroundColor:barColors,borderColor:barColors,borderWidth:1,borderRadius:6,borderSkipped:false,maxBarThickness:48}]},
+      type:'line',
+      data:{labels:mKeys,datasets:[{
+        label:'จำนวนแจ้งซ่อม',
+        data:mKeys.map(k=>stats.monthlyData[k]),
+        borderWidth:3,
+        tension:0.35,
+        fill:true,
+        backgroundColor:'rgba(160,160,255,0.06)',
+        pointBackgroundColor:ptColors,
+        pointBorderColor:'#18181b',
+        pointBorderWidth:2,
+        pointRadius:5,
+        pointHoverRadius:7,
+        // ไล่สีทีละช่วง (segment) ตามสีของเดือนที่เป็นจุดเริ่มของช่วงนั้น ให้เส้นดูเป็นสีต่อเดือน
+        segment:{
+          borderColor:ctx=>ptColors[ctx.p0DataIndex]||monthPalette[0]
+        }
+      }]},
       options:{
         responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`จำนวนแจ้งซ่อม: ${ctx.parsed.y} รายการ`}}},
         scales:{
-          x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{display:false}},
+          x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{beginAtZero:true,ticks:{color:'#a1a1aa',font:{size:10},precision:0,stepSize:1},grid:{color:'rgba(255,255,255,0.04)'}}
         }
       }
