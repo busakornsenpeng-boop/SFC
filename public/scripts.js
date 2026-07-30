@@ -2047,35 +2047,49 @@ function initAdminDashboard(){
   if(chartDeptInstance)chartDeptInstance.destroy();const dc=sv('chart-dept');if(dc)chartDeptInstance=new Chart(dc,chartCfg('bar',{labels:Object.keys(stats.deptData).map(l=>l.split(' ')[0]),datasets:[{label:'จำนวน',data:Object.values(stats.deptData),backgroundColor:'rgba(20,184,166,0.55)',borderColor:'#14b8a6',borderWidth:1,borderRadius:5,borderSkipped:false}]}));
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
     const mKeys=Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
-    const monthPalette=['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
-    const ptColors=mKeys.map((_,i)=>monthPalette[i%monthPalette.length]);
+    const lineColor='#ec4899'; // สีเดียวตลอดเส้น เหมือนภาพตัวอย่าง (เอเชีย-7 = สีชมพู)
+    const seriesLabel='จำนวนแจ้งซ่อม';
+    // plugin วาด label ต่อท้ายเส้น (แทนการโชว์ legend กล่องด้านบนแบบเดิม) เหมือนภาพตัวอย่างที่แปะชื่อเส้นไว้ปลายเส้นทางขวา
+    const endLabelPlugin={
+      id:'endLabelPlugin',
+      afterDatasetsDraw(chart){
+        const {ctx}=chart;
+        const meta=chart.getDatasetMeta(0);
+        const lastPoint=meta.data[meta.data.length-1];
+        if(!lastPoint) return;
+        ctx.save();
+        ctx.font='bold 11px inherit';
+        ctx.fillStyle=lineColor;
+        ctx.textAlign='left';
+        ctx.textBaseline='middle';
+        ctx.fillText(seriesLabel, lastPoint.x+8, lastPoint.y);
+        ctx.restore();
+      }
+    };
     chartMonthlyInstance=new Chart(mc,{
       type:'line',
       data:{labels:mKeys,datasets:[{
-        label:'จำนวนแจ้งซ่อม',
+        label:seriesLabel,
         data:mKeys.map(k=>stats.monthlyData[k]),
-        borderWidth:3,
+        borderColor:lineColor,
+        borderWidth:2.5,
         tension:0.35,
-        fill:true,
-        backgroundColor:'rgba(160,160,255,0.06)',
-        pointBackgroundColor:ptColors,
-        pointBorderColor:'#18181b',
-        pointBorderWidth:2,
-        pointRadius:5,
-        pointHoverRadius:7,
-        // ไล่สีทีละช่วง (segment) ตามสีของเดือนที่เป็นจุดเริ่มของช่วงนั้น ให้เส้นดูเป็นสีต่อเดือน
-        segment:{
-          borderColor:ctx=>ptColors[ctx.p0DataIndex]||monthPalette[0]
-        }
+        fill:false,
+        pointBackgroundColor:lineColor,
+        pointBorderColor:lineColor,
+        pointRadius:3,
+        pointHoverRadius:6
       }]},
       options:{
         responsive:true,maintainAspectRatio:false,
+        layout:{padding:{right:70}}, // เผื่อที่ให้ label ปลายเส้น ไม่ให้โดนตัด
         plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`จำนวนแจ้งซ่อม: ${ctx.parsed.y} รายการ`}}},
         scales:{
           x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{beginAtZero:true,ticks:{color:'#a1a1aa',font:{size:10},precision:0,stepSize:1},grid:{color:'rgba(255,255,255,0.04)'}}
         }
-      }
+      },
+      plugins:[endLabelPlugin]
     });
   }
   const lb=sv('leaderboard-tbody');if(lb){lb.innerHTML='';calculateTechPerformance(filtered).forEach((t,i)=>{const rankCls=['rank-1','rank-2','rank-3'][i]||'rank-n';const slaNum=t.total>0?Math.min(100,Math.round(t.perfScore*0.9+10)):null;const slaText=slaNum!==null?slaNum+'%':'—';const slaColor=slaNum>=80?'#10b981':slaNum>=60?'#f59e0b':'#ef4444';const dtColor=t.avgFixMins==null?'var(--text3)':t.avgFixMins<=120?'#10b981':t.avgFixMins<=480?'#f59e0b':'#ef4444';const tr=document.createElement('tr');tr.innerHTML=`<td><span class="rank-badge ${rankCls}">${i+1}</span></td><td style="font-weight:600;color:var(--text)">${t.name}</td><td style="color:var(--text2);text-align:center">${t.total}</td><td style="color:var(--text2);text-align:center">${t.done}</td><td style="color:#10b981;font-weight:600;text-align:center">${t.closed}</td><td style="color:#ef4444;text-align:center">${t.back}</td><td style="font-family:var(--font-mono);font-weight:600;color:${dtColor};text-align:center;white-space:nowrap">${t.avgFixText}</td><td style="font-family:var(--font-mono);font-weight:700;color:${slaColor};text-align:center">${slaText}</td><td><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:${t.perfScore}%"></div></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal);min-width:36px;text-align:right">${t.perfScore}<span style="font-size:10px;color:var(--text3)">/100</span></span></div></td>`;lb.appendChild(tr);});}
