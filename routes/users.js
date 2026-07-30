@@ -154,7 +154,7 @@ router.post('/login', async (req, res) => {
     const username = (req.body.username || '').trim();
     const password = (req.body.password || '').trim();
 
-    if (username === ADMIN_ACCOUNT.username) {
+    if (username.toLowerCase() === ADMIN_ACCOUNT.username.toLowerCase()) {
       if (password !== ADMIN_ACCOUNT.password) {
         return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
       }
@@ -173,7 +173,7 @@ router.post('/login', async (req, res) => {
     }
 
     // บัญชีกลางทีมช่าง/วิศวกร (username/password กำหนดไว้เองผ่าน env var)
-    if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) {
+    if (TE_SHARED_ACCOUNT.username && username.toLowerCase() === TE_SHARED_ACCOUNT.username.toLowerCase()) {
       if (password !== TE_SHARED_ACCOUNT.password) {
         return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
       }
@@ -193,7 +193,7 @@ router.post('/login', async (req, res) => {
     }
 
     const users = await getAllUsers();
-    const user  = users.find(u => u.username === username);
+    const user  = users.find(u => u.username.toLowerCase() === username.toLowerCase());
 
     if (!user) {
       return res.json({ success: false, message: 'Username หรือ Password ไม่ถูกต้อง' });
@@ -206,7 +206,7 @@ router.post('/login', async (req, res) => {
       passwordOk = await bcrypt.compare(password, user.password);
     } else {
       passwordOk = password === user.password;
-      if (passwordOk) await upgradePasswordHash(username, password);
+      if (passwordOk) await upgradePasswordHash(user.username, password);
     }
 
     if (!passwordOk) {
@@ -258,7 +258,7 @@ router.post('/register', requireRole('admin'), async (req, res) => {
     // ช่าง/วิศวกร ใช้บัญชีกลาง (TE_SHARED_ACCOUNT) ที่กำหนดไว้ล่วงหน้าเท่านั้น ไม่เปิดให้สมัครเอง
     const role   = 'user';
     const users  = await getAllUsers();
-    const exists = users.find(u => u.username === username);
+    const exists = users.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (exists) {
       return res.json({ success: false, message: 'Username นี้มีอยู่แล้ว' });
     }
@@ -279,7 +279,7 @@ router.post('/register', requireRole('admin'), async (req, res) => {
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          username, passwordHash, role, fullname, dept, contact,
+          username, passwordHash, role, fullname, dept, contact || '',
           'active', 'FALSE', '', lineUserId || '',
         ]],
       },

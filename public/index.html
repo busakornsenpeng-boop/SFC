@@ -883,11 +883,6 @@
   </select>
 </div>
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">เบอร์โทร / LINE ID <span style="color:var(--red,#dc2626)">*</span></label>
-          <input id="reg-contact" type="text" placeholder="เช่น 081-234-5678"
-            class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
-        </div>
-        <div>
           <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">Username <span style="color:var(--red,#dc2626)">*</span></label>
           <input id="reg-username" type="text" placeholder="ตั้ง username สำหรับ login"
             class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
@@ -895,13 +890,25 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">รหัสผ่าน <span style="color:var(--red,#dc2626)">*</span></label>
-            <input id="reg-password" type="password" placeholder="อย่างน้อย 4 ตัว"
-              class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+            <div style="position:relative;">
+              <input id="reg-password" type="password" placeholder="อย่างน้อย 4 ตัว"
+                class="login-input" style="width:100%;box-sizing:border-box;margin:0;padding-right:38px;">
+              <button type="button" onclick="toggleRegPasswordVisibility('reg-password', this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text3,#98a2b8);cursor:pointer;padding:4px;display:flex;align-items:center;">
+                <i class="ion-eye"></i>
+              </button>
+            </div>
           </div>
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:var(--text,#101828);margin-bottom:5px;">ยืนยันรหัสผ่าน <span style="color:var(--red,#dc2626)">*</span></label>
-            <input id="reg-password2" type="password" placeholder="พิมพ์อีกครั้ง"
-              class="login-input" style="width:100%;box-sizing:border-box;margin:0;">
+            <div style="position:relative;">
+              <input id="reg-password2" type="password" placeholder="พิมพ์อีกครั้ง"
+                class="login-input" style="width:100%;box-sizing:border-box;margin:0;padding-right:38px;">
+              <button type="button" onclick="toggleRegPasswordVisibility('reg-password2', this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text3,#98a2b8);cursor:pointer;padding:4px;display:flex;align-items:center;">
+                <i class="ion-eye"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>

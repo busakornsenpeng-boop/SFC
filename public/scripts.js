@@ -4347,7 +4347,6 @@ function closeRegisterModal() {
 async function submitRegister() {
   const fullname  = document.getElementById('reg-fullname').value.trim();
   const dept      = document.getElementById('reg-dept').value.trim();
-  const contact   = document.getElementById('reg-contact').value.trim();
   const username  = document.getElementById('reg-username').value.trim();
   const password  = document.getElementById('reg-password').value;
   const password2 = document.getElementById('reg-password2').value;
@@ -4359,7 +4358,7 @@ async function submitRegister() {
   };
   errEl.style.display = 'none';
 
-  if (!fullname || !dept || !contact || !username || !password) return showErr('กรุณากรอกข้อมูลให้ครบ');
+  if (!fullname || !dept || !username || !password) return showErr('กรุณากรอกข้อมูลให้ครบ');
   if (password !== password2) return showErr('รหัสผ่านไม่ตรงกัน');
   if (password.length < 4)   return showErr('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
 
@@ -4372,7 +4371,7 @@ async function submitRegister() {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        username, password, fullname, dept, contact,
+        username, password, fullname, dept,
         lineUserId: _regLineUserId || '',   // ← ส่ง LINE ไปพร้อมกันเลย
       }),
     }).then(r => r.json());
@@ -4396,7 +4395,7 @@ async function submitRegister() {
 
 // ── openRegisterModal ──
 function openRegisterModal() {
-  ['reg-fullname','reg-contact','reg-username','reg-password','reg-password2'].forEach(id => {
+  ['reg-fullname','reg-username','reg-password','reg-password2'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -4404,8 +4403,30 @@ function openRegisterModal() {
   if (deptEl) deptEl.value = '';
   const errEl = document.getElementById('reg-error');
   if (errEl) errEl.style.display = 'none';
+  // รีเซ็ตปุ่มแสดง/ซ่อนรหัสผ่านกลับเป็นซ่อนไว้ก่อนทุกครั้งที่เปิดฟอร์ม
+  ['reg-password','reg-password2'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.type = 'password';
+  });
+  document.querySelectorAll('#register-modal .ion-eye-disabled').forEach(icon => {
+    icon.classList.remove('ion-eye-disabled');
+    icon.classList.add('ion-eye');
+  });
   clearRegAvatar();
   document.getElementById('register-modal').style.display = 'block';
+}
+
+// ── toggleRegPasswordVisibility — สลับแสดง/ซ่อนรหัสผ่านตอนกรอกในฟอร์มสมัครสมาชิก ──
+function toggleRegPasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btnEl.querySelector('i');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  if (icon) {
+    icon.classList.toggle('ion-eye', showing);
+    icon.classList.toggle('ion-eye-disabled', !showing);
+  }
 }
 // ============================================================
 // SEARCHABLE MACHINE SELECT (ค้นหาได้ + อื่นๆ ระบุเอง)
