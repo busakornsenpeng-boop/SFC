@@ -2588,13 +2588,13 @@ async function exportAdminRepairsExcel(){
       const rowIdx = row.number - 1; // 0-based สำหรับ ExcelJS anchor
       if(before){
         const imgId = workbook.addImage({ buffer: before.buffer, extension: before.extension });
-        sheet.addImage(imgId, { tl:{ col:14, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
+        sheet.addImage(imgId, { tl:{ col:15, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
       } else {
         row.getCell('imgBefore').value = '-';
       }
       if(after){
         const imgId = workbook.addImage({ buffer: after.buffer, extension: after.extension });
-        sheet.addImage(imgId, { tl:{ col:15, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
+        sheet.addImage(imgId, { tl:{ col:16, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
       } else {
         row.getCell('imgAfter').value = '-';
       }
