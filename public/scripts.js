@@ -24,6 +24,24 @@ let pmSubView = 'list'; // sub-view ปัจจุบันของแท็�
 let selectedJobForAction = null;
 let uploadedFilesBase64 = [];
 let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = null;
+// 'month' = ดูแนวโน้มแบบรายเดือน (ค่าเริ่มต้น), 'day' = ดูแนวโน้มแบบรายวัน
+let monthlyChartGranularity = 'month';
+const THAI_MONTHS_ABBR = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+// key รูปแบบ "MM/YYYY" (ปี ค.ศ.) → "ก.ค. 2569" (เดือนไทย + ปี พ.ศ.)
+function formatMonthlyAxisLabel(key){
+  const [mm, yyyy] = key.split('/').map(Number);
+  return `${THAI_MONTHS_ABBR[mm-1]} ${yyyy+543}`;
+}
+// key รูปแบบ "YYYY-MM-DD" (ปี ค.ศ.) → "24 ก.ค. 2569"
+function formatDailyAxisLabel(key){
+  const [yyyy, mm, dd] = key.split('-').map(Number);
+  return `${dd} ${THAI_MONTHS_ABBR[mm-1]} ${yyyy+543}`;
+}
+function setMonthlyChartGranularity(mode){
+  if(monthlyChartGranularity === mode) return;
+  monthlyChartGranularity = mode;
+  initAdminDashboard();
+}
 let insDailyHistory = [];
 let authToken = null; // JWT ที่ได้จาก /api/users/login — เก็บไว้ใน memory เท่านั้น (ไม่ใส่ localStorage เพื่อลดความเสี่ยง XSS-token-theft)
 
@@ -2023,7 +2041,7 @@ function filterJobsByTimeRange(jobs,ft){
   }
   return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
 }
-function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,sideData:{},deptData:{},monthlyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;}});return s;}
+function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -2046,34 +2064,45 @@ function initAdminDashboard(){
   if(chartSideInstance)chartSideInstance.destroy();const sc=sv('chart-side');if(sc)chartSideInstance=new Chart(sc,chartCfg('doughnut',{labels:Object.keys(stats.sideData),datasets:[{data:Object.values(stats.sideData),backgroundColor:palette,borderColor:'#18181b',borderWidth:2,hoverOffset:4}]},{plugins:{legend:{position:'bottom',labels:{color:'#a1a1aa',font:{size:10},boxWidth:8,padding:10}}}}));
   if(chartDeptInstance)chartDeptInstance.destroy();const dc=sv('chart-dept');if(dc)chartDeptInstance=new Chart(dc,chartCfg('bar',{labels:Object.keys(stats.deptData).map(l=>l.split(' ')[0]),datasets:[{label:'จำนวน',data:Object.values(stats.deptData),backgroundColor:'rgba(20,184,166,0.55)',borderColor:'#14b8a6',borderWidth:1,borderRadius:5,borderSkipped:false}]}));
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
-    const mKeys=Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
-    const lineColor='#ec4899'; // สีเดียวตลอดเส้น เหมือนภาพตัวอย่าง (เอเชีย-7 = สีชมพู)
-    const seriesLabel='จำนวนแจ้งซ่อม';
-    // plugin วาด label ต่อท้ายเส้น (แทนการโชว์ legend กล่องด้านบนแบบเดิม) เหมือนภาพตัวอย่างที่แปะชื่อเส้นไว้ปลายเส้นทางขวา
-    const endLabelPlugin={
-      id:'endLabelPlugin',
+    const isDay = monthlyChartGranularity === 'day';
+    const dataMap = isDay ? stats.dailyData : stats.monthlyData;
+    const sortedKeys = isDay
+      ? Object.keys(dataMap).sort() // "YYYY-MM-DD" เรียงตามตัวอักษรได้ถูกต้องอยู่แล้ว
+      : Object.keys(dataMap).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
+    const chartLabels = sortedKeys.map(k => isDay ? formatDailyAxisLabel(k) : formatMonthlyAxisLabel(k));
+    const chartValues = sortedKeys.map(k => dataMap[k]);
+    const lineColor='#ec4899';
+
+    // toggle ปุ่ม active state
+    const btnM=sv('mtg-btn-month'), btnD=sv('mtg-btn-day');
+    if(btnM) btnM.style.cssText += `background:${!isDay?'var(--teal-bg)':'none'};color:${!isDay?'var(--teal)':'var(--text2)'};border-color:${!isDay?'var(--teal)':'transparent'}`;
+    if(btnD) btnD.style.cssText += `background:${isDay?'var(--teal-bg)':'none'};color:${isDay?'var(--teal)':'var(--text2)'};border-color:${isDay?'var(--teal)':'transparent'}`;
+
+    // plugin วาดตัวเลขจำนวนงานไว้เหนือแต่ละจุดบนกราฟ
+    const pointValueLabelPlugin={
+      id:'pointValueLabelPlugin',
       afterDatasetsDraw(chart){
         const {ctx}=chart;
         const meta=chart.getDatasetMeta(0);
-        const lastPoint=meta.data[meta.data.length-1];
-        if(!lastPoint) return;
+        const data=chart.data.datasets[0].data;
         ctx.save();
-        ctx.font='bold 11px inherit';
-        ctx.fillStyle=lineColor;
-        ctx.textAlign='left';
-        ctx.textBaseline='middle';
-        ctx.fillText(seriesLabel, lastPoint.x+8, lastPoint.y);
+        ctx.font='bold 10px inherit';
+        ctx.fillStyle='#e4e4e7';
+        ctx.textAlign='center';
+        ctx.textBaseline='bottom';
+        meta.data.forEach((point,i)=>{ if(data[i]!=null) ctx.fillText(String(data[i]), point.x, point.y-6); });
         ctx.restore();
       }
     };
+
     chartMonthlyInstance=new Chart(mc,{
       type:'line',
-      data:{labels:mKeys,datasets:[{
-        label:seriesLabel,
-        data:mKeys.map(k=>stats.monthlyData[k]),
+      data:{labels:chartLabels,datasets:[{
+        label:'จำนวนแจ้งซ่อม',
+        data:chartValues,
         borderColor:lineColor,
         borderWidth:2.5,
-        tension:0.35,
+        tension:0.3,
         fill:false,
         pointBackgroundColor:lineColor,
         pointBorderColor:lineColor,
@@ -2082,14 +2111,14 @@ function initAdminDashboard(){
       }]},
       options:{
         responsive:true,maintainAspectRatio:false,
-        layout:{padding:{right:70}}, // เผื่อที่ให้ label ปลายเส้น ไม่ให้โดนตัด
+        layout:{padding:{top:20,right:16}},
         plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`จำนวนแจ้งซ่อม: ${ctx.parsed.y} รายการ`}}},
         scales:{
-          x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+          x:{ticks:{color:'#a1a1aa',font:{size:10},maxRotation:60,minRotation:isDay?45:0,autoSkip:true},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{beginAtZero:true,ticks:{color:'#a1a1aa',font:{size:10},precision:0,stepSize:1},grid:{color:'rgba(255,255,255,0.04)'}}
         }
       },
-      plugins:[endLabelPlugin]
+      plugins:[pointValueLabelPlugin]
     });
   }
   const lb=sv('leaderboard-tbody');if(lb){lb.innerHTML='';calculateTechPerformance(filtered).forEach((t,i)=>{const rankCls=['rank-1','rank-2','rank-3'][i]||'rank-n';const slaNum=t.total>0?Math.min(100,Math.round(t.perfScore*0.9+10)):null;const slaText=slaNum!==null?slaNum+'%':'—';const slaColor=slaNum>=80?'#10b981':slaNum>=60?'#f59e0b':'#ef4444';const dtColor=t.avgFixMins==null?'var(--text3)':t.avgFixMins<=120?'#10b981':t.avgFixMins<=480?'#f59e0b':'#ef4444';const tr=document.createElement('tr');tr.innerHTML=`<td><span class="rank-badge ${rankCls}">${i+1}</span></td><td style="font-weight:600;color:var(--text)">${t.name}</td><td style="color:var(--text2);text-align:center">${t.total}</td><td style="color:var(--text2);text-align:center">${t.done}</td><td style="color:#10b981;font-weight:600;text-align:center">${t.closed}</td><td style="color:#ef4444;text-align:center">${t.back}</td><td style="font-family:var(--font-mono);font-weight:600;color:${dtColor};text-align:center;white-space:nowrap">${t.avgFixText}</td><td style="font-family:var(--font-mono);font-weight:700;color:${slaColor};text-align:center">${slaText}</td><td><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:${t.perfScore}%"></div></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal);min-width:36px;text-align:right">${t.perfScore}<span style="font-size:10px;color:var(--text3)">/100</span></span></div></td>`;lb.appendChild(tr);});}
