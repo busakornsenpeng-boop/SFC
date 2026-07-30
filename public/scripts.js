@@ -2045,7 +2045,23 @@ function initAdminDashboard(){
   const chartCfg=(type,data,extra={})=>({type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a1a1aa',font:{size:11},boxWidth:10}}},scales:type==='bar'||type==='line'?{x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}:undefined,...extra}});
   if(chartSideInstance)chartSideInstance.destroy();const sc=sv('chart-side');if(sc)chartSideInstance=new Chart(sc,chartCfg('doughnut',{labels:Object.keys(stats.sideData),datasets:[{data:Object.values(stats.sideData),backgroundColor:palette,borderColor:'#18181b',borderWidth:2,hoverOffset:4}]},{plugins:{legend:{position:'bottom',labels:{color:'#a1a1aa',font:{size:10},boxWidth:8,padding:10}}}}));
   if(chartDeptInstance)chartDeptInstance.destroy();const dc=sv('chart-dept');if(dc)chartDeptInstance=new Chart(dc,chartCfg('bar',{labels:Object.keys(stats.deptData).map(l=>l.split(' ')[0]),datasets:[{label:'จำนวน',data:Object.values(stats.deptData),backgroundColor:'rgba(20,184,166,0.55)',borderColor:'#14b8a6',borderWidth:1,borderRadius:5,borderSkipped:false}]}));
-  if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){const mKeys=Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});chartMonthlyInstance=new Chart(mc,chartCfg('line',{labels:mKeys,datasets:[{label:'แจ้งซ่อม',data:mKeys.map(k=>stats.monthlyData[k]),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.08)',fill:true,tension:0.4,pointBackgroundColor:'#ef4444',pointRadius:4,pointHoverRadius:6}]}));}
+  if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
+    const mKeys=Object.keys(stats.monthlyData).sort((a,b)=>{const[ma,ya]=a.split('/').map(Number);const[mb,yb]=b.split('/').map(Number);return(ya*12+ma)-(yb*12+mb);});
+    const monthPalette=['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+    const barColors=mKeys.map((_,i)=>monthPalette[i%monthPalette.length]);
+    chartMonthlyInstance=new Chart(mc,{
+      type:'bar',
+      data:{labels:mKeys,datasets:[{label:'จำนวนแจ้งซ่อม',data:mKeys.map(k=>stats.monthlyData[k]),backgroundColor:barColors,borderColor:barColors,borderWidth:1,borderRadius:6,borderSkipped:false,maxBarThickness:48}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`จำนวนแจ้งซ่อม: ${ctx.parsed.y} รายการ`}}},
+        scales:{
+          x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{display:false}},
+          y:{beginAtZero:true,ticks:{color:'#a1a1aa',font:{size:10},precision:0,stepSize:1},grid:{color:'rgba(255,255,255,0.04)'}}
+        }
+      }
+    });
+  }
   const lb=sv('leaderboard-tbody');if(lb){lb.innerHTML='';calculateTechPerformance(filtered).forEach((t,i)=>{const rankCls=['rank-1','rank-2','rank-3'][i]||'rank-n';const slaNum=t.total>0?Math.min(100,Math.round(t.perfScore*0.9+10)):null;const slaText=slaNum!==null?slaNum+'%':'—';const slaColor=slaNum>=80?'#10b981':slaNum>=60?'#f59e0b':'#ef4444';const dtColor=t.avgFixMins==null?'var(--text3)':t.avgFixMins<=120?'#10b981':t.avgFixMins<=480?'#f59e0b':'#ef4444';const tr=document.createElement('tr');tr.innerHTML=`<td><span class="rank-badge ${rankCls}">${i+1}</span></td><td style="font-weight:600;color:var(--text)">${t.name}</td><td style="color:var(--text2);text-align:center">${t.total}</td><td style="color:var(--text2);text-align:center">${t.done}</td><td style="color:#10b981;font-weight:600;text-align:center">${t.closed}</td><td style="color:#ef4444;text-align:center">${t.back}</td><td style="font-family:var(--font-mono);font-weight:600;color:${dtColor};text-align:center;white-space:nowrap">${t.avgFixText}</td><td style="font-family:var(--font-mono);font-weight:700;color:${slaColor};text-align:center">${slaText}</td><td><div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div class="perf-bar-wrap"><div class="perf-bar-fill" style="width:${t.perfScore}%"></div></div></div><span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--teal);min-width:36px;text-align:right">${t.perfScore}<span style="font-size:10px;color:var(--text3)">/100</span></span></div></td>`;lb.appendChild(tr);});}
 }
 
