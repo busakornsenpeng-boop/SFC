@@ -2510,10 +2510,10 @@ function fetchImageForExcel(url){
   });
 }
 
-function firstImgUrl(raw){
-  if(!raw) return '';
-  try { const arr = JSON.parse(raw); return Array.isArray(arr) && arr.length ? arr[0] : ''; }
-  catch { return raw.startsWith('http') || raw.startsWith('data:') ? raw : ''; }
+function allImgUrls(raw){
+  if(!raw) return [];
+  try { const arr = JSON.parse(raw); return Array.isArray(arr) ? arr.filter(Boolean) : (arr ? [arr] : []); }
+  catch { return (raw.startsWith('http') || raw.startsWith('data:')) ? [raw] : []; }
 }
 
 // ── ส่งออกรายการแจ้งซ่อม (ตาม filter ปัจจุบัน) เป็นไฟล์ Excel พร้อมรูปภาพ ──
@@ -2562,10 +2562,10 @@ async function exportAdminRepairsExcel(){
     });
     headerRow.height = 22;
 
-    // ดึงรูปทั้งหมดล่วงหน้าแบบขนาน (เร็วกว่าดึงทีละแถว)
+    // ดึงรูปทั้งหมดล่วงหน้าแบบขนาน (ทุกรูปในแต่ละงาน ไม่ใช่แค่รูปแรก — เร็วกว่าดึงทีละแถว)
     const imgTasks = filtered.map(j => Promise.all([
-      fetchImageForExcel(firstImgUrl(j.img)),
-      fetchImageForExcel(firstImgUrl(j.imgAfter))
+      Promise.all(allImgUrls(j.img).map(u => fetchImageForExcel(u))),
+      Promise.all(allImgUrls(j.imgAfter).map(u => fetchImageForExcel(u)))
     ]));
     const imgResults = await Promise.all(imgTasks);
 
@@ -2582,22 +2582,38 @@ async function exportAdminRepairsExcel(){
       });
       row.font = { name:'Arial', size:10 };
       row.alignment = { vertical:'middle', wrapText:true };
-      row.height = 78;
 
-      const [before, after] = imgResults[i];
+      const [beforeArr, afterArr] = imgResults[i];
+      const beforeValid = beforeArr.filter(Boolean);
+      const afterValid  = afterArr.filter(Boolean);
+
+      // ── ความสูงแถว: ยืดตามจำนวนรูปสูงสุดของฝั่งใดฝั่งหนึ่ง (ก่อน/หลัง) ──
+      // ทุกรูปใน imgResults ถูกดึงมาซ้อนในเซลล์เดียวกัน แทนที่จะโชว์แค่รูปแรก
+      const IMG_W = 90, IMG_H = 70, GAP = 6, TOP_PAD = 6;
+      const maxCount = Math.max(beforeValid.length, afterValid.length, 1);
+      const contentPx  = TOP_PAD * 2 + maxCount * IMG_H + (maxCount - 1) * GAP;
+      const contentPt  = contentPx / 1.3333; // px → pt (96/72 dpi)
+      row.height = Math.max(78, contentPt);
+      const rowHeightPx = row.height * 1.3333; // ความสูงจริงที่ใช้ คำนวณ fraction offset ให้ตรงกัน
+
       const rowIdx = row.number - 1; // 0-based สำหรับ ExcelJS anchor
-      if(before){
-        const imgId = workbook.addImage({ buffer: before.buffer, extension: before.extension });
-        sheet.addImage(imgId, { tl:{ col:15, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
-      } else {
-        row.getCell('imgBefore').value = '-';
-      }
-      if(after){
-        const imgId = workbook.addImage({ buffer: after.buffer, extension: after.extension });
-        sheet.addImage(imgId, { tl:{ col:16, row: rowIdx + 0.05 }, ext:{ width:110, height:100 } });
-      } else {
-        row.getCell('imgAfter').value = '-';
-      }
+
+      const placeStack = (imgs, col) => {
+        imgs.forEach((img, idx) => {
+          const imgId = workbook.addImage({ buffer: img.buffer, extension: img.extension });
+          const offsetPx = TOP_PAD + idx * (IMG_H + GAP);
+          sheet.addImage(imgId, {
+            tl:  { col, row: rowIdx + (offsetPx / rowHeightPx) },
+            ext: { width: IMG_W, height: IMG_H },
+          });
+        });
+      };
+
+      if(beforeValid.length) placeStack(beforeValid, 15);
+      else row.getCell('imgBefore').value = '-';
+
+      if(afterValid.length) placeStack(afterValid, 16);
+      else row.getCell('imgAfter').value = '-';
     });
 
     const buf = await workbook.xlsx.writeBuffer();
