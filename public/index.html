@@ -43,7 +43,14 @@
 
   <div class="form-group-login">
     <label for="password">รหัสผ่าน</label>
-    <input type="password" id="password" class="login-input" placeholder="••••" required>
+    <div style="position:relative;">
+      <input type="password" id="password" class="login-input" placeholder="••••" required
+        style="width:100%;box-sizing:border-box;padding-right:38px;">
+      <button type="button" onclick="togglePasswordVisibility('password', this)"
+        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text3,#98a2b8);cursor:pointer;padding:4px;display:flex;align-items:center;">
+        <i class="ion-eye"></i>
+      </button>
+    </div>
   </div>
   <div style="text-align:right;margin-top:-8px;margin-bottom:14px">
     <button type="button" onclick="openModal('forgot-password-info-modal')"
@@ -893,7 +900,7 @@
             <div style="position:relative;">
               <input id="reg-password" type="password" placeholder="อย่างน้อย 4 ตัว"
                 class="login-input" style="width:100%;box-sizing:border-box;margin:0;padding-right:38px;">
-              <button type="button" onclick="toggleRegPasswordVisibility('reg-password', this)"
+              <button type="button" onclick="togglePasswordVisibility('reg-password', this)"
                 style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text3,#98a2b8);cursor:pointer;padding:4px;display:flex;align-items:center;">
                 <i class="ion-eye"></i>
               </button>
@@ -904,7 +911,7 @@
             <div style="position:relative;">
               <input id="reg-password2" type="password" placeholder="พิมพ์อีกครั้ง"
                 class="login-input" style="width:100%;box-sizing:border-box;margin:0;padding-right:38px;">
-              <button type="button" onclick="toggleRegPasswordVisibility('reg-password2', this)"
+              <button type="button" onclick="togglePasswordVisibility('reg-password2', this)"
                 style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--text3,#98a2b8);cursor:pointer;padding:4px;display:flex;align-items:center;">
                 <i class="ion-eye"></i>
               </button>

@@ -4416,8 +4416,8 @@ function openRegisterModal() {
   document.getElementById('register-modal').style.display = 'block';
 }
 
-// ── toggleRegPasswordVisibility — สลับแสดง/ซ่อนรหัสผ่านตอนกรอกในฟอร์มสมัครสมาชิก ──
-function toggleRegPasswordVisibility(inputId, btnEl) {
+// ── togglePasswordVisibility — สลับแสดง/ซ่อนรหัสผ่านตอนกรอกในฟอร์มสมัครสมาชิก ──
+function togglePasswordVisibility(inputId, btnEl) {
   const input = document.getElementById(inputId);
   if (!input) return;
   const icon = btnEl.querySelector('i');
