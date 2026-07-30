@@ -4408,15 +4408,15 @@ function openRegisterModal() {
     const input = document.getElementById(id);
     if (input) input.type = 'password';
   });
-  document.querySelectorAll('#register-modal .ion-eye-disabled').forEach(icon => {
-    icon.classList.remove('ion-eye-disabled');
-    icon.classList.add('ion-eye');
+  document.querySelectorAll('#register-modal .ion-ios-eye-off').forEach(icon => {
+    icon.classList.remove('ion-ios-eye-off');
+    icon.classList.add('ion-ios-eye');
   });
   clearRegAvatar();
   document.getElementById('register-modal').style.display = 'block';
 }
 
-// ── togglePasswordVisibility — สลับแสดง/ซ่อนรหัสผ่านตอนกรอกในฟอร์มสมัครสมาชิก ──
+// ── togglePasswordVisibility — สลับแสดง/ซ่อนรหัสผ่านตอนกรอก (ใช้ทั้งหน้า login และฟอร์มสมัครสมาชิก) ──
 function togglePasswordVisibility(inputId, btnEl) {
   const input = document.getElementById(inputId);
   if (!input) return;
@@ -4424,8 +4424,8 @@ function togglePasswordVisibility(inputId, btnEl) {
   const showing = input.type === 'text';
   input.type = showing ? 'password' : 'text';
   if (icon) {
-    icon.classList.toggle('ion-eye', showing);
-    icon.classList.toggle('ion-eye-disabled', !showing);
+    icon.classList.toggle('ion-ios-eye', showing);
+    icon.classList.toggle('ion-ios-eye-off', !showing);
   }
 }
 // ============================================================
