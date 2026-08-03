@@ -2044,7 +2044,7 @@ function filterJobsByTimeRange(jobs,ft){
   }
   return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
 }
-function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -2055,7 +2055,7 @@ function buildTrend(val,unit,icon,cls,note){return`<span class="${cls}">${icon} 
 function initAdminDashboard(){
   const filtered=filterJobsByTimeRange(getRepairJobsData(),currentAdminTimeFilter);
   const stats=calculateAdminStats(filtered);const pm=getPMData();const sv=id=>document.getElementById(id);
-  if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
+  if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-donerepair'))sv('adm-stat-donerepair').textContent=stats.doneRepair;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
   const overdue=getRepairJobsData().filter(j=>j.slaOverdue).length;const pmToday=pm.filter(p=>p.date===new Date().toISOString().split('T')[0]).length;
   const allJobs=getRepairJobsData();
   // เทียบจำนวนงานแจ้งซ่อม "เดือนนี้" กับ "เดือนก่อน" — ใช้ monthlyData ทั้งหมด (ไม่ผูกกับ time filter ที่เลือกอยู่)
@@ -2076,6 +2076,7 @@ function initAdminDashboard(){
   if(sv('adm-trend-total'))sv('adm-trend-total').innerHTML=totalTrendHtml;
   if(sv('adm-trend-wait'))sv('adm-trend-wait').innerHTML=overdue>0?buildTrend(overdue,' งาน','<i class="ion-ios-warning"></i>','kv-trend warn','เกิน 24 ชม.'):'<span class="kv-trend up">✓ ทุกงานยังในกำหนด</span>';
   if(sv('adm-trend-work'))sv('adm-trend-work').innerHTML=buildTrend(stats.working,' งาน','<i class="ion-ios-construct"></i>','kv-trend','กำลังดำเนินการ');
+  if(sv('adm-trend-donerepair'))sv('adm-trend-donerepair').innerHTML=stats.doneRepair>0?buildTrend(stats.doneRepair,' งาน','<i class="ion-ios-checkmark-circle-outline"></i>','kv-trend','รอตรวจรับ'):'<span class="kv-trend">ยังไม่มีงานรอตรวจรับ</span>';
   // เทียบจำนวนงานที่ "ปิดงาน" ใน 7 วันล่าสุด กับ 7 วันก่อนหน้า (อิง closedDate จริง)
   const today0=new Date();today0.setHours(0,0,0,0);
   const wEnd=new Date(today0);
@@ -2161,6 +2162,7 @@ const DBM_CONFIG = {
   total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
   waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
   working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => isWorkingStatus(j.status), color: 'orange' },
+  donerepair: { label: 'ซ่อมเสร็จแล้ว', icon: 'ion-ios-checkmark-circle-outline', match: j => j.status === 'ซ่อมเสร็จแล้ว', color: 'teal' },
   closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle', match: j => j.status === 'ปิดงาน', color: 'green' }
 };
 
@@ -2218,7 +2220,7 @@ function goToRepairsFiltered(kind, dept){
   const navBtn = document.querySelector('.tab-btn[onclick*="admin-repairs"]');
   switchViewPanel('admin-repairs', navBtn || document.querySelector('.tab-btn'));
 
-  const statusMap = { waiting: 'รอซ่อม', closed: 'ปิดงาน', working: '', total: '' };
+  const statusMap = { waiting: 'รอซ่อม', closed: 'ปิดงาน', working: '', total: '', donerepair: 'ซ่อมเสร็จแล้ว' };
   const statusSel = document.getElementById('admin-filter-status-rep');
   if(statusSel) statusSel.value = statusMap[kind] ?? '';
 
@@ -2267,6 +2269,7 @@ async function exportAdminDashboardExcel(){
       ['แจ้งซ่อมทั้งหมด', stats.total],
       ['รอซ่อม', stats.waiting],
       ['กำลังซ่อม', stats.working],
+      ['ซ่อมเสร็จแล้ว (รอตรวจรับ)', stats.doneRepair],
       ['ปิดงานเสร็จ', stats.closed],
       ['เกิน SLA (24 ชม.)', overdue],
       ['PM ทั้งหมด', pm.length],
