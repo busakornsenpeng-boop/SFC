@@ -47,19 +47,20 @@ function parseThaiDateString(str) {
   // ── แก้บั๊ก timezone ──
   // สตริงนี้เก็บเวลา Bangkok local time (UTC+7) อยู่แล้ว (มาจาก toLocaleString('th-TH', {timeZone:'Asia/Bangkok'}))
   // เดิมใช้ `new Date(y, m, d, h, mi, s)` ซึ่งตีความตัวเลขตาม timezone ของเซิร์ฟเวอร์ (Render = UTC)
-  // ทำให้ reportDate ที่ได้เพี้ยนไปเร็วกว่าความจริง 7 ชม. → Downtime ที่คำนวณได้ (closed - report)
+  // ทำให้เวลาที่ parse ได้เพี้ยนไปเร็วกว่าความจริง 7 ชม. → ค่าที่คำนวณได้ (closed - doneDate ฯลฯ)
   // น้อยกว่าความเป็นจริงไป 420 นาทีทุกครั้ง จึงต้องตีความเป็น UTC+7 แล้วแปลงกลับเป็น UTC instant จริงแทน
   const utcMs = Date.UTC(yyyyCE, parseInt(mm, 10) - 1, parseInt(dd, 10), parseInt(hh, 10), parseInt(mi, 10), parseInt(ss, 10)) - 7 * 60 * 60 * 1000;
   const d = new Date(utcMs);
   return isNaN(d.getTime()) ? null : d;
 }
 
-// ── คำนวณ Downtime (นาที) = เวลาปิดงาน - วันที่แจ้งซ่อม (คอลัมน์ R) ──
+// ── คำนวณ Downtime (นาที) = เวลาปิดงาน - เวลาซ่อมเสร็จ (คอลัมน์ L) ──
+// (เดิมคำนวณจาก "วันที่แจ้งซ่อม" (R) ซึ่งผิด — ต้องนับจากตอนซ่อมเสร็จจนถึงตอนปิดงานเท่านั้น)
 // คืนค่าเป็นจำนวนเต็ม (นาที) หรือ '' ถ้าคำนวณไม่ได้/ค่าติดลบ (ข้อมูลผิดปกติ)
-function calcDowntimeMinutes(reportDateStr, closedDate) {
-  const reportDate = parseThaiDateString(reportDateStr);
-  if (!reportDate || !closedDate) return '';
-  const diffMs = closedDate.getTime() - reportDate.getTime();
+function calcDowntimeMinutes(doneDateStr, closedDate) {
+  const doneDate = parseThaiDateString(doneDateStr);
+  if (!doneDate || !closedDate) return '';
+  const diffMs = closedDate.getTime() - doneDate.getTime();
   if (diffMs < 0) return '';
   return Math.round(diffMs / 60000);
 }
@@ -149,7 +150,7 @@ async function getAllRepairs() {
     actionBy:     row[20] || '', // ← ชื่อคนล่าสุดที่ update/reject งานนี้
     acceptedDate: row[21] || '', // ← เวลาที่ช่างกดรับงาน (V)
     closedDate:   row[22] || '', // ← เวลาที่ปิดงานจริง หลังตรวจรับผ่าน/แอดมินปิดงาน (W)
-    downtimeMinutes: row[23] || '', // ← Downtime รวม (นาที) = ปิดงาน (W) - วันที่แจ้งซ่อม (R) (X)
+    downtimeMinutes: row[23] || '', // ← Downtime รวม (นาที) = ปิดงาน (W) - เวลาซ่อมเสร็จ (L) (X)
   }));
 }
 
@@ -428,14 +429,14 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
       const nowStr  = nowDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
 
-      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - วันที่แจ้งซ่อม (R)
-      const reportDateStr    = rows[rowIndex][17] || ''; // R
-      const downtimeMinutes  = calcDowntimeMinutes(reportDateStr, nowDate);
-      console.log(`[DOWNTIME-DEBUG][qc] id=${id} reportDateStr="${reportDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
+      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
+      const doneDateStr      = rows[rowIndex][11] || ''; // L
+      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate);
+      console.log(`[DOWNTIME-DEBUG][qc] id=${id} doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
       } else {
-        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — reportDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — doneDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
@@ -708,14 +709,14 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       const nowStr  = nowDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
 
-      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - วันที่แจ้งซ่อม (R)
-      const reportDateStr    = rows[rowIndex][17] || ''; // R
-      const downtimeMinutes  = calcDowntimeMinutes(reportDateStr, nowDate);
-      console.log(`[DOWNTIME-DEBUG][status] id=${id} reportDateStr="${reportDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
+      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
+      const doneDateStr      = rows[rowIndex][11] || ''; // L
+      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate);
+      console.log(`[DOWNTIME-DEBUG][status] id=${id} doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
       } else {
-        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — reportDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — doneDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     }
 
