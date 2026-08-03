@@ -2047,7 +2047,11 @@ function filterJobsByTimeRange(jobs,ft){
   }
   return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
 }
-function calculateAdminStats(jobs){const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+function calculateAdminStats(jobs){
+  // งานสถานะ "ตีกลับ"/"แก้ไข (ตีกลับ)" คืองานเดิมที่ถูกส่งกลับไปแก้ไข ไม่ใช่งานแจ้งซ่อมใหม่
+  // จึงตัดออกจากยอดสถิติทั้งหมด ให้สอดคล้องกับนิยาม "แจ้งซ่อม" ของแดชบอร์ดช่าง (TE_JOB_FILTERS.reported)
+  jobs=jobs.filter(j=>!['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status));
+  const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
