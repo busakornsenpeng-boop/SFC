@@ -160,6 +160,7 @@
   .pill-completed{background:var(--orange-bg);color:var(--orange)}
   .pill-closed{background:var(--green-bg);color:var(--green)}
   .pill-fail{background:var(--red-bg);color:var(--red)}
+  .pill-external{background:var(--purple-bg);color:var(--purple)}
   .spill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;white-space:nowrap}
   .sp-pend{background:var(--yellow-bg);color:var(--yellow)}
   .sp-prog{background:rgba(46,92,230,0.10);color:var(--accent)}

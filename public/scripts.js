@@ -861,7 +861,7 @@ function engRenderRepairs() {
     (j.machine.toLowerCase().includes(q)||j.id.toLowerCase().includes(q))&&
     (!statusF||j.status===statusF)&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">ไม่พบข้อมูล</td></tr>`;return;}
-  const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'};
+  const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'};
   tbody.innerHTML=filtered.map(j=>`
     <tr>
       <td style="font-family:var(--font-mono);font-size:11px;color:var(--accent);font-weight:600">${j.id}</td>
@@ -992,6 +992,7 @@ function tpJobCardHTML(j,mode){
     'รออะไหล่':        {cls:'work',   text:'รออะไหล่'},
     'ขอหยุดเครื่อง':    {cls:'work',   text:'ขอหยุดเครื่อง'},
     'Workaround':      {cls:'work',   text:'Workaround'},
+    'ส่งซ่อมภายนอก':    {cls:'work',   text:'ส่งซ่อมภายนอก'},
     'ซ่อมเสร็จแล้ว':    {cls:'done-s', text:'รอตรวจรับงาน'},
     'เสร็จแล้ว':        {cls:'done-s', text:'เสร็จแล้ว'},
     'ปิดงาน':          {cls:'done-s', text:'ปิดงานแล้ว'},
@@ -1013,7 +1014,7 @@ function tpJobCardHTML(j,mode){
 } else if(j.status==='ซ่อมเสร็จแล้ว'){
   // เสร็จแล้ว → รอตรวจรับ → ไม่มีปุ่มอัปเดต
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:var(--teal)">⏳ รอตรวจรับงาน</div>`;
-} else if(j.status==='กำลังซ่อม'||j.status==='รออะไหล่'||j.status==='Workaround'||j.status==='ขอหยุดเครื่อง'){
+} else if(j.status==='กำลังซ่อม'||j.status==='รออะไหล่'||j.status==='Workaround'||j.status==='ขอหยุดเครื่อง'||j.status==='ส่งซ่อมภายนอก'){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
     <button class="tp-jbtn-a upd" onclick="tpOpenUpdateModal('${j.id}')"><i class="ion-ios-create"></i> อัปเดต</button>
     <button class="tp-jbtn-a" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#ef4444" onclick="tpOpenRejectModal('${j.id}')">↩ ตีกลับ</button>`;
@@ -1183,6 +1184,7 @@ function tpOpenUpdateModal(id) {
       <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'รออะไหล่')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-cube"></i>รอจัดหาอะไหล่</button>
       <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'ขอหยุดเครื่อง')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-close-circle"></i>ขอหยุดเครื่อง</button>
         <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'Workaround')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-construct"></i>Workaround</button>
+      <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'ส่งซ่อมภายนอก')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-send"></i>ส่งซ่อมภายนอก</button>
       <button class="tp-upd-status-btn" onclick="tpSetStatus(this,'เสร็จแล้ว')" style="padding:11px 8px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:.15s"><i class="ion-ios-checkmark-circle-outline"></i>ซ่อมเสร็จสิ้น</button>
     </div>
     <input type="hidden" id="tp-upd-status" value="${j.status}">
@@ -1231,6 +1233,7 @@ function tpSetStatus(btn, val) {
     'ขอหยุดเครื่อง': {bg:'rgba(239,68,68,.12)',  bc:'rgba(239,68,68,.4)',   c:'#ef4444'},
    'เสร็จแล้ว':    {bg:'rgba(16,185,129,.12)', bc:'rgba(16,185,129,.4)', c:'#10b981'},
     'Workaround':   {bg:'rgba(168,85,247,.12)', bc:'rgba(168,85,247,.4)', c:'#a855f7'},
+    'ส่งซ่อมภายนอก': {bg:'rgba(99,102,241,.12)', bc:'rgba(99,102,241,.4)', c:'#6366f1'},
   };
   const s = colorMap[val];
   if (btn && s) { btn.style.background=s.bg; btn.style.borderColor=s.bc; btn.style.color=s.c; }
@@ -1453,7 +1456,7 @@ function renderRepairsTable(){
   const tbody=document.getElementById('track-repairs-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(!deptF||j.dept.includes(deptF))&&(!sideF||j.side.includes(sideF)));
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลรายการแจ้งซ่อม</td></tr>`;return;}
-  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
+  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
     const isBounced = j.status==='ตีกลับ'||j.status==='แก้ไข (ตีกลับ)';
     const actBtns = isBounced
       ? `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button><button class="btn-action" style="border-color:var(--accent);color:var(--accent);margin-left:6px" onclick="userOpenResubmitModal('${escapeHtml(j.id)}')"><i class="ion-ios-create"></i> แก้ไขและส่งใหม่</button>`
@@ -2224,7 +2227,7 @@ function goToRepairsFiltered(kind, dept){
   const statusSel = document.getElementById('admin-filter-status-rep');
   if(statusSel) statusSel.value = statusMap[kind] ?? '';
 
-  // "กำลังซ่อม" ไม่ใช่สถานะเดียว แต่เป็นกลุ่มสถานะ (กำลังซ่อม/รออะไหล่/Workaround/ขอหยุดเครื่อง)
+  // "กำลังซ่อม" ไม่ใช่สถานะเดียว แต่เป็นกลุ่มสถานะ (กำลังซ่อม/รออะไหล่/Workaround/ขอหยุดเครื่อง/ส่งซ่อมภายนอก)
   // dropdown ปกติเลือกได้ทีละสถานะ จึงต้องใช้ตัวกรองกลุ่มแยกต่างหาก ไม่งั้นจะโชว์ทุกสถานะ (บั๊กเดิม)
   adminRepStatusGroupFilter = (kind === 'working') ? isWorkingStatus : null;
 
@@ -2476,7 +2479,7 @@ function renderAdminRepStatusGroupChip(){
   const box=document.getElementById('admin-rep-summary'); if(!box) return;
   if(!adminRepStatusGroupFilter){ box.innerHTML=''; return; }
   box.innerHTML = `<span class="pill pill-repairing" style="display:inline-flex;align-items:center;gap:6px;cursor:default">
-      <i class="ion-ios-construct"></i> กำลังกรอง: กำลังซ่อม (รวมรออะไหล่ / Workaround / ขอหยุดเครื่อง)
+      <i class="ion-ios-construct"></i> กำลังกรอง: กำลังซ่อม (รวมรออะไหล่ / Workaround / ขอหยุดเครื่อง / ส่งซ่อมภายนอก)
       <span onclick="adminRepStatusGroupFilter=null;renderAdminRepairsTable()" style="cursor:pointer;font-weight:700;margin-left:4px" title="ล้างตัวกรองนี้">✕</span>
     </span>`;
 }
@@ -2486,7 +2489,7 @@ function renderAdminRepairsTable(){
   const tbody=document.getElementById('admin-rep-list-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getFilteredAdminRepairs();
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
-  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
+  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
 }
 
 // ── ดึงข้อมูลรูปภาพจาก URL มาเป็น buffer สำหรับฝังลง Excel ──
@@ -3319,7 +3322,7 @@ const TE_JOB_FILTERS = {
   // "แจ้งซ่อม" = ยอดรวมงานทั้งหมด ยกเว้นงานที่ถูกตีกลับ (ตีกลับไม่มีการ์ดของตัวเอง จึงไม่รวม)
   reported:  { label: 'แจ้งซ่อม',       match: j => !['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
-  progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround'].includes(j.status) },
+  progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround','ส่งซ่อมภายนอก'].includes(j.status) },
   // เดิมแยกเป็น "ซ่อมแล้ว" กับ "รอตรวจรับ" สองช่อง แต่ทั้งสามค่าสถานะนี้หมายถึงเรื่องเดียวกัน
   // (ซ่อมเสร็จแล้ว รอทีมตรวจรับงาน) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
   pendqc:    { label: 'รอตรวจรับ(ซ่อม)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอตรวจรับ'].includes(j.status) },
@@ -4123,7 +4126,7 @@ function viewJobDetail(id) {
     document.getElementById('tech-action-accept')?.classList.remove('d-none');
   }
   if (isRepairStaff(role) &&
-      ['กำลังซ่อม','รออะไหล่','Workaround','ขอหยุดเครื่อง'].includes(j.status)) {
+      ['กำลังซ่อม','รออะไหล่','Workaround','ขอหยุดเครื่อง','ส่งซ่อมภายนอก'].includes(j.status)) {
     document.getElementById('tech-action-update')?.classList.remove('d-none');
     const s = document.getElementById('tup-status'); if(s) s.value = j.status;
     const n = document.getElementById('tup-note');   if(n && j.note) n.value = j.note;
