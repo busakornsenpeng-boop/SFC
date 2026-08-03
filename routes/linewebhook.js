@@ -87,6 +87,13 @@ router.post('/', async (req, res) => {
     if (!events.length) return;
 
     for (const event of events) {
+      // ── ดัก event ตอนบอทถูกเชิญเข้ากลุ่ม LINE — เอา groupId มาตั้งเป็น env var TECH_GROUP_LINE_ID ───
+      // (ทำครั้งเดียวตอนเซ็ตอัพกลุ่มช่าง ดู log บน Render แล้วก็อป groupId ไปตั้งค่า)
+      if (event.type === 'join' && event.source?.type === 'group') {
+        console.log(`[LINE Webhook] บอทถูกเพิ่มเข้ากลุ่ม → groupId = ${event.source.groupId}`);
+        continue;
+      }
+
       if (event.type !== 'message' || event.message?.type !== 'text') continue;
 
       const userId     = event.source?.userId;

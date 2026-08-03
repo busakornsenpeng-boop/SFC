@@ -15,6 +15,13 @@ function getAdminLineIds() {
     .filter(Boolean);
 }
 
+// ── Group ID ของกลุ่ม LINE ช่าง ──
+// เอามาจาก log ตอนบอทถูกเชิญเข้ากลุ่ม (ดู event 'join' ใน routes/linewebhook.js)
+// แล้วตั้งเป็น env var บน Render
+function getTechGroupId() {
+  return (process.env.TECH_GROUP_LINE_ID || '').trim();
+}
+
 // ── สีและ icon ตาม status ──
 const STATUS_CONFIG = {
   'รอซ่อม':       { color: '#E53935', title: '🚨 มีใบแจ้งซ่อมใหม่!',      icon: '🔴' },
@@ -197,19 +204,17 @@ async function sendTextReply(replyToken, message) {
 }
 
 // ────────────────────────────────────────────
-// broadcastToAdmins — ส่ง Flex ให้ admin ทุกคน
+// broadcastToTechGroup — ส่ง Flex เข้ากลุ่ม LINE ช่าง (แทนที่การส่งให้แอดมินทีละคนแบบเดิม)
+// ทุกคนในกลุ่มช่างจะเห็นแจ้งเตือนพร้อมกันในจุดเดียวกับที่เดิมเคยแจ้งแอดมิน:
+//   - งานแจ้งซ่อมใหม่เข้ามา, ตรวจรับไม่ผ่าน, ช่างตีกลับ, ผู้แจ้งส่งใหม่, แอดมินยกเลิกการตีกลับ
 // ────────────────────────────────────────────
-async function broadcastToAdmins(jobId, reporter, machine, detail, status, note = '') {
-  const adminIds = getAdminLineIds();
-  if (!adminIds.length) {
-    console.warn('[LINE] ADMIN_LINE_IDS ว่างเปล่า — ตั้งค่าใน .env');
+async function broadcastToTechGroup(jobId, reporter, machine, detail, status, note = '') {
+  const groupId = getTechGroupId();
+  if (!groupId) {
+    console.warn('[LINE] TECH_GROUP_LINE_ID ว่างเปล่า — ตั้งค่าใน .env (ดูวิธีหา groupId ใน routes/linewebhook.js)');
     return;
   }
-  await Promise.all(
-    adminIds.map(adminId =>
-      sendFlexMessage(adminId, jobId, reporter, machine, detail, status, note)
-    )
-  );
+  await sendFlexMessage(groupId, jobId, reporter, machine, detail, status, note);
 }
 
 // ────────────────────────────────────────────
@@ -299,8 +304,9 @@ module.exports = {
   sendFlexMessage,
   sendFlexReply,
   sendTextReply,
-  broadcastToAdmins,
+  broadcastToTechGroup,
   getAdminLineIds,
+  getTechGroupId,
   getLineUserIdByName,
   saveLineUserId,
   findUsernameByLineId,
