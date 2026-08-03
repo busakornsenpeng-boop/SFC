@@ -2,7 +2,7 @@ const express    = require('express');
 const router     = express.Router();
 const cloudinary = require('cloudinary').v2;
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
-const { sendLineMessage, getLineUserIdByName, broadcastToTechGroup, sendFlexMessage } = require('./notify');
+const { sendLineMessage, getLineUserIdByName, broadcastToAdmins, sendFlexMessage } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
 
 cloudinary.config({
@@ -254,7 +254,7 @@ router.post('/', requireAuth, async (req, res) => {
           );
         }
         // แจ้ง admin ผ่าน LINE — แอดมินเป็นผู้กระจายงานให้ช่างเอง (ไม่แจ้งช่างผ่านระบบ)
-        await broadcastToTechGroup(jobId, requester, machine, detail, 'รอซ่อม');
+        await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
       } catch (notifyErr) {
         console.error('[Repairs] LINE notify error (ไม่กระทบการบันทึกงาน):', notifyErr.message);
       }
@@ -444,7 +444,7 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     } else {
       // ตัดแจ้งเตือนช่างตอนตรวจรับไม่ผ่านออก — แจ้งแค่แอดมินพอ
       // แจ้ง admin ผ่าน LINE ตอนตรวจรับไม่ผ่าน
-      await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
+      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
     }
 
     res.json({ success: true });
@@ -501,7 +501,7 @@ router.post('/:id/reject', requireRole('technician', 'admin'), async (req, res) 
     }
 
     // แจ้งแอดมินด้วย
-    await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
+    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
 
     res.json({ success: true });
   } catch (err) {
@@ -578,7 +578,7 @@ router.post('/:id/resubmit', requireAuth, async (req, res) => {
     }
 
     // แจ้งแอดมิน เหมือนงานใหม่เข้าคิว
-    await broadcastToTechGroup(id, originalRequester, machine, detail, 'รอซ่อม');
+    await broadcastToAdmins(id, originalRequester, machine, detail, 'รอซ่อม');
 
     res.json({ success: true });
   } catch (err) {
@@ -635,7 +635,7 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
     }
 
     // แจ้งแอดมิน (คนอื่น) ด้วยว่ามีการยกเลิกการตีกลับ งานกลับเข้าคิวแล้ว
-    await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'รอซ่อม', undoNote);
+    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'รอซ่อม', undoNote);
 
     res.json({ success: true });
   } catch (err) {
@@ -743,6 +743,30 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/repairs/:id (เฉพาะแอดมิน) — ลบรายการแจ้งซ่อม
+// ใช้วิธีเคลียร์ค่าทั้งแถวแทนการลบแถวจริง (soft delete) — ป้องกันปัญหาเลขแถวเลื่อนของ
+// รายการอื่นที่อยู่ด้านล่าง (แพทเทิร์นเดียวกับ PM_Calendar ใน pm.js)
+router.delete('/:id', requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
+    const rows     = getRes.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === id);
+    if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบรายการนี้' });
+
+    const sheetRow = rowIndex + 2;
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `Repairs!A${sheetRow}:X${sheetRow}`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Repairs] delete error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });

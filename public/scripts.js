@@ -1736,7 +1736,7 @@ function adminDeleteSelectedJob(){
   if(!selectedJobForAction) return; if(!confirm('ยืนยันการลบรายการนี้?')) return;
   if(!isLocalMode){
     showLoading('กำลังลบ...');
-    fetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}`, { method: 'DELETE' })
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(res => { hideLoading(); if(res.success){ closeModal('job-detail-modal'); renderAdminRepairsTable(); showToast('ลบรายการสำเร็จ!','success'); } else showToast(res.message||'เกิดข้อผิดพลาด','error'); })
     .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้','error'); });
