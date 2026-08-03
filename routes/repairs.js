@@ -44,7 +44,13 @@ function parseThaiDateString(str) {
   if (!m) return null;
   const [, dd, mm, yyyyBE, hh, mi, ss] = m;
   const yyyyCE = parseInt(yyyyBE, 10) - 543;
-  const d = new Date(yyyyCE, parseInt(mm, 10) - 1, parseInt(dd, 10), parseInt(hh, 10), parseInt(mi, 10), parseInt(ss, 10));
+  // ── แก้บั๊ก timezone ──
+  // สตริงนี้เก็บเวลา Bangkok local time (UTC+7) อยู่แล้ว (มาจาก toLocaleString('th-TH', {timeZone:'Asia/Bangkok'}))
+  // เดิมใช้ `new Date(y, m, d, h, mi, s)` ซึ่งตีความตัวเลขตาม timezone ของเซิร์ฟเวอร์ (Render = UTC)
+  // ทำให้ reportDate ที่ได้เพี้ยนไปเร็วกว่าความจริง 7 ชม. → Downtime ที่คำนวณได้ (closed - report)
+  // น้อยกว่าความเป็นจริงไป 420 นาทีทุกครั้ง จึงต้องตีความเป็น UTC+7 แล้วแปลงกลับเป็น UTC instant จริงแทน
+  const utcMs = Date.UTC(yyyyCE, parseInt(mm, 10) - 1, parseInt(dd, 10), parseInt(hh, 10), parseInt(mi, 10), parseInt(ss, 10)) - 7 * 60 * 60 * 1000;
+  const d = new Date(utcMs);
   return isNaN(d.getTime()) ? null : d;
 }
 

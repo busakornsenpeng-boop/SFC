@@ -102,6 +102,7 @@
   .tp-jstat.wait{background:var(--yellow-bg);color:var(--yellow)}
   .tp-jstat.work{background:rgba(46,92,230,.09);color:var(--accent)}
   .tp-jstat.done-s{background:var(--green-bg);color:var(--green)}
+  .tp-jstat.fail{background:rgba(239,68,68,.12);color:#ef4444}
   .tp-jdot{width:5px;height:5px;border-radius:50%;background:currentColor}
   .tp-jtitle{font-size:14px;font-weight:700;padding:0 13px;margin-bottom:2px}
   .tp-jdesc{font-size:11px;color:var(--text2);padding:0 13px;margin-bottom:7px}

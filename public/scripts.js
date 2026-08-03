@@ -939,7 +939,11 @@ let tpCurYear,tpCurMonth,tpSelDate=null;
 const tpStClass={รอดำเนินการ:'pend',กำลังดำเนินการ:'prog',เสร็จแล้ว:'done',เกินกำหนด:'over'};
 function mapJobToTechPanel(j) {
   const statusMap={'ปิดงาน':'เสร็จแล้ว'}; 
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
+  // งานที่ตรวจรับไม่ผ่าน (QC fail) ฝั่ง backend จงใจตั้งสถานะกลับเป็น "กำลังซ่อม" (ไม่ใช่ "แก้ไข (ตีกลับ)")
+  // เพื่อให้ช่างคนเดิมทำต่อได้เลยโดยไม่ต้องรอ resubmit — แต่ผลคือหน้าตาการ์ดจะเหมือนงานที่เพิ่งรับใหม่เป๊ะ
+  // จึงต้องเช็ค note ที่ backend ฝัง prefix "[ตรวจรับไม่ผ่าน ...]" ไว้ (ดู routes/repairs.js /:id/qc) เพื่อ flag แยกให้ UI
+  const qcFailed = j.status==='กำลังซ่อม' && /^\[ตรวจรับไม่ผ่าน/.test(j.note||'');
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,qcFailed,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -999,10 +1003,12 @@ function tpJobCardHTML(j,mode){
     'ตีกลับ':          {cls:'wait',   text:'↩ ตีกลับ'},
     'แก้ไข (ตีกลับ)':   {cls:'wait',   text:'↩ ตีกลับ'},
   };
-  const stInfo = statusLabelMap[j.status] || {cls:'wait', text:j.status};
+  const stInfo = j.qcFailed ? {cls:'fail', text:'↩ ตรวจรับไม่ผ่าน — แก้ไขอีกครั้ง'} : (statusLabelMap[j.status] || {cls:'wait', text:j.status});
   const statLabel = `<span class="tp-jstat ${stInfo.cls}"><span class="tp-jdot"></span>${stInfo.text}</span>`;
   const ovHTML=j.overdue?`<div class="tp-jovr"><i class="ion-ios-warning"></i> เกิน 24 ชม. (${j.overdueHrs} ชม.)</div>`:'';
-  const noteHTML=j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4"><i class="ion-ios-create"></i> ${j.progress}</div>`:'';
+  const noteHTML=j.qcFailed
+    ? `<div class="tp-jovr" style="color:#ef4444"><i class="ion-ios-warning"></i> ${j.progress}</div>`
+    : (j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4"><i class="ion-ios-create"></i> ${j.progress}</div>`:'');
   const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag">${t}</span>`).join('');
   const assigneeHTML=(mode!=='queue'&&j.assignee)?`<div class="tp-jassignee"><i class="ion-ios-person"></i> ${j.assignee}</div>`:'';
   // ค่าเริ่มต้น: อย่างน้อยต้องมีปุ่ม "ดูรายละเอียด" เสมอ แม้สถานะจะไม่ตรงเงื่อนไขด้านล่างเป๊ะๆ
