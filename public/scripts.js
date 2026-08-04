@@ -2039,16 +2039,17 @@ function computeJobDurations(j){
 function isEmergencyJob(j){
   return String((j&&j.opType)||'').includes('ฉุกเฉิน');
 }
-// Downtime = นับตั้งแต่ "เวลาซ่อมเสร็จ" จนถึง "วันที่ปิดงาน" (ยังไม่ปิดงาน → คืน null)
-// (เดิมนับจาก "วันที่แจ้งซ่อม" ซึ่งผิด — ต้องนับจากตอนซ่อมเสร็จจนถึงตอนปิดงานเท่านั้น)
+// Downtime = นับตั้งแต่ "วันที่แจ้งซ่อม" จนถึง "เวลาซ่อมเสร็จ" (ยังไม่ซ่อมเสร็จ → คืน null)
+// (เดิมนับจาก "เวลาซ่อมเสร็จ → วันที่ปิดงาน" — ทีมงานแจ้งให้เปลี่ยนมานับตั้งแต่ตอนแจ้งซ่อมจนถึง
+// ตอนซ่อมเสร็จแทน เพื่อสะท้อนเวลาที่เครื่องหยุดทำงานจริงตั้งแต่แจ้งซ่อมจนซ่อมเสร็จ)
 // หน่วยเป็น "นาที" ตามที่หัวหน้าต้องการ (ไม่ใช่ format วัน/ชม.)
 // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้นตามที่ทีมงานแจ้ง — ประเภทอื่นคืน null เสมอ
 function computeDowntimeMinutes(j){
   if(!isEmergencyJob(j)) return null;
+  const reported=parseJobDateTime(j.date);
   const done=parseJobDateTime(j.doneDate);
-  const closed=parseJobDateTime(j.closedDate);
-  if(!done||!closed)return null;
-  const mins=Math.round((closed-done)/60000);
+  if(!reported||!done)return null;
+  const mins=Math.round((done-reported)/60000);
   return mins>=0?mins:null;
 }
 function computeDowntimeText(j){
@@ -4155,7 +4156,7 @@ function viewJobDetail(id) {
     ${(() => {
       const downtimeText = computeDowntimeText(j);
       if (!downtimeText) return '';
-      return `<div class="spec-row"><span class="spec-lbl">Downtime (ซ่อมเสร็จ→ปิดงาน)</span><span class="spec-val">${escapeHtml(downtimeText)}</span></div>`;
+      return `<div class="spec-row"><span class="spec-lbl">Downtime (แจ้งซ่อม→ซ่อมเสร็จ)</span><span class="spec-val">${escapeHtml(downtimeText)}</span></div>`;
     })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
     `;
