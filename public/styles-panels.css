@@ -597,7 +597,7 @@
 /* ── KPI Bar v2 ── */
 .adm-kpi-bar-v2 {
   display: grid;
-  grid-template-columns: repeat(6, 1fr); /* มีการ์ดจริง 6 ใบ (เพิ่ม "ซ่อมเสร็จแล้ว") */
+  grid-template-columns: repeat(7, 1fr); /* มีการ์ดจริง 7 ใบ (เพิ่ม "ตีกลับ") */
   gap: 14px;
   margin-bottom: 0;
   padding: 0;
@@ -650,6 +650,7 @@
 .kv-green::before  { background: linear-gradient(90deg, var(--green), #34d399); }
 .kv-purple::before { background: linear-gradient(90deg, var(--purple), #a78bfa); }
 .kv-teal::before   { background: linear-gradient(90deg, var(--teal), #5eead4); }
+.kv-red::before    { background: linear-gradient(90deg, var(--red), #f87171); }
 
 .kv-blue   { --kv-glow: rgba(46,92,230,.14); }
 .kv-amber  { --kv-glow: rgba(217,119,6,.14); }
@@ -657,6 +658,7 @@
 .kv-green  { --kv-glow: rgba(5,150,105,.14); }
 .kv-purple { --kv-glow: rgba(124,58,237,.14); }
 .kv-teal   { --kv-glow: rgba(20,184,166,.14); }
+.kv-red    { --kv-glow: rgba(220,38,38,.14); }
 
 .kv-icon {
   width: 42px;
@@ -677,6 +679,7 @@
 .kv-green  .kv-icon { background: linear-gradient(155deg, rgba(5,150,105,.16), rgba(5,150,105,.06));  color: var(--green); }
 .kv-purple .kv-icon { background: linear-gradient(155deg, rgba(124,58,237,.16), rgba(124,58,237,.06)); color: var(--purple); }
 .kv-teal   .kv-icon { background: linear-gradient(155deg, rgba(20,184,166,.16), rgba(20,184,166,.06)); color: var(--teal); }
+.kv-red    .kv-icon { background: linear-gradient(155deg, rgba(220,38,38,.16), rgba(220,38,38,.06)); color: var(--red); }
 
 .kv-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
 
@@ -734,11 +737,13 @@
 .dbm-badge-orange { background: var(--orange-bg);    color: var(--orange); }
 .dbm-badge-green  { background: var(--green-bg);     color: var(--green); }
 .dbm-badge-teal   { background: rgba(20,184,166,.10); color: var(--teal); }
+.dbm-badge-red    { background: var(--red-bg);        color: var(--red); }
 .dbm-fill-blue   { background: var(--accent); }
 .dbm-fill-yellow { background: var(--yellow); }
 .dbm-fill-orange { background: var(--orange); }
 .dbm-fill-green  { background: var(--green); }
 .dbm-fill-teal   { background: var(--teal); }
+.dbm-fill-red    { background: var(--red); }
 
 .dbm-empty { text-align: center; color: var(--text3); padding: 32px 0; font-size: 13px; }
 .dbm-empty i { display: block; font-size: 26px; margin-bottom: 8px; color: var(--surface3); }
@@ -779,6 +784,7 @@
 .kv-green  .kv-val { color: var(--green); }
 .kv-purple .kv-val { color: var(--purple); }
 .kv-teal   .kv-val { color: var(--teal); }
+.kv-red    .kv-val { color: var(--red); }
 
 .kv-lbl {
   font-size: 11.5px;

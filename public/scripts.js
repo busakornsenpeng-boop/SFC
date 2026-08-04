@@ -8,13 +8,16 @@ let currentAdminCustomFrom = null;
 let currentAdminCustomTo = null;
 let adminRepDateFrom = null;
 let adminRepDateTo = null;
-// สถานะกลุ่ม "กำลังซ่อม" ที่แท้จริง (ทุกสถานะที่ไม่ใช่รอซ่อม/ปิดงาน) — ใช้ตอนกด drilldown
+// สถานะกลุ่ม "กำลังซ่อม" ที่แท้จริง (ทุกสถานะที่ไม่ใช่รอซ่อม/ปิดงาน/ตีกลับ) — ใช้ตอนกด drilldown
 // จาก dashboard เพราะ dropdown สถานะปกติเลือกได้ทีละสถานะ ไม่รองรับกลุ่ม
 // หมายเหตุ: ต้องใช้เงื่อนไขเดียวกับ DBM_CONFIG.working.match เป๊ะๆ (ไม่ใช่ whitelist ตายตัว)
-// ไม่งั้นตัวเลขในการ์ด dashboard กับรายการที่กรองได้ตอนคลิกเข้าไปจะไม่ตรงกัน (บั๊กเดิม —
-// เช่นงานสถานะ "รอตรวจรับ"/"ตีกลับ" ถูกนับในการ์ดแต่ไม่ถูกกรองมาโชว์ในตาราง)
-function isWorkingStatus(status){ return status !== 'รอซ่อม' && status !== 'ปิดงาน'; }
+// ไม่งั้นตัวเลขในการ์ด dashboard กับรายการที่กรองได้ตอนคลิกเข้าไปจะไม่ตรงกัน (บั๊กเดิม)
+// ── สถานะ "ตีกลับ" ทั้งสองแบบ ('ตีกลับ' และ 'แก้ไข (ตีกลับ)') แยกไปมีการ์ดของตัวเองต่างหาก
+// (การ์ด "ตีกลับ") จึงต้องกันออกจาก "กำลังซ่อม" ตรงนี้ด้วย ไม่งั้นจะถูกนับซ้อนทั้ง 2 การ์ด
+function isBouncedStatus(status){ return status === 'ตีกลับ' || status === 'แก้ไข (ตีกลับ)'; }
+function isWorkingStatus(status){ return status !== 'รอซ่อม' && status !== 'ปิดงาน' && !isBouncedStatus(status); }
 let adminRepStatusGroupFilter = null; // null = ไม่ได้ใช้ตัวกรองกลุ่ม, ใช้ dropdown ปกติแทน
+let adminRepStatusGroupLabel  = '';   // ข้อความอธิบาย chip ตัวกรองกลุ่มที่กำลังใช้อยู่ (คู่กับ adminRepStatusGroupFilter ด้านบน)
 let currentUser = null;
 let localRepairs = [];
 let localPMCalendar = [];
@@ -2056,9 +2059,11 @@ function filterJobsByTimeRange(jobs,ft){
 }
 function calculateAdminStats(jobs){
   // งานสถานะ "ตีกลับ"/"แก้ไข (ตีกลับ)" คืองานเดิมที่ถูกส่งกลับไปแก้ไข ไม่ใช่งานแจ้งซ่อมใหม่
-  // จึงตัดออกจากยอดสถิติทั้งหมด ให้สอดคล้องกับนิยาม "แจ้งซ่อม" ของแดชบอร์ดช่าง (TE_JOB_FILTERS.reported)
-  jobs=jobs.filter(j=>!['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status));
-  const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+  // จึงตัดออกจากยอดสถิติหลัก (total/waiting/working/closed) ให้สอดคล้องกับนิยาม "แจ้งซ่อม" ของแดชบอร์ดช่าง
+  // (TE_JOB_FILTERS.reported) — แต่นับแยกเก็บไว้ในการ์ด "ตีกลับ" ต่างหาก ไม่ใช่ทิ้งไปเฉยๆ เหมือนเดิม
+  const bounced = jobs.filter(j=>isBouncedStatus(j.status)).length;
+  jobs=jobs.filter(j=>!isBouncedStatus(j.status));
+  const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else s.working++;if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -2069,7 +2074,7 @@ function buildTrend(val,unit,icon,cls,note){return`<span class="${cls}">${icon} 
 function initAdminDashboard(){
   const filtered=filterJobsByTimeRange(getRepairJobsData(),currentAdminTimeFilter);
   const stats=calculateAdminStats(filtered);const pm=getPMData();const sv=id=>document.getElementById(id);
-  if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-donerepair'))sv('adm-stat-donerepair').textContent=stats.doneRepair;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
+  if(sv('adm-stat-total'))sv('adm-stat-total').textContent=stats.total;if(sv('adm-stat-wait'))sv('adm-stat-wait').textContent=stats.waiting;if(sv('adm-stat-work'))sv('adm-stat-work').textContent=stats.working;if(sv('adm-stat-donerepair'))sv('adm-stat-donerepair').textContent=stats.doneRepair;if(sv('adm-stat-closed'))sv('adm-stat-closed').textContent=stats.closed;if(sv('adm-stat-bounced'))sv('adm-stat-bounced').textContent=stats.bounced;if(sv('adm-stat-pm'))sv('adm-stat-pm').textContent=pm.length;
   const overdue=getRepairJobsData().filter(j=>j.slaOverdue).length;const pmToday=pm.filter(p=>p.date===new Date().toISOString().split('T')[0]).length;
   const allJobs=getRepairJobsData();
   // เทียบจำนวนงานแจ้งซ่อม "เดือนนี้" กับ "เดือนก่อน" — ใช้ monthlyData ทั้งหมด (ไม่ผูกกับ time filter ที่เลือกอยู่)
@@ -2091,6 +2096,7 @@ function initAdminDashboard(){
   if(sv('adm-trend-wait'))sv('adm-trend-wait').innerHTML=overdue>0?buildTrend(overdue,' งาน','<i class="ion-ios-warning"></i>','kv-trend warn','เกิน 24 ชม.'):'<span class="kv-trend up">✓ ทุกงานยังในกำหนด</span>';
   if(sv('adm-trend-work'))sv('adm-trend-work').innerHTML=buildTrend(stats.working,' งาน','<i class="ion-ios-construct"></i>','kv-trend','กำลังดำเนินการ');
   if(sv('adm-trend-donerepair'))sv('adm-trend-donerepair').innerHTML=stats.doneRepair>0?buildTrend(stats.doneRepair,' งาน','<i class="ion-ios-checkmark-circle-outline"></i>','kv-trend','รอตรวจรับ'):'<span class="kv-trend">ยังไม่มีงานรอตรวจรับ</span>';
+  if(sv('adm-trend-bounced'))sv('adm-trend-bounced').innerHTML=stats.bounced>0?buildTrend(stats.bounced,' งาน','<i class="ion-ios-alert"></i>','kv-trend warn','รอผู้แจ้งแก้ไข'):'<span class="kv-trend up">✓ ไม่มีงานตีกลับ</span>';
   // เทียบจำนวนงานที่ "ปิดงาน" ใน 7 วันล่าสุด กับ 7 วันก่อนหน้า (อิง closedDate จริง)
   const today0=new Date();today0.setHours(0,0,0,0);
   const wEnd=new Date(today0);
@@ -2177,7 +2183,8 @@ const DBM_CONFIG = {
   waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
   working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => isWorkingStatus(j.status), color: 'orange' },
   donerepair: { label: 'ซ่อมเสร็จแล้ว', icon: 'ion-ios-checkmark-circle-outline', match: j => j.status === 'ซ่อมเสร็จแล้ว', color: 'teal' },
-  closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle', match: j => j.status === 'ปิดงาน', color: 'green' }
+  closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle', match: j => j.status === 'ปิดงาน', color: 'green' },
+  bounced: { label: 'ตีกลับ',          icon: 'ion-ios-undo',            match: j => isBouncedStatus(j.status), color: 'red' }
 };
 
 function openDeptBreakdown(kind){
@@ -2234,13 +2241,23 @@ function goToRepairsFiltered(kind, dept){
   const navBtn = document.querySelector('.tab-btn[onclick*="admin-repairs"]');
   switchViewPanel('admin-repairs', navBtn || document.querySelector('.tab-btn'));
 
-  const statusMap = { waiting: 'รอซ่อม', closed: 'ปิดงาน', working: '', total: '', donerepair: 'ซ่อมเสร็จแล้ว' };
+  const statusMap = { waiting: 'รอซ่อม', closed: 'ปิดงาน', working: '', total: '', donerepair: 'ซ่อมเสร็จแล้ว', bounced: '' };
   const statusSel = document.getElementById('admin-filter-status-rep');
   if(statusSel) statusSel.value = statusMap[kind] ?? '';
 
-  // "กำลังซ่อม" ไม่ใช่สถานะเดียว แต่เป็นกลุ่มสถานะ (กำลังซ่อม/รออะไหล่/Workaround/ขอหยุดเครื่อง/ส่งซ่อมภายนอก)
-  // dropdown ปกติเลือกได้ทีละสถานะ จึงต้องใช้ตัวกรองกลุ่มแยกต่างหาก ไม่งั้นจะโชว์ทุกสถานะ (บั๊กเดิม)
-  adminRepStatusGroupFilter = (kind === 'working') ? isWorkingStatus : null;
+  // "กำลังซ่อม" และ "ตีกลับ" ไม่ใช่สถานะเดียว แต่เป็นกลุ่มสถานะ (กำลังซ่อม/รออะไหล่/Workaround/ขอหยุดเครื่อง/
+  // ส่งซ่อมภายนอก และ ตีกลับ/แก้ไข (ตีกลับ) ตามลำดับ) — dropdown ปกติเลือกได้ทีละสถานะ จึงต้องใช้ตัวกรองกลุ่ม
+  // แยกต่างหาก ไม่งั้นจะโชว์ทุกสถานะ (บั๊กเดิม)
+  if (kind === 'working') {
+    adminRepStatusGroupFilter = isWorkingStatus;
+    adminRepStatusGroupLabel  = 'กำลังซ่อม (รวมรออะไหล่ / Workaround / ขอหยุดเครื่อง / ส่งซ่อมภายนอก)';
+  } else if (kind === 'bounced') {
+    adminRepStatusGroupFilter = isBouncedStatus;
+    adminRepStatusGroupLabel  = 'ตีกลับ (รวมตีกลับ / แก้ไข (ตีกลับ))';
+  } else {
+    adminRepStatusGroupFilter = null;
+    adminRepStatusGroupLabel  = '';
+  }
 
   const deptSel = document.getElementById('admin-filter-dept-rep');
   if(deptSel){
@@ -2285,6 +2302,7 @@ async function exportAdminDashboardExcel(){
       ['กำลังซ่อม', stats.working],
       ['ซ่อมเสร็จแล้ว (รอตรวจรับ)', stats.doneRepair],
       ['ปิดงานเสร็จ', stats.closed],
+      ['ตีกลับ', stats.bounced],
       ['เกิน SLA (24 ชม.)', overdue],
       ['PM ทั้งหมด', pm.length],
     ].forEach(([k,v]) => sSummary.addRow({ k, v }));
@@ -2489,9 +2507,11 @@ function clearAdminRepDateFilter(){
 function renderAdminRepStatusGroupChip(){
   const box=document.getElementById('admin-rep-summary'); if(!box) return;
   if(!adminRepStatusGroupFilter){ box.innerHTML=''; return; }
-  box.innerHTML = `<span class="pill pill-repairing" style="display:inline-flex;align-items:center;gap:6px;cursor:default">
-      <i class="ion-ios-construct"></i> กำลังกรอง: กำลังซ่อม (รวมรออะไหล่ / Workaround / ขอหยุดเครื่อง / ส่งซ่อมภายนอก)
-      <span onclick="adminRepStatusGroupFilter=null;renderAdminRepairsTable()" style="cursor:pointer;font-weight:700;margin-left:4px" title="ล้างตัวกรองนี้">✕</span>
+  const icon = adminRepStatusGroupFilter === isBouncedStatus ? 'ion-ios-undo' : 'ion-ios-construct';
+  const pillCls = adminRepStatusGroupFilter === isBouncedStatus ? 'pill-fail' : 'pill-repairing';
+  box.innerHTML = `<span class="pill ${pillCls}" style="display:inline-flex;align-items:center;gap:6px;cursor:default">
+      <i class="${icon}"></i> กำลังกรอง: ${adminRepStatusGroupLabel}
+      <span onclick="adminRepStatusGroupFilter=null;adminRepStatusGroupLabel='';renderAdminRepairsTable()" style="cursor:pointer;font-weight:700;margin-left:4px" title="ล้างตัวกรองนี้">✕</span>
     </span>`;
 }
 
