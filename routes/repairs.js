@@ -2,7 +2,7 @@ const express    = require('express');
 const router     = express.Router();
 const cloudinary = require('cloudinary').v2;
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
-const { sendLineMessage, getLineUserIdByName, broadcastToAdmins, sendFlexMessage } = require('./notify');
+const { sendLineMessage, getLineUserIdByName, broadcastToTechGroup, sendFlexMessage } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
 
 cloudinary.config({
@@ -277,7 +277,7 @@ router.post('/', requireAuth, async (req, res) => {
           );
         }
         // แจ้ง admin ผ่าน LINE — แอดมินเป็นผู้กระจายงานให้ช่างเอง (ไม่แจ้งช่างผ่านระบบ)
-        await broadcastToAdmins(jobId, requester, machine, detail, 'รอซ่อม');
+        await broadcastToTechGroup(jobId, requester, machine, detail, 'รอซ่อม');
       } catch (notifyErr) {
         console.error('[Repairs] LINE notify error (ไม่กระทบการบันทึกงาน):', notifyErr.message);
       }
@@ -469,7 +469,7 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     } else {
       // ตัดแจ้งเตือนช่างตอนตรวจรับไม่ผ่านออก — แจ้งแค่แอดมินพอ
       // แจ้ง admin ผ่าน LINE ตอนตรวจรับไม่ผ่าน
-      await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
+      await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'ตรวจรับไม่ผ่าน', note || '');
     }
 
     res.json({ success: true });
@@ -526,7 +526,7 @@ router.post('/:id/reject', requireRole('technician', 'admin'), async (req, res) 
     }
 
     // แจ้งแอดมินด้วย
-    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
+    await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'ตีกลับ', reason);
 
     res.json({ success: true });
   } catch (err) {
@@ -603,7 +603,7 @@ router.post('/:id/resubmit', requireAuth, async (req, res) => {
     }
 
     // แจ้งแอดมิน เหมือนงานใหม่เข้าคิว
-    await broadcastToAdmins(id, originalRequester, machine, detail, 'รอซ่อม');
+    await broadcastToTechGroup(id, originalRequester, machine, detail, 'รอซ่อม');
 
     res.json({ success: true });
   } catch (err) {
@@ -660,7 +660,7 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
     }
 
     // แจ้งแอดมิน (คนอื่น) ด้วยว่ามีการยกเลิกการตีกลับ งานกลับเข้าคิวแล้ว
-    await broadcastToAdmins(id, requesterName, machine, rows[rowIndex][6] || '', 'รอซ่อม', undoNote);
+    await broadcastToTechGroup(id, requesterName, machine, rows[rowIndex][6] || '', 'รอซ่อม', undoNote);
 
     res.json({ success: true });
   } catch (err) {
