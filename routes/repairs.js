@@ -62,15 +62,16 @@ function isEmergencyRepairType(opType) {
   return String(opType || '').includes('ฉุกเฉิน');
 }
 
-// ── คำนวณ Downtime (นาที) = เวลาปิดงาน - เวลาซ่อมเสร็จ (คอลัมน์ L) ──
-// (เดิมคำนวณจาก "วันที่แจ้งซ่อม" (R) ซึ่งผิด — ต้องนับจากตอนซ่อมเสร็จจนถึงตอนปิดงานเท่านั้น)
+// ── คำนวณ Downtime (นาที) = เวลาซ่อมเสร็จ (คอลัมน์ L) - วันที่แจ้งซ่อม (คอลัมน์ R) ──
+// (เดิมคำนวณจาก "เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)" — ทีมงานแจ้งให้เปลี่ยนมานับตั้งแต่ตอนแจ้งซ่อม
+// จนถึงตอนซ่อมเสร็จแทน เพื่อสะท้อนเวลาที่เครื่องหยุดทำงานจริงตั้งแต่แจ้งซ่อมจนซ่อมเสร็จ)
 // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้นตามที่ทีมงานแจ้ง — ประเภทอื่นคืนค่า '' เสมอ
 // คืนค่าเป็นจำนวนเต็ม (นาที) หรือ '' ถ้าคำนวณไม่ได้/ค่าติดลบ (ข้อมูลผิดปกติ) หรือไม่ใช่งานฉุกเฉิน
-function calcDowntimeMinutes(doneDateStr, closedDate, opType) {
+function calcDowntimeMinutes(reportDateStr, doneDate, opType) {
   if (!isEmergencyRepairType(opType)) return '';
-  const doneDate = parseThaiDateString(doneDateStr);
-  if (!doneDate || !closedDate) return '';
-  const diffMs = closedDate.getTime() - doneDate.getTime();
+  const reportDate = parseThaiDateString(reportDateStr);
+  if (!reportDate || !doneDate) return '';
+  const diffMs = doneDate.getTime() - reportDate.getTime();
   if (diffMs < 0) return '';
   return Math.round(diffMs / 60000);
 }
@@ -439,23 +440,11 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     ];
     // เดิม route นี้เขียนเวลาทับคอลัมน์ L (doneDate) ซ้ำ ทำให้แยกไม่ออกว่า "เสร็จซ่อม" กับ
     // "ปิดงานจริง (ตรวจรับผ่าน)" เกิดขึ้นเมื่อไหร่ — ย้ายมาเขียนคอลัมน์ W (closedDate) แยกต่างหากแทน
-    // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง
+    // เพื่อคำนวณ "รอปิดงาน" (เสร็จซ่อม → ปิดงาน) ได้ถูกต้อง (Downtime คำนวณจาก R → L แยกต่างหาก ดูด้านล่าง)
     if (result === 'ผ่านตรวจรับ') {
-      const nowDate = new Date();
-      const nowStr  = nowDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
-
-      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
-      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
-      const doneDateStr      = rows[rowIndex][11] || ''; // L
-      const opType            = rows[rowIndex][5]  || ''; // F
-      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate, opType);
-      console.log(`[DOWNTIME-DEBUG][qc] id=${id} opType="${opType}" doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
-      if (downtimeMinutes !== '') {
-        updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
-      } else {
-        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ doneDateStr/nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
-      }
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+      // หมายเหตุ: Downtime (คอลัมน์ X) ถูกคำนวณไปแล้วตอนสถานะเปลี่ยนเป็น "ซ่อมเสร็จ/รอตรวจรับ"
+      // (วันที่แจ้งซ่อม (R) → เวลาซ่อมเสร็จ (L)) ที่ route /:id/status ด้านล่าง — ไม่ต้องคำนวณซ้ำตรงนี้
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
       // ทำให้ช่างเห็นเหตุผลที่ตรวจรับตีกลับตอนเปิดงานเดิมมาแก้ไขต่อ
@@ -717,27 +706,27 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
 
     // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอตรวจรับ เหมือนเดิม
     if (['ซ่อมเสร็จ', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว'].includes(status)) {
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+      const doneDate = new Date();
+      const doneStr  = doneDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[doneStr]] });
+
+      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาซ่อมเสร็จ (L) - วันที่แจ้งซ่อม (R)
+      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
+      const reportDateStr   = rows[rowIndex][17] || ''; // R
+      const opType           = rows[rowIndex][5]  || ''; // F
+      const downtimeMinutes = calcDowntimeMinutes(reportDateStr, doneDate, opType);
+      console.log(`[DOWNTIME-DEBUG][status] id=${id} opType="${opType}" reportDateStr="${reportDateStr}" doneStr="${doneStr}" downtimeMinutes=${downtimeMinutes}`);
+      if (downtimeMinutes !== '') {
+        updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
+      } else {
+        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ reportDateStr/doneDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+      }
     }
 
     // "เวลาปิดงานจริง" (W) — auto-set เฉพาะตอนสถานะ "เปลี่ยนเข้า" ปิดงาน (กันเขียนทับซ้ำถ้าปิดงานอยู่แล้วแค่แก้หมายเหตุ)
     const isClosingNow = status === 'ปิดงาน' && currentStatus !== 'ปิดงาน';
     if (isClosingNow) {
-      const nowDate = new Date();
-      const nowStr  = nowDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
-
-      // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
-      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
-      const doneDateStr      = rows[rowIndex][11] || ''; // L
-      const opType            = rows[rowIndex][5]  || ''; // F
-      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate, opType);
-      console.log(`[DOWNTIME-DEBUG][status] id=${id} opType="${opType}" doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
-      if (downtimeMinutes !== '') {
-        updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
-      } else {
-        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ doneDateStr/nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
-      }
+      updateData.push({ range: `Repairs!W${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     await writeRepairUpdate(updateData);
