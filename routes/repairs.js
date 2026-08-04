@@ -81,21 +81,27 @@ async function generateJobId(dept) {
   const dateStr    = `${dd}${mm}${yy}`;   // 300626
   const deptPrefix = (dept || 'GEN').replace(/\s+/g, '').slice(0, 3).toUpperCase();
 
-  // นับ job ทั้งหมด (รวมทุกแผนก) ที่อยู่ในเดือน+ปีนี้
+  // หาเลขรันสูงสุดที่เคยออกไปแล้วในเดือน+ปีนี้ (รวมทุกแผนก) แล้ว +1
+  // ── เดิมใช้วิธี "นับจำนวนแถวที่เหลืออยู่ในชีต" +1 ซึ่งผิด เพราะ DELETE ใช้ soft delete
+  // (เคลียร์ค่าทั้งแถว) พองานถูกลบ จำนวนแถวจะลดลง แต่เลขรันที่เคยออกไปแล้วของงานอื่นที่ยังไม่ถูกลบ
+  // ยังคงค้างอยู่ในชีต ทำให้คำนวณ count+1 ได้เลขที่ซ้ำกับงานที่มีอยู่แล้วจริง (เช่น 008 ออกซ้ำหลายครั้ง
+  // และ 007 หายไปเพราะถูกลบ) — ใช้ max(เลขรันที่มีอยู่จริง) แทน จะไม่มีทางออกเลขซ้ำจากการลบงานอีก
   const res  = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: 'Repairs!A2:A5000',
   });
   const rows = res.data.values || [];
-  const count = rows.filter(r => {
+  let maxRunning = 0;
+  rows.forEach(r => {
     const parts = (r[0] || '').split('-');
-    if (parts.length < 3) return false;
+    if (parts.length < 3) return;
     const datePart = parts[parts.length - 1]; // DDMMYY
-    return datePart.slice(2, 4) === mm &&
-           datePart.slice(4, 6) === yy;
-  }).length;
+    if (datePart.slice(2, 4) !== mm || datePart.slice(4, 6) !== yy) return;
+    const n = parseInt(parts[parts.length - 2], 10); // ตัวเลขรัน (001, 002, ...)
+    if (!isNaN(n) && n > maxRunning) maxRunning = n;
+  });
 
-  const running = String(count + 1).padStart(3, '0');
+  const running = String(maxRunning + 1).padStart(3, '0');
   return `${deptPrefix}-${running}-${dateStr}`; // PDF-001-300626
 }
 async function uploadBase64Image(base64String, filename = 'repair') {
