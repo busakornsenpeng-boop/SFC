@@ -948,7 +948,7 @@ function mapJobToTechPanel(j) {
   // เพื่อให้ช่างคนเดิมทำต่อได้เลยโดยไม่ต้องรอ resubmit — แต่ผลคือหน้าตาการ์ดจะเหมือนงานที่เพิ่งรับใหม่เป๊ะ
   // จึงต้องเช็ค note ที่ backend ฝัง prefix "[ตรวจรับไม่ผ่าน ...]" ไว้ (ดู routes/repairs.js /:id/qc) เพื่อ flag แยกให้ UI
   const qcFailed = j.status==='กำลังซ่อม' && /^\[ตรวจรับไม่ผ่าน/.test(j.note||'');
-  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,qcFailed,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
+  return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,isEmergency:isEmergencyJob(j),date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,qcFailed,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
 function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
@@ -1014,7 +1014,8 @@ function tpJobCardHTML(j,mode){
   const noteHTML=j.qcFailed
     ? `<div class="tp-jovr" style="color:#ef4444"><i class="ion-ios-warning"></i> ${j.progress}</div>`
     : (j.progress?`<div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4"><i class="ion-ios-create"></i> ${j.progress}</div>`:'');
-  const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag">${t}</span>`).join('');
+  const tagsHTML=[j.dept,j.type,j.priority].filter(Boolean).map(t=>`<span class="tp-jtag${(j.isEmergency&&t===j.priority)?' emergency':''}">${(j.isEmergency&&t===j.priority)?'🚨 ':''}${t}</span>`).join('');
+  const emergencyBannerHTML=j.isEmergency?`<div class="tp-jovr" style="color:#fff;background:var(--red);border-color:var(--red)"><i class="ion-ios-flash"></i> ซ่อมฉุกเฉิน — เครื่องหยุดทำงาน ให้ซ่อมก่อน</div>`:'';
   const assigneeHTML=(mode!=='queue'&&j.assignee)?`<div class="tp-jassignee"><i class="ion-ios-person"></i> ${j.assignee}</div>`:'';
   // ค่าเริ่มต้น: อย่างน้อยต้องมีปุ่ม "ดูรายละเอียด" เสมอ แม้สถานะจะไม่ตรงเงื่อนไขด้านล่างเป๊ะๆ
   let actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>`;
@@ -1035,11 +1036,12 @@ function tpJobCardHTML(j,mode){
   actHTML=`<button class="tp-jbtn-v" onclick="tpOpenJobModal('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button><div class="tp-jbtn-done" style="color:#ef4444">↩ ส่งกลับให้ผู้แจ้งแล้ว</div>`;
 }
 
-return `<div class="tp-jcard${j.overdue?' ov':''}">
+return `<div class="tp-jcard${j.overdue?' ov':''}${j.isEmergency?' urgent':''}">
   <div class="tp-jtop"><span class="tp-jid">${j.id}</span>${statLabel}</div>
   <div class="tp-jtitle">${j.title}</div>
   <div class="tp-jdesc">${j.desc}</div>
   ${assigneeHTML}
+  ${emergencyBannerHTML}
   ${ovHTML}
   ${noteHTML}
   <div class="tp-jtags">${tagsHTML}</div>
@@ -2031,10 +2033,18 @@ function computeJobDurations(j){
     close: closeMins!=null?formatDurationHM(closeMins):null,
   };
 }
+// ── เช็คว่าเป็นงาน "ซ่อมฉุกเฉิน (Break Down)" หรือไม่ ──
+// เช็คจากคำว่า "ฉุกเฉิน" แทนการเทียบ string เป๊ะๆ กันเผื่อ label เปลี่ยนคำในวงเล็บ (Break Down) ในอนาคต
+// (ให้ตรงกับ isEmergencyRepairType ฝั่ง backend — routes/repairs.js)
+function isEmergencyJob(j){
+  return String((j&&j.opType)||'').includes('ฉุกเฉิน');
+}
 // Downtime = นับตั้งแต่ "เวลาซ่อมเสร็จ" จนถึง "วันที่ปิดงาน" (ยังไม่ปิดงาน → คืน null)
 // (เดิมนับจาก "วันที่แจ้งซ่อม" ซึ่งผิด — ต้องนับจากตอนซ่อมเสร็จจนถึงตอนปิดงานเท่านั้น)
 // หน่วยเป็น "นาที" ตามที่หัวหน้าต้องการ (ไม่ใช่ format วัน/ชม.)
+// นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้นตามที่ทีมงานแจ้ง — ประเภทอื่นคืน null เสมอ
 function computeDowntimeMinutes(j){
+  if(!isEmergencyJob(j)) return null;
   const done=parseJobDateTime(j.doneDate);
   const closed=parseJobDateTime(j.closedDate);
   if(!done||!closed)return null;
@@ -2444,8 +2454,9 @@ function getFilteredAdminRepairs(){
   const search=(document.getElementById('admin-search-rep')?.value||'').toLowerCase();
   const statusF=document.getElementById('admin-filter-status-rep')?.value||'';
   const deptF=document.getElementById('admin-filter-dept-rep')?.value||'';
+  const optypeF=document.getElementById('admin-filter-optype-rep')?.value||'';
   const groupF=adminRepStatusGroupFilter;
-  let list=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(groupF?groupF(j.status):true)&&(!deptF||j.dept.includes(deptF)));
+  let list=getRepairJobsData().filter(j=>(j.machine.toLowerCase().includes(search)||j.id.toLowerCase().includes(search)||(j.name||'').toLowerCase().includes(search))&&(!statusF||j.status===statusF)&&(groupF?groupF(j.status):true)&&(!deptF||j.dept.includes(deptF))&&(!optypeF||(j.opType||'').includes(optypeF)));
   if(adminRepDateFrom && adminRepDateTo){
     const[fy,fm,fd]=adminRepDateFrom.split('-').map(Number);
     const[ty,tm,td]=adminRepDateTo.split('-').map(Number);
@@ -2453,7 +2464,8 @@ function getFilteredAdminRepairs(){
     const to=new Date(ty,tm-1,td);to.setHours(0,0,0,0);
     list=list.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);return jd.getTime()>=from.getTime()&&jd.getTime()<=to.getTime();});
   }
-  return list;
+  // งานซ่อมฉุกเฉิน (Break Down) ขึ้นก่อนเสมอ — เครื่องหยุดทำงานอยู่ ให้แอดมินเห็น/จัดการก่อน (คงลำดับเดิมภายในกลุ่ม)
+  return sortEmergencyFirst(list);
 }
 
 function toggleAdminRepDatePopover(ev){
@@ -2522,7 +2534,7 @@ function renderAdminRepairsTable(){
   const tbody=document.getElementById('admin-rep-list-tbody');if(!tbody)return;tbody.innerHTML='';
   const filtered=getFilteredAdminRepairs();
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูล</td></tr>`;return;}
-  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600">${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
+  filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';const isEmg=isEmergencyJob(j);const tr=document.createElement('tr');if(isEmg)tr.style.background='var(--red-bg)';tr.innerHTML=`<td style="font-family:var(--font-mono);font-size:12px;font-weight:600${isEmg?';color:var(--red)':''}">${isEmg?'🚨 ':''}${j.id}</td><td style="color:var(--text2);font-size:12px">${j.date}</td><td>${j.name||j.requester||'-'}</td><td style="font-weight:600">${j.machine}</td><td style="color:var(--text2)">${j.technician||'ยังไม่กำหนด'}</td><td><span class="pill ${sc}">${j.status}</span></td><td>—</td><td><button class="btn-action" onclick="viewJobDetail('${j.id}')">แก้ไข</button></td>`;tbody.appendChild(tr);});
 }
 
 // ── ดึงข้อมูลรูปภาพจาก URL มาเป็น buffer สำหรับฝังลง Excel ──
@@ -3362,6 +3374,22 @@ const TE_JOB_FILTERS = {
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
 };
 let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
+// ── ตัวกรอง "เฉพาะซ่อมฉุกเฉิน (Break Down)" — ทีมงานแจ้งว่าอยากให้ช่าง/แอดมินกรองงานฉุกเฉิน
+// ออกมาดูก่อนได้ เพราะเครื่องจักรหยุดทำงานอยู่ ต้องซ่อมก่อนงานประเภทอื่น ──
+let teEmergencyOnly = false;
+function teToggleEmergencyOnly(){
+  teEmergencyOnly = !teEmergencyOnly;
+  const btn = document.getElementById('te-emg-toggle');
+  if(btn) btn.classList.toggle('active', teEmergencyOnly);
+  teRenderQueue(); teRenderMine();
+}
+// เรียงงานฉุกเฉินขึ้นก่อนเสมอ (สถานะ/กลุ่มเดิมคงลำดับสัมพัทธ์เดิมไว้ — sort แบบ stable)
+function sortEmergencyFirst(jobs){
+  return jobs.map((j,i)=>({j,i})).sort((a,b)=>{
+    const ea=isEmergencyJob(a.j)?0:1, eb=isEmergencyJob(b.j)?0:1;
+    return ea!==eb ? ea-eb : a.i-b.i;
+  }).map(x=>x.j);
+}
 
 function teFilterByStat(key) {
   if (!TE_JOB_FILTERS[key]) return;
@@ -3421,20 +3449,26 @@ function teSwPM(sub) {
 function teRenderQueue() {
   const el     = document.getElementById('te-v-queue');
   const filter = TE_JOB_FILTERS[teJobsFilterKey] || TE_JOB_FILTERS.waiting;
-  const jobs   = getRepairJobsData().filter(filter.match);
+  let jobs   = getRepairJobsData().filter(filter.match);
+  if (teEmergencyOnly) jobs = jobs.filter(isEmergencyJob);
+  jobs = sortEmergencyFirst(jobs);
   // โหมด 'queue' (มีปุ่มรับงาน/ตีกลับ) ใช้เฉพาะฟิลเตอร์ "รอช่างรับงาน" เท่านั้น
   // ฟิลเตอร์อื่นแสดงปุ่มตามสถานะจริงของแต่ละงาน (ดูรายละเอียด/อัปเดต ฯลฯ ใน tpJobCardHTML)
   const mode = teJobsFilterKey === 'waiting' ? 'queue' : 'view';
-  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">${filter.label}</div><div class="tp-empty"><i class="ion-ios-archive"></i> ไม่มีรายการในหมวดนี้ขณะนี้</div>`; return; }
-  el.innerHTML = `<div class="tp-sdiv">${filter.label} • ${jobs.length} รายการ</div>` +
+  const label = filter.label + (teEmergencyOnly ? ' 🚨 เฉพาะฉุกเฉิน' : '');
+  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">${label}</div><div class="tp-empty"><i class="ion-ios-archive"></i> ไม่มีรายการในหมวดนี้ขณะนี้</div>`; return; }
+  el.innerHTML = `<div class="tp-sdiv">${label} • ${jobs.length} รายการ</div>` +
     jobs.map(j => tpJobCardHTML(mapJobToTechPanel(j), mode)).join('');
 }
 
 function teRenderMine() {
   const el   = document.getElementById('te-v-mine');
-  const jobs = getRepairJobsData().filter(j => j.technician === (myIdentifiedName || ME) && j.status !== 'รอซ่อม');
-  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">งานที่รับไว้</div><div class="tp-empty"><i class="ion-ios-archive"></i> ยังไม่มีงานที่รับไว้</div>`; return; }
-  el.innerHTML = `<div class="tp-sdiv">งานที่รับไว้ • ${jobs.length} รายการ</div>` +
+  let jobs = getRepairJobsData().filter(j => j.technician === (myIdentifiedName || ME) && j.status !== 'รอซ่อม');
+  if (teEmergencyOnly) jobs = jobs.filter(isEmergencyJob);
+  jobs = sortEmergencyFirst(jobs);
+  const label = 'งานที่รับไว้' + (teEmergencyOnly ? ' 🚨 เฉพาะฉุกเฉิน' : '');
+  if (!jobs.length) { el.innerHTML = `<div class="tp-sdiv">${label}</div><div class="tp-empty"><i class="ion-ios-archive"></i> ยังไม่มีงานที่รับไว้</div>`; return; }
+  el.innerHTML = `<div class="tp-sdiv">${label} • ${jobs.length} รายการ</div>` +
     jobs.map(j => tpJobCardHTML(mapJobToTechPanel(j), 'mine')).join('');
 }
 

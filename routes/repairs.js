@@ -54,10 +54,20 @@ function parseThaiDateString(str) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// ── เช็คว่าเป็นงาน "ซ่อมฉุกเฉิน (Break Down)" หรือไม่ ──
+// ทีมงานแจ้งว่า Downtime ให้นับเฉพาะงานซ่อมฉุกเฉินเท่านั้น (ประเภทอื่น เช่น ซ่อมตามอาการ/
+// ปรับปรุงประสิทธิภาพ เครื่องไม่ได้หยุดทำงานจริง จึงไม่นับเป็น Downtime)
+// เช็คจากคำว่า "ฉุกเฉิน" แทนการเทียบ string เป๊ะๆ กันเผื่อ label เปลี่ยนคำในวงเล็บ (Break Down) ในอนาคต
+function isEmergencyRepairType(opType) {
+  return String(opType || '').includes('ฉุกเฉิน');
+}
+
 // ── คำนวณ Downtime (นาที) = เวลาปิดงาน - เวลาซ่อมเสร็จ (คอลัมน์ L) ──
 // (เดิมคำนวณจาก "วันที่แจ้งซ่อม" (R) ซึ่งผิด — ต้องนับจากตอนซ่อมเสร็จจนถึงตอนปิดงานเท่านั้น)
-// คืนค่าเป็นจำนวนเต็ม (นาที) หรือ '' ถ้าคำนวณไม่ได้/ค่าติดลบ (ข้อมูลผิดปกติ)
-function calcDowntimeMinutes(doneDateStr, closedDate) {
+// นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้นตามที่ทีมงานแจ้ง — ประเภทอื่นคืนค่า '' เสมอ
+// คืนค่าเป็นจำนวนเต็ม (นาที) หรือ '' ถ้าคำนวณไม่ได้/ค่าติดลบ (ข้อมูลผิดปกติ) หรือไม่ใช่งานฉุกเฉิน
+function calcDowntimeMinutes(doneDateStr, closedDate, opType) {
+  if (!isEmergencyRepairType(opType)) return '';
   const doneDate = parseThaiDateString(doneDateStr);
   if (!doneDate || !closedDate) return '';
   const diffMs = closedDate.getTime() - doneDate.getTime();
@@ -436,13 +446,15 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
 
       // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
+      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
       const doneDateStr      = rows[rowIndex][11] || ''; // L
-      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate);
-      console.log(`[DOWNTIME-DEBUG][qc] id=${id} doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
+      const opType            = rows[rowIndex][5]  || ''; // F
+      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate, opType);
+      console.log(`[DOWNTIME-DEBUG][qc] id=${id} opType="${opType}" doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
       } else {
-        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — doneDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+        console.warn(`[DOWNTIME-DEBUG][qc] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ doneDateStr/nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     } else {
       // บันทึกเหตุผลตรวจรับไม่ผ่านลงคอลัมน์ N (note) — เป็นฟิลด์เดียวกับที่การ์ดงานของช่างโชว์ (j.progress/j.note)
@@ -716,13 +728,15 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       updateData.push({ range: `Repairs!W${sheetRow}`, values: [[nowStr]] });
 
       // เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาปิดงาน (W) - เวลาซ่อมเสร็จ (L)
+      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
       const doneDateStr      = rows[rowIndex][11] || ''; // L
-      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate);
-      console.log(`[DOWNTIME-DEBUG][status] id=${id} doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
+      const opType            = rows[rowIndex][5]  || ''; // F
+      const downtimeMinutes  = calcDowntimeMinutes(doneDateStr, nowDate, opType);
+      console.log(`[DOWNTIME-DEBUG][status] id=${id} opType="${opType}" doneDateStr="${doneDateStr}" nowStr="${nowStr}" downtimeMinutes=${downtimeMinutes}`);
       if (downtimeMinutes !== '') {
         updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
       } else {
-        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — doneDateStr หรือ nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+        console.warn(`[DOWNTIME-DEBUG][status] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ doneDateStr/nowDate parse ไม่ผ่าน หรือ diff ติดลบ`);
       }
     }
 

@@ -585,6 +585,12 @@
 <select id="admin-filter-dept-rep" class="select-ctrl" style="width:150px;font-size:12px" onchange="renderAdminRepairsTable()">
   <option value="">ทุกแผนก</option>
 </select>
+<select id="admin-filter-optype-rep" class="select-ctrl" style="width:190px;font-size:12px" onchange="renderAdminRepairsTable()">
+  <option value="">ทุกประเภทงานซ่อม</option>
+  <option value="ฉุกเฉิน">🚨 ซ่อมฉุกเฉิน (Break Down)</option>
+  <option>ซ่อมตามอาการ (Corrective)</option>
+  <option>ปรับปรุงประสิทธิภาพ (Modify)</option>
+</select>
 <div style="position:relative">
   <button class="btn btn-sec" style="font-size:12px" id="admin-rep-date-btn" onclick="toggleAdminRepDatePopover(event)">
     <i class="ion-ios-calendar"></i> เลือกช่วงวันที่
@@ -787,6 +793,12 @@
 
     <!-- Sections -->
     <div class="tp-sec te-sec" id="te-v-jobs">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button type="button" id="te-emg-toggle" onclick="teToggleEmergencyOnly()"
+          style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px solid var(--red,#dc2626);background:transparent;color:var(--red,#dc2626);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s">
+          🚨 เฉพาะซ่อมฉุกเฉิน
+        </button>
+      </div>
       <div id="te-v-queue"></div>
       <div id="te-v-mine" style="display:none"></div>
     </div>
