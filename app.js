@@ -48,6 +48,11 @@ function createApp() {
     verify: (req, res, buf) => { req.rawBody = buf; },
   }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+  });
+
   app.use(express.static(path.join(__dirname, 'public')));
   app.use('/api/users/login', authLimiter);
   app.use('/api/admin/login', authLimiter);
