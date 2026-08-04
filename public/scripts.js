@@ -2598,7 +2598,7 @@ async function exportAdminRepairsExcel(){
       { header:'ช่างซ่อม',      key:'tech',    width:16 },
       { header:'สถานะ',        key:'status',  width:14 },
       { header:'วันที่เสร็จ',    key:'doneDate',width:14 },
-      { header:'เวลาที่ใช้ซ่อม',  key:'fixDuration',  width:16 },
+      { header:'เวลาที่ใช้ซ่อม(นาที)',  key:'fixDuration',  width:16 },
       { header:'Downtime (นาที)', key:'downtime', width:16 },
       { header:'หมายเหตุ',      key:'note',    width:24 },
       { header:'ผลตรวจรับ',    key:'qc',      width:12 },
@@ -2622,8 +2622,10 @@ async function exportAdminRepairsExcel(){
     const imgResults = await Promise.all(imgTasks);
 
     filtered.forEach((j, i) => {
-      const dur = computeJobDurations({ acceptedDate: j.acceptedDate, doneDate: j.doneDate });
-      const fixDuration  = dur.fix || '-';
+      const accepted    = parseJobDateTime(j.acceptedDate);
+      const doneT        = parseJobDateTime(j.doneDate);
+      const fixMins      = (accepted && doneT) ? Math.round((doneT - accepted) / 60000) : null;
+      const fixDuration  = (fixMins != null && fixMins >= 0) ? fixMins : '-';
       const downtime     = computeDowntimeMinutes(j) ?? '-';
       const row = sheet.addRow({
         id: j.id, date: j.date, name: j.name || j.requester || '-', dept: j.dept || '-',
