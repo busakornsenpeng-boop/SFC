@@ -1144,7 +1144,7 @@ function tpOpenJobModal(id){
     <div class="tp-mrow"><div class="tp-mrow-lbl">ผู้แจ้ง</div><div class="tp-mrow-val">${raw&&raw.name?raw.name:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">เบอร์โทรผู้แจ้ง</div><div class="tp-mrow-val">${raw&&raw.reporterPhone?raw.reporterPhone:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แผนก</div><div class="tp-mrow-val desc">${raw&&raw.dept?raw.dept:'-'}</div></div>
-    <div class="tp-mrow"><div class="tp-mrow-lbl">ไลน์ผลิต</div><div class="tp-mrow-val desc">${raw&&raw.productionLine?raw.productionLine:'-'}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">สถานที่ปฏิบัติงาน</div><div class="tp-mrow-val desc">${raw&&raw.productionLine?raw.productionLine:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">เครื่องจักร</div><div class="tp-mrow-val desc">${raw&&raw.machine?raw.machine:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">วันที่แจ้ง</div><div class="tp-mrow-val">${j.date}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">ด้านปัญหา</div><div class="tp-mrow-val desc">${raw&&raw.side?raw.side:'-'}</div></div>
@@ -2196,7 +2196,10 @@ function initAdminDashboard(){
 
 // ── KPI Card → Dept Breakdown Modal ──
 const DBM_CONFIG = {
-  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
+  // "แจ้งซ่อมทั้งหมด" ไม่นับงานที่ถูกตีกลับ ให้ตรงกับนิยาม total ใน calculateAdminStats()
+  // (งานตีกลับถูกนับแยกไว้ในการ์ด "ตีกลับ" ต่างหาก ไม่ใช่ทิ้งไป — เดิม match: j => true ทำให้ตัวเลขในป๊อปอัพ
+  // ไม่ตรงกับตัวเลขบนการ์ด เพราะรวมงานตีกลับเข้าไปด้วย)
+  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => !isBouncedStatus(j.status), color: 'blue' },
   waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
   working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => isWorkingStatus(j.status), color: 'orange' },
   donerepair: { label: 'ซ่อมเสร็จแล้ว', icon: 'ion-ios-checkmark-circle-outline', match: j => j.status === 'ซ่อมเสร็จแล้ว', color: 'teal' },
@@ -4147,7 +4150,7 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">ผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.name||j.requester||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">เบอร์โทรผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.reporterPhone||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">แผนก</span><span class="spec-val">${j.dept||'-'}</span></div>
-    <div class="spec-row"><span class="spec-lbl">ไลน์ผลิต</span><span class="spec-val">${escapeHtml(j.productionLine||'-')}</span></div>
+    <div class="spec-row"><span class="spec-lbl">สถานที่ปฏิบัติงาน</span><span class="spec-val">${escapeHtml(j.productionLine||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">เครื่องจักร</span><span class="spec-val">${escapeHtml(j.machine)}</span></div>
     <div class="spec-row"><span class="spec-lbl">ด้านปัญหา</span><span class="spec-val">${j.side||'-'}</span></div>
     <div class="spec-row"><span class="spec-lbl">ประเภทงาน</span><span class="spec-val">${j.opType||'-'}</span></div>
