@@ -2075,12 +2075,12 @@ function filterJobsByTimeRange(jobs,ft){
   return jobs.filter(j=>{const jd=parseJobDate(j.date);if(!jd)return false;jd.setHours(0,0,0,0);if(ft==='daily')return jd.getTime()===today.getTime();if(ft==='monthly')return jd.getTime()>=msStart.getTime();if(ft==='3months')return jd.getTime()>=t3m.getTime();return true;});
 }
 function calculateAdminStats(jobs){
-  // งานสถานะ "ตีกลับ"/"แก้ไข (ตีกลับ)" คืองานเดิมที่ถูกส่งกลับไปแก้ไข ไม่ใช่งานแจ้งซ่อมใหม่
-  // จึงตัดออกจากยอดสถิติหลัก (total/waiting/working/closed) ให้สอดคล้องกับนิยาม "แจ้งซ่อม" ของแดชบอร์ดช่าง
-  // (TE_JOB_FILTERS.reported) — แต่นับแยกเก็บไว้ในการ์ด "ตีกลับ" ต่างหาก ไม่ใช่ทิ้งไปเฉยๆ เหมือนเดิม
+  // "แจ้งซ่อมทั้งหมด" (total) นับรวมงานตีกลับด้วย ให้ตรงกับจำนวนแถวทั้งหมดในชีท Repairs
+  // (งานตีกลับยังนับแยกเก็บไว้ในการ์ด "ตีกลับ" เหมือนเดิม แต่ตอนนี้ไม่ตัดออกจาก total แล้ว)
   const bounced = jobs.filter(j=>isBouncedStatus(j.status)).length;
-  jobs=jobs.filter(j=>!isBouncedStatus(j.status));
-  const s={total:jobs.length,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},monthlyData:{},dailyData:{}};jobs.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+  const total = jobs.length;
+  const nonBounced = jobs.filter(j=>!isBouncedStatus(j.status));
+  const s={total,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},monthlyData:{},dailyData:{}};nonBounced.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -2196,10 +2196,8 @@ function initAdminDashboard(){
 
 // ── KPI Card → Dept Breakdown Modal ──
 const DBM_CONFIG = {
-  // "แจ้งซ่อมทั้งหมด" ไม่นับงานที่ถูกตีกลับ ให้ตรงกับนิยาม total ใน calculateAdminStats()
-  // (งานตีกลับถูกนับแยกไว้ในการ์ด "ตีกลับ" ต่างหาก ไม่ใช่ทิ้งไป — เดิม match: j => true ทำให้ตัวเลขในป๊อปอัพ
-  // ไม่ตรงกับตัวเลขบนการ์ด เพราะรวมงานตีกลับเข้าไปด้วย)
-  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => !isBouncedStatus(j.status), color: 'blue' },
+  // "แจ้งซ่อมทั้งหมด" นับรวมทุกงานรวมถึงตีกลับ ให้ตรงกับนิยาม total ใน calculateAdminStats() (และตรงกับจำนวนแถวในชีท)
+  total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
   waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
   working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => isWorkingStatus(j.status), color: 'orange' },
   donerepair: { label: 'ซ่อมเสร็จแล้ว', icon: 'ion-ios-checkmark-circle-outline', match: j => j.status === 'ซ่อมเสร็จแล้ว', color: 'teal' },
