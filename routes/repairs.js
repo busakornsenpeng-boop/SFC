@@ -377,6 +377,32 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
 
     await writeRepairUpdate(updateData);
 
+    // ── บันทึกประวัติการอัปเดตแยกต่างหาก (RepairUpdateLog) ──
+    // คอลัมน์ I/J/N บน Repairs sheet เก็บแค่ "ค่าล่าสุด" เท่านั้น ถูกทับทุกครั้งที่อัปเดต
+    // จึงต้อง append เก็บทุกรอบไว้ต่างหาก เพื่อดูย้อนหลังได้ว่ารอบไหนทำอะไร แนบรูปอะไรบ้าง
+    // (sheet นี้ต้องสร้างแท็บ "RepairUpdateLog" ไว้ในสเปรดชีตล่วงหน้า — ดูหัวคอลัมน์ A-F ด้านล่าง)
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'RepairUpdateLog!A:F', // A id | B timestamp | C status | D note | E imgAfter(JSON) | F updatedBy
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: {
+          values: [[
+            id,
+            new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
+            status || '',
+            note   || '',
+            imgAfterStr,
+            updatedBy || '',
+          ]],
+        },
+      });
+    } catch (logErr) {
+      // ไม่ให้ log พังแล้วทำให้การอัปเดตงานหลักล้มเหลวไปด้วย — แค่เตือนไว้ใน console
+      console.error('[Repairs] บันทึก RepairUpdateLog ไม่สำเร็จ:', logErr.message);
+    }
+
     const statusLabel = {
       'กำลังซ่อม':     '🔧 กำลังดำเนินการซ่อม',
       'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจรับ',
@@ -403,6 +429,33 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
     // (TODO เปิดใช้ภายหลัง — แจ้งเตือนช่างตอนงานเสร็จ ถ้าต้องการ)
 
     res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/repairs/:id/history — ดึงประวัติการอัปเดตทุกรอบของงานนี้ (เรียงเก่า→ใหม่)
+// ใช้กับปุ่ม "ดูประวัติการอัปเดต" ในหน้ารายละเอียดงาน (เห็นได้ทุก role)
+router.get('/:id/history', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'RepairUpdateLog!A2:F5000',
+    });
+    const rows = result.data.values || [];
+    const history = rows
+      .filter(r => r[0] === id)
+      .map(r => ({
+        repairId:  r[0] || '',
+        timestamp: r[1] || '',
+        status:    r[2] || '',
+        note:      r[3] || '',
+        imgAfter:  r[4] || '[]',
+        updatedBy: r[5] || '',
+      }));
+    res.json({ success: true, history });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -663,7 +716,7 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
 router.post('/:id/status', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note, technician, imgAfter } = req.body;
+    const { status, note, technician, imgAfter, updatedBy } = req.body;
 
     const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
     const rows     = getRes.data.values || [];
@@ -731,6 +784,30 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     }
 
     await writeRepairUpdate(updateData);
+
+    // ── บันทึกประวัติการอัปเดตแยกต่างหาก (RepairUpdateLog) เหมือนกับ route /:id/update ──
+    // รวม route นี้ด้วย เพราะแอดมินแก้สถานะ/ช่าง/หมายเหตุตรงๆ ผ่านทางนี้ได้ ถ้าไม่เก็บ log
+    // จะมีช่องว่างในประวัติตรงจุดที่แอดมิน override งาน ซึ่งเป็นจุดที่ต้องตรวจสอบย้อนหลังบ่อยที่สุด
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'RepairUpdateLog!A:F',
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: {
+          values: [[
+            id,
+            new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
+            status || currentStatus,
+            note   || '',
+            imgAfterStr,
+            updatedBy ? `${updatedBy} (แอดมิน)` : 'แอดมิน',
+          ]],
+        },
+      });
+    } catch (logErr) {
+      console.error('[Repairs] บันทึก RepairUpdateLog (admin) ไม่สำเร็จ:', logErr.message);
+    }
 
     const requesterLineId = await getLineUserIdByName(sheets, SPREADSHEET_ID, requesterName);
     if (requesterLineId && status && NOTIFY_REQUESTER_STATUSES.includes(status)) {

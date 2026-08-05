@@ -580,12 +580,16 @@ function rerenderCurrentView() {
   if (isRepairStaff(currentUser.role)) {
     // ช่าง/วิศวกร — TE Panel
     teUpdateStats();
-    const activeTab = document.querySelector('.te-tab.active');
-    const tabId = activeTab ? activeTab.id : '';
-    if (tabId === 'te-t-jobs')  teRenderQueue();
-    if (tabId === 'te-t-pm')    (tePmSub === 'list' ? teRenderPMTable() : teRenderCal());
-    if (tabId === 'te-t-hist')  teRenderHist();
-    if (tabId === 'te-t-daily') teRenderDailyPM();
+    // ── แก้บั๊ก: เดิมเช็คจาก .te-tab.active แล้วเทียบ id === 'te-t-jobs' แต่ปุ่มแท็บ
+    // id="te-t-jobs" ไม่มีอยู่จริงใน index.html (หน้า "งาน" เข้าถึงผ่านการ์ด KPI ไม่ใช่ปุ่มแท็บ)
+    // จึงไม่เคยมีปุ่มไหนได้ class active ตอนอยู่หน้างาน → เงื่อนไขนี้เป็นเท็จเสมอ → auto-refresh
+    // (poll ทุก 20 วิ) ไม่เคยสั่งวาดรายการงานใหม่เลย ต้องกด refresh หน้าเว็บถึงจะเห็นค่าล่าสุด
+    // แก้โดยเช็คจาก section ที่กำลังแสดงอยู่จริง (style.display) แทนการเช็คปุ่มแท็บที่ไม่มีอยู่จริง
+    const isVisible = id => document.getElementById(id)?.style.display !== 'none';
+    if (isVisible('te-v-jobs'))  { teRenderQueue(); teRenderMine(); }
+    if (isVisible('te-v-pm'))    (tePmSub === 'list' ? teRenderPMTable() : teRenderCal());
+    if (isVisible('te-v-hist'))  teRenderHist();
+    if (isVisible('te-v-daily')) teRenderDailyPM();
     return;
   }
 
@@ -1170,7 +1174,8 @@ ${(() => {
   return `<div class="tp-mrow-lbl" style="margin:10px 0 8px"><i class="ion-ios-checkmark-circle"></i> รูปหลังซ่อม</div>
     ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
 })()}`;
-  let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>`;
+  let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>
+    <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>`;
   if(j.status==='รอซ่อม') acts+=`<button class="tp-mact-btn tp-mact-accept" onclick="tpAcceptJob('${j.id}');tpCloseModal()"><i class="ion-ios-hand"></i> รับงาน</button>`;
   document.getElementById('tp-modal-actions').innerHTML=acts;
   document.getElementById('tp-modal-overlay').classList.add('show');
@@ -1724,7 +1729,7 @@ function adminSubmitUpdateJob(){
     showLoading('กำลังบันทึก...');
     authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/status`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ status, technician: tech, note })
+      body: JSON.stringify({ status, technician: tech, note, updatedBy: currentUser?.name || '' })
     })
     .then(r => r.json())
     .then(res => {
@@ -4294,6 +4299,66 @@ function viewJobDetail(id) {
 // เพราะรูปภาพที่แนบมาเป็น URL จากภายนอก การโหลดเข้า <img> ตรงๆ ให้เบราว์เซอร์ render
 // เชื่อถือได้กว่าการพยายามดึงรูปมาฝัง (เลี่ยงปัญหา CORS/base64)
 // ============================================================
+// ── ดูประวัติการอัปเดตทุกรอบของงาน (จาก RepairUpdateLog) ──
+// ใช้ร่วมกันทั้งฝั่งแอดมิน/ผู้ใช้ (ปุ่ม "ประวัติอัปเดต" ใน job-detail-modal — ไม่ส่ง id มา
+// เลยอ่านจาก selectedJobForAction แทน เหมือน exportJobDetailPDF) และฝั่งช่าง (tpOpenJobModal
+// ส่ง id ตรงๆ มา) แสดงผลใน tp-modal-overlay ซึ่งเป็น modal กลางที่มีอยู่แล้วในหน้าเว็บทุกหน้า
+function openUpdateHistoryModal(id) {
+  const jobId = id || selectedJobForAction;
+  if (!jobId) return;
+
+  document.getElementById('tp-modal-title').textContent = 'ประวัติการอัปเดต — ' + jobId;
+  document.getElementById('tp-modal-body').innerHTML =
+    `<div style="text-align:center;padding:28px 0;color:var(--text3)"><i class="ion-ios-refresh-outline" style="font-size:24px"></i><div style="margin-top:8px;font-size:12.5px">กำลังโหลดประวัติ...</div></div>`;
+  document.getElementById('tp-modal-actions').innerHTML =
+    `<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>`;
+  document.getElementById('tp-modal-overlay').classList.add('show');
+
+  const statusLabelMap = {
+    'กำลังซ่อม':'กำลังดำเนินการซ่อม','รออะไหล่':'รอจัดหาอะไหล่','ขอหยุดเครื่อง':'ขอหยุดเครื่อง',
+    'Workaround':'Workaround','ส่งซ่อมภายนอก':'ส่งซ่อมภายนอก',
+    'ซ่อมเสร็จแล้ว':'ซ่อมเสร็จสิ้น','ซ่อมเสร็จ':'ซ่อมเสร็จสิ้น',
+  };
+  const renderEmpty = () => {
+    document.getElementById('tp-modal-body').innerHTML =
+      `<div class="tp-empty"><i class="ion-ios-archive"></i> ยังไม่มีประวัติการอัปเดต (ยังไม่มีใครกดอัปเดตงานนี้)</div>`;
+  };
+  const renderList = rounds => {
+    const html = rounds.map((h, i) => {
+      let imgs = [];
+      try { imgs = JSON.parse(h.imgAfter || '[]'); } catch { imgs = h.imgAfter ? [h.imgAfter] : []; }
+      const imgsHtml = imgs.length
+        ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${imgs.map(src =>
+            `<img src="${src}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`
+          ).join('')}</div>`
+        : '';
+      const isLast = i === rounds.length - 1;
+      return `
+        <div style="position:relative;padding:0 0 18px 22px;border-left:2px solid ${isLast ? 'transparent' : 'var(--border)'}">
+          <div style="position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--accent)"></div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">รอบที่ ${i + 1} • ${escapeHtml(h.timestamp || '-')}</div>
+          <div style="font-size:13px;font-weight:600;margin-top:2px">${statusLabelMap[h.status] || h.status || '-'}</div>
+          ${h.note ? `<div style="font-size:12.5px;color:var(--text2);margin-top:4px;line-height:1.4">${escapeHtml(h.note)}</div>` : ''}
+          ${h.updatedBy ? `<div style="font-size:11px;color:var(--text3);margin-top:4px"><i class="ion-ios-person"></i> ${escapeHtml(h.updatedBy)}</div>` : ''}
+          ${imgsHtml}
+        </div>`;
+    }).join('');
+    document.getElementById('tp-modal-body').innerHTML = html;
+  };
+
+  if (isLocalMode) { renderEmpty(); return; }
+  authFetch(`${API_URL}/repairs/${encodeURIComponent(jobId)}/history`)
+    .then(r => r.json())
+    .then(res => {
+      if (!res || !res.success || !Array.isArray(res.history) || !res.history.length) return renderEmpty();
+      renderList(res.history);
+    })
+    .catch(() => {
+      document.getElementById('tp-modal-body').innerHTML =
+        `<div class="tp-empty"><i class="ion-ios-warning"></i> โหลดประวัติไม่สำเร็จ กรุณาลองใหม่</div>`;
+    });
+}
+
 function exportJobDetailPDF() {
   const id = selectedJobForAction;
   const j  = getRepairJobsData().find(x => x.id === id);
