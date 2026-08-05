@@ -4341,10 +4341,13 @@ function exportJobDetailPDF() {
 
   const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <title>ใบแจ้งซ่อม - ${j.id}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   @page{ size:A4; margin:12mm; }
   *{ box-sizing:border-box; }
-  body{ font-family:'Sarabun','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; font-size:12px; }
+  body{ font-family:'IBM Plex Sans Thai','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; font-size:12px; }
   .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:8px; margin-bottom:12px; }
   .pf-brand{ display:flex; align-items:center; gap:10px; }
   .pf-brand img{ height:36px; object-fit:contain; }
@@ -4427,19 +4430,20 @@ function exportJobDetailPDF() {
   win.document.write(html);
   win.document.close();
 
-  // รอให้รูปโหลดครบ (หรือ error) ก่อนเปิดหน้าต่างพิมพ์ กันปัญหารูปยังไม่ขึ้นตอนสั่งพิมพ์
+  // รอให้ฟอนต์ + รูปภาพโหลดครบ (หรือ error) ก่อนเปิดหน้าต่างพิมพ์ กันปัญหาฟอนต์/รูปยังไม่ขึ้นตอนสั่งพิมพ์
   const triggerPrint = () => { win.focus(); win.print(); };
-  const allImgs = win.document.images;
-  if (allImgs.length === 0) {
-    setTimeout(triggerPrint, 300);
-  } else {
+  const waitImages = () => new Promise(resolve => {
+    const allImgs = win.document.images;
+    if (allImgs.length === 0) return resolve();
     let loaded = 0;
-    const done = () => { loaded++; if (loaded >= allImgs.length) setTimeout(triggerPrint, 200); };
+    const done = () => { loaded++; if (loaded >= allImgs.length) resolve(); };
     Array.from(allImgs).forEach(img => {
       if (img.complete) done();
       else { img.addEventListener('load', done); img.addEventListener('error', done); }
     });
-  }
+  });
+  const waitFonts = () => (win.document.fonts && win.document.fonts.ready) ? win.document.fonts.ready.catch(() => {}) : Promise.resolve();
+  Promise.all([waitFonts(), waitImages()]).then(() => setTimeout(triggerPrint, 150));
 }
 
 // ============================================================
