@@ -1142,9 +1142,13 @@ function tpOpenJobModal(id){
     <div class="tp-mrow"><div class="tp-mrow-lbl">รหัสงาน</div><div class="tp-mrow-val mono">${j.id}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">สถานะ</div><span class="tp-jstat ${sc}" style="display:inline-flex"><span class="tp-jdot"></span>${sl}</span></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">ผู้แจ้ง</div><div class="tp-mrow-val">${raw&&raw.name?raw.name:'-'}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">เบอร์โทรผู้แจ้ง</div><div class="tp-mrow-val">${raw&&raw.reporterPhone?raw.reporterPhone:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">แผนก</div><div class="tp-mrow-val desc">${raw&&raw.dept?raw.dept:'-'}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">ไลน์ผลิต</div><div class="tp-mrow-val desc">${raw&&raw.productionLine?raw.productionLine:'-'}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">เครื่องจักร</div><div class="tp-mrow-val desc">${raw&&raw.machine?raw.machine:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">วันที่แจ้ง</div><div class="tp-mrow-val">${j.date}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">ด้านปัญหา</div><div class="tp-mrow-val desc">${raw&&raw.side?raw.side:'-'}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">ประเภทงาน</div><div class="tp-mrow-val desc">${raw&&raw.opType?raw.opType:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">รายละเอียด</div><div class="tp-mrow-val desc">${j.desc}</div></div>
     ${j.progress?`<div class="tp-mrow"><div class="tp-mrow-lbl">ความคืบหน้า</div><div class="tp-mrow-val desc">${j.progress}</div></div>`:''}
     <div class="tp-mdivider"></div>
@@ -4143,6 +4147,7 @@ function viewJobDetail(id) {
     <div class="spec-row"><span class="spec-lbl">ผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.name||j.requester||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">เบอร์โทรผู้แจ้ง</span><span class="spec-val">${escapeHtml(j.reporterPhone||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">แผนก</span><span class="spec-val">${j.dept||'-'}</span></div>
+    <div class="spec-row"><span class="spec-lbl">ไลน์ผลิต</span><span class="spec-val">${escapeHtml(j.productionLine||'-')}</span></div>
     <div class="spec-row"><span class="spec-lbl">เครื่องจักร</span><span class="spec-val">${escapeHtml(j.machine)}</span></div>
     <div class="spec-row"><span class="spec-lbl">ด้านปัญหา</span><span class="spec-val">${j.side||'-'}</span></div>
     <div class="spec-row"><span class="spec-lbl">ประเภทงาน</span><span class="spec-val">${j.opType||'-'}</span></div>

@@ -160,6 +160,7 @@ async function getAllRepairs() {
     doneDate:     row[11] || '', // เวลาที่ช่างแจ้งว่าซ่อมเสร็จ ("ซ่อมเสร็จ/ซ่อมเสร็จแล้ว/รอตรวจรับ")
     reporterPhone: row[12] || '', // ← เบอร์โทรผู้แจ้ง (M) — เดิมคอลัมน์นี้เก็บ "กำหนดเสร็จ (เดิม)" ที่เลิกใช้แล้ว นำมาใช้เก็บเบอร์โทรแทน
     note:         row[13] || '',
+    productionLine: row[18] || '', // ← ไลน์ผลิต (S) — เดิมคอลัมน์นี้เก็บ jobType (ฟีเจอร์อนุมัติงานโครงการที่เลิกใช้แล้ว) นำมาใช้เก็บไลน์ผลิตแทน
     qcResult:     row[14] || '',
     qcBy:         row[15] || '',
     qcNote:       row[16] || '',
@@ -216,7 +217,7 @@ function _cleanupDupGuard() {
 // POST /api/repairs — แจ้งซ่อมใหม่ (ต้อง login ก่อน)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { requester, dept, machine, side, op_type, detail, img, phone } = req.body;
+    const { requester, dept, machine, side, op_type, detail, img, phone, line } = req.body;
     let imgArr = [];
     if (Array.isArray(img)) imgArr = img;
     else if (typeof img === 'string') {
@@ -254,7 +255,7 @@ router.post('/', requireAuth, async (req, res) => {
         values: [[
           jobId, requester, dept, machine, side, op_type,
           detail, imgStr, '', 'รอซ่อม', '', '', phone || '', '', '', '', '',
-          dateStr, '', '', // S,T (เดิม jobType/approval — ตัดฟีเจอร์อนุมัติงานโครงการออกแล้ว ไม่มี UI ใช้งานจริง)
+          dateStr, line || '', '', // S = ไลน์ผลิต (เดิมคอลัมน์นี้เก็บ jobType/approval ที่เลิกใช้แล้ว), T ยังไม่ได้ใช้งาน
         ]],
       },
     });
