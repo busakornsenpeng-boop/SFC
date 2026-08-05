@@ -4289,6 +4289,161 @@ function viewJobDetail(id) {
 }
 
 // ============================================================
+// ส่งออกใบแจ้งซ่อม (รายละเอียด + รูปภาพก่อน/หลังซ่อม) เป็น PDF
+// ใช้หน้าต่างพิมพ์ของเบราว์เซอร์ (window.print → "บันทึกเป็น PDF") แทนไลบรารีสร้าง PDF
+// เพราะรูปภาพที่แนบมาเป็น URL จากภายนอก การโหลดเข้า <img> ตรงๆ ให้เบราว์เซอร์ render
+// เชื่อถือได้กว่าการพยายามดึงรูปมาฝัง (เลี่ยงปัญหา CORS/base64)
+// ============================================================
+function exportJobDetailPDF() {
+  const id = selectedJobForAction;
+  const j  = getRepairJobsData().find(x => x.id === id);
+  if (!j) { showToast('ไม่พบข้อมูลใบแจ้งซ่อม', 'error'); return; }
+
+  // ── ฟิลด์หลัก แสดงเป็นตารางกรอบ 2 คอลัมน์ (label ซ้าย / value ขวา) ──
+  const mainRows = [
+    ['วันที่แจ้ง', j.date || '-'],
+    ['ผู้แจ้ง', j.name || j.requester || '-'],
+    ['เบอร์โทรผู้แจ้ง', j.reporterPhone || '-'],
+    ['แผนก', j.dept || '-'],
+    ['สถานที่ปฏิบัติงาน', j.productionLine || '-'],
+    ['เครื่องจักร', j.machine || '-'],
+    ['ด้านปัญหา', j.side || '-'],
+    ['ประเภทงาน', j.opType || '-'],
+    ['ช่างซ่อม', j.technician || 'ยังไม่ได้รับงาน'],
+    ['สถานะ', j.status || '-'],
+  ];
+  if (j.doneDate) mainRows.push(['วันที่ซ่อมเสร็จ', j.doneDate]);
+
+  const parseImgs = (raw) => {
+    try { const arr = JSON.parse(raw || '[]'); return Array.isArray(arr) ? arr : []; }
+    catch (e) { return (raw && raw.length > 10) ? [raw] : []; }
+  };
+  const imgsBefore = parseImgs(j.img);
+  const imgsAfter  = parseImgs(j.imgAfter);
+
+  // จับคู่ label/value เป็นแถวละ 2 คู่ (4 cell) ให้ตารางดูเป็นทางการแบบฟอร์มราชการ/องค์กร
+  let gridRowsHtml = '';
+  for (let i = 0; i < mainRows.length; i += 2) {
+    const [k1, v1] = mainRows[i];
+    const pair2 = mainRows[i + 1];
+    gridRowsHtml += `<tr>
+      <td class="pf-lbl">${escapeHtml(k1)}</td><td class="pf-val"${pair2 ? '' : ' colspan="3"'}>${escapeHtml(String(v1))}</td>
+      ${pair2 ? `<td class="pf-lbl">${escapeHtml(pair2[0])}</td><td class="pf-val">${escapeHtml(String(pair2[1]))}</td>` : ''}
+    </tr>`;
+  }
+
+  const imgBlock = (title, arr) => arr.length ? `
+    <div class="pf-imgtitle">${title}</div>
+    <div class="pf-imggrid">${arr.map(src => `<img src="${src}" onerror="this.style.display='none'">`).join('')}</div>
+  ` : '';
+
+  const stamp = new Date().toLocaleString('th-TH', { dateStyle:'long', timeStyle:'short' });
+
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<title>ใบแจ้งซ่อม - ${j.id}</title>
+<style>
+  @page{ size:A4; margin:16mm; }
+  *{ box-sizing:border-box; }
+  body{ font-family:'Sarabun','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; }
+  .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:14px; margin-bottom:18px; }
+  .pf-brand{ display:flex; align-items:center; gap:12px; }
+  .pf-brand img{ height:46px; object-fit:contain; }
+  .pf-brand-name{ font-size:16px; font-weight:700; color:#0d9488; margin:0; }
+  .pf-brand-sub{ font-size:11px; color:#6b7280; margin:2px 0 0; }
+  .pf-doctitle{ text-align:right; }
+  .pf-doctitle h1{ font-size:19px; margin:0; letter-spacing:.5px; }
+  .pf-doctitle .pf-docno{ font-family:'Courier New',monospace; font-size:13px; color:#0d9488; font-weight:700; margin-top:3px; }
+  .pf-doctitle .pf-printed{ font-size:11px; color:#9ca3af; margin-top:3px; }
+  .pf-section-title{ font-size:13px; font-weight:700; color:#0d9488; text-transform:uppercase; letter-spacing:.5px; margin:0 0 8px; padding-bottom:4px; border-bottom:1px solid #d4d4d8; }
+  table.pf-grid{ width:100%; border-collapse:collapse; margin-bottom:22px; border:1px solid #d4d4d8; }
+  table.pf-grid td{ border:1px solid #e4e4e7; font-size:12.5px; padding:7px 10px; vertical-align:top; }
+  table.pf-grid td.pf-lbl{ width:22%; background:#f4f4f5; font-weight:600; color:#3f3f46; }
+  table.pf-grid td.pf-val{ width:28%; }
+  .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:12px 14px; margin-bottom:22px; font-size:13px; line-height:1.6; }
+  .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:12px; margin-bottom:4px; }
+  ${j.note ? '' : ''}
+  .pf-imgtitle{ font-weight:700; font-size:13px; margin:4px 0 8px; color:#3f3f46; }
+  .pf-imggrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .pf-imggrid img{ width:100%; max-height:250px; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
+  .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:36px; }
+  .pf-signbox{ text-align:center; font-size:12px; }
+  .pf-signline{ border-bottom:1px dotted #71717a; height:52px; margin-bottom:8px; }
+  .pf-signlbl{ font-weight:600; color:#3f3f46; }
+  .pf-signdate{ color:#9ca3af; font-size:11px; margin-top:4px; }
+  .pf-footer{ margin-top:30px; padding-top:10px; border-top:1px solid #e4e4e7; font-size:10.5px; color:#a1a1aa; text-align:center; }
+  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-signrow{ break-inside:avoid; } }
+</style></head>
+<body>
+  <div class="pf-header">
+    <div class="pf-brand">
+      <img src="${LOGO_BASE64}" onerror="this.style.display='none'">
+      <div>
+        <p class="pf-brand-name">SFC EXCELLENCE</p>
+        <p class="pf-brand-sub">ระบบบริหารจัดการงานซ่อมบำรุง</p>
+      </div>
+    </div>
+    <div class="pf-doctitle">
+      <h1>ใบแจ้งซ่อม</h1>
+      <div class="pf-docno">${j.id}</div>
+      <div class="pf-printed">พิมพ์เมื่อ ${stamp}</div>
+    </div>
+  </div>
+
+  <div class="pf-section-title">ข้อมูลใบแจ้งซ่อม</div>
+  <table class="pf-grid">${gridRowsHtml}</table>
+
+  <div class="pf-detailbox">
+    <div class="pf-detaillbl">รายละเอียดอาการ / ปัญหาที่แจ้ง</div>
+    ${escapeHtml(j.detail || '-')}
+  </div>
+  ${j.note ? `<div class="pf-detailbox"><div class="pf-detaillbl">หมายเหตุ</div>${escapeHtml(j.note)}</div>` : ''}
+
+  ${imgBlock('รูปภาพที่แจ้ง (ก่อนซ่อม)', imgsBefore)}
+  ${imgBlock('รูปหลังซ่อม', imgsAfter)}
+
+  <div class="pf-signrow">
+    <div class="pf-signbox">
+      <div class="pf-signline"></div>
+      <div class="pf-signlbl">ผู้แจ้งซ่อม</div>
+      <div class="pf-signdate">วันที่ ......../......../........</div>
+    </div>
+    <div class="pf-signbox">
+      <div class="pf-signline"></div>
+      <div class="pf-signlbl">ช่างผู้ปฏิบัติงาน</div>
+      <div class="pf-signdate">วันที่ ......../......../........</div>
+    </div>
+    <div class="pf-signbox">
+      <div class="pf-signline"></div>
+      <div class="pf-signlbl">ผู้ตรวจรับงาน</div>
+      <div class="pf-signdate">วันที่ ......../......../........</div>
+    </div>
+  </div>
+
+  <div class="pf-footer">เอกสารฉบับนี้ออกโดยระบบบริหารจัดการงานซ่อมบำรุง SFC Excellence — ${j.id}</div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { showToast('เบราว์เซอร์บล็อกป๊อปอัป กรุณาอนุญาตแล้วลองใหม่', 'error'); return; }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  // รอให้รูปโหลดครบ (หรือ error) ก่อนเปิดหน้าต่างพิมพ์ กันปัญหารูปยังไม่ขึ้นตอนสั่งพิมพ์
+  const triggerPrint = () => { win.focus(); win.print(); };
+  const allImgs = win.document.images;
+  if (allImgs.length === 0) {
+    setTimeout(triggerPrint, 300);
+  } else {
+    let loaded = 0;
+    const done = () => { loaded++; if (loaded >= allImgs.length) setTimeout(triggerPrint, 200); };
+    Array.from(allImgs).forEach(img => {
+      if (img.complete) done();
+      else { img.addEventListener('load', done); img.addEventListener('error', done); }
+    });
+  }
+}
+
+// ============================================================
 // ADMIN — ยกเลิกการตีกลับของช่าง (ส่งกลับเข้าคิว "รอซ่อม" ให้ช่างคนไหนก็รับต่อได้)
 // ============================================================
 function adminOpenUndoRejectModal() {
