@@ -907,7 +907,7 @@
 /* ── Charts Row v2 ── */
 .adm-charts-row-v2 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -917,6 +917,16 @@
   border-radius: var(--r);
   padding: 16px 18px;
   box-shadow: var(--shadow-sm);
+  transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s cubic-bezier(.2,.8,.2,1), border-color .2s;
+}
+.adm-chart-card-v2:hover {
+  border-color: var(--border2);
+  box-shadow: 0 10px 24px -8px rgba(16,24,40,.14);
+}
+/* การ์ดที่ต้องกินเต็มความกว้างแถว (เช่น กราฟรายเดือน) — ใช้ 1/-1 แทนเลข span ตายตัว
+   จะได้ทำงานถูกต้องไม่ว่า grid ตอนนั้นจะมีกี่คอลัมน์ (desktop/tablet/mobile) โดยไม่ต้องมี media query แยก */
+.adm-chart-full {
+  grid-column: 1 / -1;
 }
 .adm-chart-title-v2 {
   font-size: 11px;
@@ -980,12 +990,10 @@
 @media (max-width: 1100px) {
   .adm-kpi-bar-v2   { grid-template-columns: repeat(3, 1fr); }
   .adm-charts-row-v2 { grid-template-columns: 1fr 1fr; }
-  .adm-charts-row-v2 .adm-chart-card-v2[style*="span 2"] { grid-column: span 2; }
 }
 @media (max-width: 700px) {
   .adm-kpi-bar-v2   { grid-template-columns: repeat(2, 1fr); }
   .adm-charts-row-v2 { grid-template-columns: 1fr; }
-  .adm-charts-row-v2 .adm-chart-card-v2[style*="span 2"] { grid-column: span 1; }
 }
 /* ── TE Panel Modal Overlay ── */
 .tp-modal-overlay {
