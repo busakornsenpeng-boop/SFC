@@ -4342,35 +4342,34 @@ function exportJobDetailPDF() {
   const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <title>ใบแจ้งซ่อม - ${j.id}</title>
 <style>
-  @page{ size:A4; margin:16mm; }
+  @page{ size:A4; margin:12mm; }
   *{ box-sizing:border-box; }
-  body{ font-family:'Sarabun','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; }
-  .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:14px; margin-bottom:18px; }
-  .pf-brand{ display:flex; align-items:center; gap:12px; }
-  .pf-brand img{ height:46px; object-fit:contain; }
-  .pf-brand-name{ font-size:16px; font-weight:700; color:#0d9488; margin:0; }
-  .pf-brand-sub{ font-size:11px; color:#6b7280; margin:2px 0 0; }
+  body{ font-family:'Sarabun','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; font-size:12px; }
+  .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:8px; margin-bottom:12px; }
+  .pf-brand{ display:flex; align-items:center; gap:10px; }
+  .pf-brand img{ height:36px; object-fit:contain; }
+  .pf-brand-name{ font-size:15px; font-weight:700; color:#0d9488; margin:0; }
+  .pf-brand-sub{ font-size:10px; color:#6b7280; margin:2px 0 0; }
   .pf-doctitle{ text-align:right; }
-  .pf-doctitle h1{ font-size:19px; margin:0; letter-spacing:.5px; }
-  .pf-doctitle .pf-docno{ font-family:'Courier New',monospace; font-size:13px; color:#0d9488; font-weight:700; margin-top:3px; }
-  .pf-doctitle .pf-printed{ font-size:11px; color:#9ca3af; margin-top:3px; }
-  .pf-section-title{ font-size:13px; font-weight:700; color:#0d9488; text-transform:uppercase; letter-spacing:.5px; margin:0 0 8px; padding-bottom:4px; border-bottom:1px solid #d4d4d8; }
-  table.pf-grid{ width:100%; border-collapse:collapse; margin-bottom:22px; border:1px solid #d4d4d8; }
-  table.pf-grid td{ border:1px solid #e4e4e7; font-size:12.5px; padding:7px 10px; vertical-align:top; }
+  .pf-doctitle h1{ font-size:17px; margin:0; letter-spacing:.5px; }
+  .pf-doctitle .pf-docno{ font-family:'Courier New',monospace; font-size:12px; color:#0d9488; font-weight:700; margin-top:2px; }
+  .pf-doctitle .pf-printed{ font-size:10px; color:#9ca3af; margin-top:2px; }
+  .pf-section-title{ font-size:12px; font-weight:700; color:#0d9488; text-transform:uppercase; letter-spacing:.5px; margin:0 0 6px; padding-bottom:3px; border-bottom:1px solid #d4d4d8; }
+  table.pf-grid{ width:100%; border-collapse:collapse; margin-bottom:12px; border:1px solid #d4d4d8; }
+  table.pf-grid td{ border:1px solid #e4e4e7; font-size:11.5px; padding:4px 9px; vertical-align:top; }
   table.pf-grid td.pf-lbl{ width:22%; background:#f4f4f5; font-weight:600; color:#3f3f46; }
   table.pf-grid td.pf-val{ width:28%; }
-  .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:12px 14px; margin-bottom:22px; font-size:13px; line-height:1.6; }
-  .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:12px; margin-bottom:4px; }
-  ${j.note ? '' : ''}
-  .pf-imgtitle{ font-weight:700; font-size:13px; margin:4px 0 8px; color:#3f3f46; }
-  .pf-imggrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
-  .pf-imggrid img{ width:100%; max-height:250px; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
-  .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:36px; }
-  .pf-signbox{ text-align:center; font-size:12px; }
-  .pf-signline{ border-bottom:1px dotted #71717a; height:52px; margin-bottom:8px; }
+  .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:8px 12px; margin-bottom:10px; font-size:11.5px; line-height:1.5; }
+  .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:11px; margin-bottom:2px; }
+  .pf-imgtitle{ font-weight:700; font-size:11.5px; margin:4px 0 6px; color:#3f3f46; }
+  .pf-imggrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+  .pf-imggrid img{ width:100%; height:120px; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
+  .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:20px; }
+  .pf-signbox{ text-align:center; font-size:11px; }
+  .pf-signline{ border-bottom:1px dotted #71717a; height:36px; margin-bottom:6px; }
   .pf-signlbl{ font-weight:600; color:#3f3f46; }
-  .pf-signdate{ color:#9ca3af; font-size:11px; margin-top:4px; }
-  .pf-footer{ margin-top:30px; padding-top:10px; border-top:1px solid #e4e4e7; font-size:10.5px; color:#a1a1aa; text-align:center; }
+  .pf-signdate{ color:#9ca3af; font-size:10px; margin-top:3px; }
+  .pf-footer{ margin-top:16px; padding-top:8px; border-top:1px solid #e4e4e7; font-size:10px; color:#a1a1aa; text-align:center; }
   @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-signrow{ break-inside:avoid; } }
 </style></head>
 <body>
