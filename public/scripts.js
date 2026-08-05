@@ -2148,10 +2148,13 @@ function initAdminDashboard(){
       return '#71717a';
     };
     const opTypeEntries=Object.entries(stats.opTypeData).sort((a,b)=>b[1]-a[1]);
+    // คลิกที่กราฟนี้เพื่อดาวน์โหลดข้อมูล "แจ้งซ่อมแยกตามประเภทงาน" เป็นไฟล์ Excel
+    oc.style.cursor='pointer';
+    oc.title='คลิกที่กราฟเพื่อดาวน์โหลด Excel';
     chartOpTypeInstance=new Chart(oc,chartCfg('bar',{
       labels:opTypeEntries.map(([l])=>l),
       datasets:[{label:'จำนวน',data:opTypeEntries.map(([,v])=>v),backgroundColor:opTypeEntries.map(([l])=>opColorOf(l)),borderColor:opTypeEntries.map(([l])=>opColorOf(l)),borderWidth:1,borderRadius:5,borderSkipped:false}]
-    },{plugins:{legend:{display:false}}}));
+    },{plugins:{legend:{display:false}},onClick:()=>exportOpTypeChartExcel(opTypeEntries)}));
   }
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
     const isDay = monthlyChartGranularity === 'day';
@@ -2307,6 +2310,48 @@ function goToRepairsFiltered(kind, dept){
 }
 
 function setFltBtn(btn){document.querySelectorAll('.adm-flt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+// ── ส่งออกกราฟ "แจ้งซ่อมแยกตามประเภทงาน" เป็นไฟล์ Excel (คลิกที่กราฟเพื่อดาวน์โหลด) ──
+async function exportOpTypeChartExcel(opTypeEntries){
+  if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
+  if(!opTypeEntries || !opTypeEntries.length){ showToast('ยังไม่มีข้อมูลให้ส่งออก','error'); return; }
+
+  showLoading('กำลังเตรียมไฟล์ Excel...');
+  try{
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SFC Maintenance Service';
+    workbook.created = new Date();
+
+    const headerFill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF0D9488' } };
+    const headerFont = { bold:true, color:{ argb:'FFFFFFFF' }, name:'Arial' };
+    const styleHeaderRow = row => { row.font = headerFont; row.height = 22; row.eachCell(c => { c.fill = headerFill; c.alignment = { vertical:'middle', horizontal:'center', wrapText:true }; }); };
+
+    const sheet = workbook.addWorksheet('แยกตามประเภทงาน');
+    sheet.columns = [ { header:'ประเภทงาน', key:'k', width:32 }, { header:'จำนวน', key:'v', width:14 } ];
+    styleHeaderRow(sheet.getRow(1));
+    const total = opTypeEntries.reduce((sum,[,v])=>sum+v,0);
+    opTypeEntries.forEach(([k,v]) => sheet.addRow({ k, v }));
+    const totalRow = sheet.addRow({ k:'รวมทั้งหมด', v: total });
+    totalRow.font = { bold:true };
+    sheet.getColumn('v').alignment = { horizontal:'center' };
+
+    const buf = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const stamp = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()+543}`;
+    const a = document.createElement('a');
+    a.href = url; a.download = `แจ้งซ่อมแยกตามประเภทงาน_${stamp}.xlsx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('ส่งออก Excel สำเร็จ', 'success');
+  }catch(err){
+    console.error('[Export OpType Chart Excel] error:', err);
+    showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel', 'error');
+  }finally{
+    hideLoading();
+  }
+}
 // ── ส่งออกภาพรวม Dashboard (KPI / สัดส่วนปัญหา / แผนก / แนวโน้มรายเดือน / Leaderboard) เป็นไฟล์ Excel ──
 async function exportAdminDashboardExcel(){
   if(typeof ExcelJS === 'undefined'){ showToast('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต','error'); return; }
