@@ -995,8 +995,8 @@
       <div class="modal-header">
         <span class="modal-title" id="jdm-title">รายละเอียดใบแจ้งซ่อม</span>
         <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn-action" style="font-size:12px;padding:6px 10px" onclick="openUpdateHistoryModal()" title="ดูประวัติการอัปเดตทุกรอบของงานนี้"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>
-          <button class="btn-action" style="font-size:12px;padding:6px 10px" onclick="exportJobDetailPDF()" title="ดาวน์โหลด/พิมพ์ใบงานเป็น PDF"><i class="ion-ios-download"></i> ส่งออก PDF</button>
+          <button class="btn-action d-none" id="jdm-history-btn" style="font-size:12px;padding:6px 10px" onclick="openUpdateHistoryModal()" title="ดูประวัติการอัปเดตทุกรอบของงานนี้"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>
+          <button class="btn-action d-none" id="jdm-export-pdf-btn" style="font-size:12px;padding:6px 10px" onclick="exportJobDetailPDF()" title="ดาวน์โหลด/พิมพ์ใบงานเป็น PDF"><i class="ion-ios-download"></i> ส่งออก PDF</button>
           <button class="modal-close" onclick="closeModal('job-detail-modal')"><i class="ion-ios-close"></i></button>
         </div>
       </div>

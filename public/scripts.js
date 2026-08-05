@@ -4268,6 +4268,11 @@ function viewJobDetail(id) {
     .forEach(sid => document.getElementById(sid)?.classList.add('d-none'));
 
   const role = currentUser?.role;
+
+  // ปุ่ม "ประวัติอัปเดต" / "ส่งออก PDF" — ซ่อนสำหรับผู้แจ้งซ่อม (role 'user') โชว์เฉพาะช่าง/วิศวกร/แอดมิน
+  const showStaffBtns = role && role !== 'user';
+  document.getElementById('jdm-history-btn')?.classList.toggle('d-none', !showStaffBtns);
+  document.getElementById('jdm-export-pdf-btn')?.classList.toggle('d-none', !showStaffBtns);
   if (isRepairStaff(role) && j.status==='รอซ่อม') {
     document.getElementById('tech-action-accept')?.classList.remove('d-none');
   }
