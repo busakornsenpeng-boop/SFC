@@ -31,7 +31,7 @@ let calendarSelectedDate = null;
 let pmSubView = 'list'; // sub-view ปัจจุบันของแท็บ "จัดการ PM": 'list' (ตาราง) หรือ 'cal' (ปฏิทิน)
 let selectedJobForAction = null;
 let uploadedFilesBase64 = [];
-let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = null;
+let chartSideInstance = null, chartDeptInstance = null, chartMonthlyInstance = null, chartOpTypeInstance = null;
 // 'month' = ดูแนวโน้มแบบรายเดือน (ค่าเริ่มต้น), 'day' = ดูแนวโน้มแบบรายวัน
 let monthlyChartGranularity = 'month';
 const THAI_MONTHS_ABBR = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -434,10 +434,10 @@ function handleLogout() {
   const ud = document.getElementById('username-display');
   if(ud) { ud.value = ''; ud.placeholder = 'กรอก username'; }
   syncUsername('');
-  [chartSideInstance,chartDeptInstance,chartMonthlyInstance].forEach(c=>{
+  [chartSideInstance,chartDeptInstance,chartMonthlyInstance,chartOpTypeInstance].forEach(c=>{
     try{c&&c.destroy();}catch(e){}
   });
-  chartSideInstance=chartDeptInstance=chartMonthlyInstance=null;
+  chartSideInstance=chartDeptInstance=chartMonthlyInstance=chartOpTypeInstance=null;
 }
 
 // ============================================================
@@ -2080,7 +2080,7 @@ function calculateAdminStats(jobs){
   const bounced = jobs.filter(j=>isBouncedStatus(j.status)).length;
   const total = jobs.length;
   const nonBounced = jobs.filter(j=>!isBouncedStatus(j.status));
-  const s={total,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},monthlyData:{},dailyData:{}};nonBounced.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+  const s={total,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},opTypeData:{},monthlyData:{},dailyData:{}};nonBounced.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;const opType=j.opType||'ไม่ระบุ';s.opTypeData[opType]=(s.opTypeData[opType]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -2133,6 +2133,15 @@ function initAdminDashboard(){
   const chartCfg=(type,data,extra={})=>({type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a1a1aa',font:{size:11},boxWidth:10}}},scales:type==='bar'||type==='line'?{x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}:undefined,...extra}});
   if(chartSideInstance)chartSideInstance.destroy();const sc=sv('chart-side');if(sc)chartSideInstance=new Chart(sc,chartCfg('doughnut',{labels:Object.keys(stats.sideData),datasets:[{data:Object.values(stats.sideData),backgroundColor:palette,borderColor:'#18181b',borderWidth:2,hoverOffset:4}]},{plugins:{legend:{position:'bottom',labels:{color:'#a1a1aa',font:{size:10},boxWidth:8,padding:10}}}}));
   if(chartDeptInstance)chartDeptInstance.destroy();const dc=sv('chart-dept');if(dc){const deptEntries=Object.entries(stats.deptData).sort((a,b)=>b[1]-a[1]);chartDeptInstance=new Chart(dc,chartCfg('bar',{labels:deptEntries.map(([l])=>l.split(' ')[0]),datasets:[{label:'จำนวน',data:deptEntries.map(([,v])=>v),backgroundColor:'rgba(20,184,166,0.55)',borderColor:'#14b8a6',borderWidth:1,borderRadius:5,borderSkipped:false}]}));}
+  // กราฟแท่งประเภทงานซ่อม — ซ่อมฉุกเฉิน (Break Down) / ซ่อมตามอาการ (Corrective) / ปรับปรุงประสิทธิภาพ (Modify)
+  if(chartOpTypeInstance)chartOpTypeInstance.destroy();const oc=sv('chart-optype');if(oc){
+    const opColor={'ซ่อมฉุกเฉิน (Break Down)':'#ef4444','ซ่อมตามอาการ (Corrective)':'#3b82f6','ปรับปรุงประสิทธิภาพ (Modify)':'#a855f7'};
+    const opTypeEntries=Object.entries(stats.opTypeData).sort((a,b)=>b[1]-a[1]);
+    chartOpTypeInstance=new Chart(oc,chartCfg('bar',{
+      labels:opTypeEntries.map(([l])=>l),
+      datasets:[{label:'จำนวน',data:opTypeEntries.map(([,v])=>v),backgroundColor:opTypeEntries.map(([l])=>opColor[l]||'#71717a'),borderColor:opTypeEntries.map(([l])=>opColor[l]||'#71717a'),borderWidth:1,borderRadius:5,borderSkipped:false}]
+    },{plugins:{legend:{display:false}}}));
+  }
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
     const isDay = monthlyChartGranularity === 'day';
     const dataMap = isDay ? stats.dailyData : stats.monthlyData;
