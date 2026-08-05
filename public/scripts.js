@@ -2133,13 +2133,20 @@ function initAdminDashboard(){
   const chartCfg=(type,data,extra={})=>({type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a1a1aa',font:{size:11},boxWidth:10}}},scales:type==='bar'||type==='line'?{x:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}:undefined,...extra}});
   if(chartSideInstance)chartSideInstance.destroy();const sc=sv('chart-side');if(sc)chartSideInstance=new Chart(sc,chartCfg('doughnut',{labels:Object.keys(stats.sideData),datasets:[{data:Object.values(stats.sideData),backgroundColor:palette,borderColor:'#18181b',borderWidth:2,hoverOffset:4}]},{plugins:{legend:{position:'bottom',labels:{color:'#a1a1aa',font:{size:10},boxWidth:8,padding:10}}}}));
   if(chartDeptInstance)chartDeptInstance.destroy();const dc=sv('chart-dept');if(dc){const deptEntries=Object.entries(stats.deptData).sort((a,b)=>b[1]-a[1]);chartDeptInstance=new Chart(dc,chartCfg('bar',{labels:deptEntries.map(([l])=>l.split(' ')[0]),datasets:[{label:'จำนวน',data:deptEntries.map(([,v])=>v),backgroundColor:'rgba(20,184,166,0.55)',borderColor:'#14b8a6',borderWidth:1,borderRadius:5,borderSkipped:false}]}));}
-  // กราฟแท่งประเภทงานซ่อม — ซ่อมฉุกเฉิน (Break Down) / ซ่อมตามอาการ (Corrective) / ปรับปรุงประสิทธิภาพ (Modify)
+  // กราฟแท่งประเภทงานซ่อม — ซ่อมฉุกเฉิน (Break Down) / ซ่อมตามอาการ (Corrective) / ปรับปรุงประสิทธิภาพ (Improvement)
   if(chartOpTypeInstance)chartOpTypeInstance.destroy();const oc=sv('chart-optype');if(oc){
-    const opColor={'ซ่อมฉุกเฉิน (Break Down)':'#ef4444','ซ่อมตามอาการ (Corrective)':'#3b82f6','ปรับปรุงประสิทธิภาพ (Modify)':'#a855f7'};
+    // จับคู่สีจากคำไทยที่นำหน้า (ไม่สนใจคำอังกฤษต่อท้าย) กันปัญหาข้อมูลเก่าที่เคยบันทึกไว้เป็น "(Modify)"
+    // ก่อนเปลี่ยนชื่อ ยังจับคู่สีม่วงได้ถูกต้องเหมือนงานใหม่ที่บันทึกเป็น "(Improvement)"
+    const opColorOf=(label)=>{
+      if(label.includes('ฉุกเฉิน'))return '#ef4444';
+      if(label.includes('ตามอาการ'))return '#3b82f6';
+      if(label.includes('ปรับปรุงประสิทธิภาพ'))return '#a855f7';
+      return '#71717a';
+    };
     const opTypeEntries=Object.entries(stats.opTypeData).sort((a,b)=>b[1]-a[1]);
     chartOpTypeInstance=new Chart(oc,chartCfg('bar',{
       labels:opTypeEntries.map(([l])=>l),
-      datasets:[{label:'จำนวน',data:opTypeEntries.map(([,v])=>v),backgroundColor:opTypeEntries.map(([l])=>opColor[l]||'#71717a'),borderColor:opTypeEntries.map(([l])=>opColor[l]||'#71717a'),borderWidth:1,borderRadius:5,borderSkipped:false}]
+      datasets:[{label:'จำนวน',data:opTypeEntries.map(([,v])=>v),backgroundColor:opTypeEntries.map(([l])=>opColorOf(l)),borderColor:opTypeEntries.map(([l])=>opColorOf(l)),borderWidth:1,borderRadius:5,borderSkipped:false}]
     },{plugins:{legend:{display:false}}}));
   }
   if(chartMonthlyInstance)chartMonthlyInstance.destroy();const mc=sv('chart-monthly');if(mc){
