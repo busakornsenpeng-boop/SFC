@@ -253,6 +253,13 @@ router.post('/', requireAuth, async (req, res) => {
       spreadsheetId: SPREADSHEET_ID,
       range: 'Repairs!A:T',
       valueInputOption: 'USER_ENTERED',
+      // ── บังคับให้เพิ่ม "แถวใหม่จริงๆ" เสมอ ──
+      // เดิมไม่ได้ระบุ insertDataOption ทำให้ default เป็น OVERWRITE: ถ้าแถวถัดไปที่ Sheets
+      // เลือกให้เขียนมีข้อมูลค้างอยู่บางคอลัมน์ในช่วง A:T (ไม่ว่างสนิททั้งแถว) มันจะเริ่มเขียน
+      // ที่ "คอลัมน์ว่างตัวแรก" ของแถวนั้นแทนที่จะเริ่มที่คอลัมน์ A เสมอ — ทำให้ข้อมูลงานใหม่
+      // (jobId/ผู้แจ้ง/แผนก/เครื่องจักร/ระบบ) เคยไปโผล่ผิดที่ที่คอลัมน์ R เป็นต้นไปแทน A-E
+      // INSERT_ROWS แก้ปัญหานี้โดยแทรกแถวใหม่เสมอ ไม่พยายามเติมช่องว่างในแถวเดิม
+      insertDataOption: 'INSERT_ROWS',
       requestBody: {
         values: [[
           jobId, requester, dept, machine, side, op_type,
