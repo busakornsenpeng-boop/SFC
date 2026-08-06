@@ -99,7 +99,7 @@ async function generateJobId(dept) {
   // และ 007 หายไปเพราะถูกลบ) — ใช้ max(เลขรันที่มีอยู่จริง) แทน จะไม่มีทางออกเลขซ้ำจากการลบงานอีก
   const res  = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:A5000',
+    range: 'Repairs!A2:A',
   });
   const rows = res.data.values || [];
   let maxRunning = 0;
@@ -142,7 +142,7 @@ async function processImages(images, prefix = 'img') {
 async function getAllRepairs() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:X1000',
+    range: 'Repairs!A2:X',
   });
   const rows = res.data.values || [];
   return rows
@@ -299,7 +299,7 @@ router.post('/:id/accept', requireRole('technician', 'admin'), async (req, res) 
     const { technician } = req.body;
     if (!technician) return res.status(400).json({ success: false, message: 'กรุณาระบุชื่อช่าง' });
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -343,7 +343,7 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
   try {
     const { id } = req.params;
     const { status, note, imgAfter, updatedBy } = req.body;
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -471,7 +471,7 @@ router.post('/:id/qc', requireRole('user', 'admin'), async (req, res) => {
     const { id } = req.params;
     const { result, by, note } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -532,7 +532,7 @@ router.post('/:id/reject', requireRole('technician', 'admin'), async (req, res) 
     if (!reason || !reason.trim())
       return res.status(400).json({ success: false, message: 'กรุณาระบุเหตุผลที่ตีกลับ' });
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:T' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -589,7 +589,7 @@ router.post('/:id/resubmit', requireAuth, async (req, res) => {
     if (!detail || !detail.trim())
       return res.status(400).json({ success: false, message: 'กรุณากรอกรายละเอียดที่แก้ไข' });
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -665,7 +665,7 @@ router.post('/:id/admin-undo-reject', requireRole('admin'), async (req, res) => 
     const { id } = req.params;
     const { note, by } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -720,7 +720,7 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     const { id } = req.params;
     const { status, note, technician, imgAfter, updatedBy } = req.body;
 
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบงาน' });
@@ -849,7 +849,7 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
 router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X1000' });
+    const getRes   = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:X' });
     const rows     = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === id);
     if (rowIndex === -1) return res.json({ success: false, message: 'ไม่พบรายการนี้' });
