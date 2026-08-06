@@ -84,7 +84,23 @@ async function writeRepairUpdate(updateData) {
   });
 }
 
-async function generateJobId(dept) {
+// ── ดึงข้อมูลแถวทั้งหมด A:X ครั้งเดียว ──
+// ใช้ A:X (ไม่ใช่แค่ A) เพราะ soft-delete (route DELETE /:id) เคลียร์ค่าทั้งแถว A:X พร้อมกัน
+// ดังนั้นแถวที่ "ว่างจริง" ต้องเช็คทั้งช่วง A:X ไม่ใช่แค่คอลัมน์ A ถึงจะนับแถวว่าง/ไม่ว่างถูกต้อง
+async function getRepairsRows() {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Repairs!A2:X5000',
+  });
+  return res.data.values || [];
+}
+
+// หาเลขรันสูงสุดที่เคยออกไปแล้วในเดือน+ปีนี้ (รวมทุกแผนก) แล้ว +1
+// ── เดิมใช้วิธี "นับจำนวนแถวที่เหลืออยู่ในชีต" +1 ซึ่งผิด เพราะ DELETE ใช้ soft delete
+// (เคลียร์ค่าทั้งแถว) พองานถูกลบ จำนวนแถวจะลดลง แต่เลขรันที่เคยออกไปแล้วของงานอื่นที่ยังไม่ถูกลบ
+// ยังคงค้างอยู่ในชีต ทำให้คำนวณ count+1 ได้เลขที่ซ้ำกับงานที่มีอยู่แล้วจริง (เช่น 008 ออกซ้ำหลายครั้ง
+// และ 007 หายไปเพราะถูกลบ) — ใช้ max(เลขรันที่มีอยู่จริง) แทน จะไม่มีทางออกเลขซ้ำจากการลบงานอีก
+function computeNextJobId(rows, dept) {
   const now  = new Date();
   const dd   = String(now.getDate()).padStart(2, '0');
   const mm   = String(now.getMonth() + 1).padStart(2, '0');
@@ -92,16 +108,6 @@ async function generateJobId(dept) {
   const dateStr    = `${dd}${mm}${yy}`;   // 300626
   const deptPrefix = (dept || 'GEN').replace(/\s+/g, '').slice(0, 3).toUpperCase();
 
-  // หาเลขรันสูงสุดที่เคยออกไปแล้วในเดือน+ปีนี้ (รวมทุกแผนก) แล้ว +1
-  // ── เดิมใช้วิธี "นับจำนวนแถวที่เหลืออยู่ในชีต" +1 ซึ่งผิด เพราะ DELETE ใช้ soft delete
-  // (เคลียร์ค่าทั้งแถว) พองานถูกลบ จำนวนแถวจะลดลง แต่เลขรันที่เคยออกไปแล้วของงานอื่นที่ยังไม่ถูกลบ
-  // ยังคงค้างอยู่ในชีต ทำให้คำนวณ count+1 ได้เลขที่ซ้ำกับงานที่มีอยู่แล้วจริง (เช่น 008 ออกซ้ำหลายครั้ง
-  // และ 007 หายไปเพราะถูกลบ) — ใช้ max(เลขรันที่มีอยู่จริง) แทน จะไม่มีทางออกเลขซ้ำจากการลบงานอีก
-  const res  = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:A5000',
-  });
-  const rows = res.data.values || [];
   let maxRunning = 0;
   rows.forEach(r => {
     const parts = (r[0] || '').split('-');
@@ -236,30 +242,31 @@ router.post('/', requireAuth, async (req, res) => {
 
     const dateStr = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }); // ✅ บรรทัดเดียว
 
-    // ── รันขนาน: หา jobId (อ่าน Sheet) กับอัปโหลดรูปไป Cloudinary พร้อมกัน ──
+    // ── รันขนาน: อ่าน Sheet (ใช้หา jobId + แถวว่างถัดไป) กับอัปโหลดรูปไป Cloudinary พร้อมกัน ──
     // เดิมทำทีละอย่าง (jobId ก่อน แล้วค่อยรอรูปอัปโหลดเสร็จ) ทำให้ request รวมช้า
     // จนชนกับ watchdog timeout ฝั่ง frontend (20 วิ) โดยเฉพาะตอนแนบรูปจากมือถือ
     // ใช้ prefix ชั่วคราวสำหรับชื่อไฟล์ (ไม่ต้องพึ่ง jobId เพราะยังไม่รู้ตอนนี้)
     const tempPrefix = `${(dept || 'GEN').replace(/\s+/g, '')}_${Date.now()}`;
-    const [jobId, imgUrls] = await Promise.all([
-      generateJobId(dept),                          // ✅ PDF-001-300626
+    const [rows, imgUrls] = await Promise.all([
+      getRepairsRows(),
       processImages(imgArr, `${tempPrefix}_before`),
     ]);
+    const jobId  = computeNextJobId(rows, dept);      // ✅ PDF-001-300626
     const imgStr = JSON.stringify(imgUrls);
 
     _recentSubmits.set(dupKey, { jobId, expiresAt: Date.now() + DUP_GUARD_MS });
 
-    await sheets.spreadsheets.values.append({
+    // ── เขียนแถวใหม่ที่ตำแหน่งชัดเจน (A{แถว}:T{แถว}) แทน append() ──
+    // เดิมใช้ append() + insertDataOption:'INSERT_ROWS' แต่ Google Sheets ยังเดา "ตาราง" ผิด
+    // เป็นบางครั้ง แล้วเริ่มเขียนที่คอลัมน์กลางชีท (เช่น P) แทนคอลัมน์ A ทำให้ข้อมูลงานใหม่
+    // (jobId/ผู้แจ้ง/แผนก/เครื่องจักร/ระบบ) ไปโผล่ผิดที่ผิดตำแหน่งซ้ำๆ — เปลี่ยนมาคำนวณเลขแถว
+    // ว่างเองจาก rows.length (นับจาก A:X ที่ดึงมาแล้วด้านบน) แล้วยิง update() ระบุ range ตรงๆ แทน
+    // วิธีนี้ Sheets ไม่ต้องเดาตำแหน่งตารางเองเลย เขียนตรงเซลล์ที่ระบุเป๊ะๆ ทุกครั้ง
+    const nextRow = rows.length + 2; // +2 เพราะข้อมูลเริ่มแถว 2 (แถว 1 = header)
+    await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'Repairs!A:T',
+      range: `Repairs!A${nextRow}:T${nextRow}`,
       valueInputOption: 'USER_ENTERED',
-      // ── บังคับให้เพิ่ม "แถวใหม่จริงๆ" เสมอ ──
-      // เดิมไม่ได้ระบุ insertDataOption ทำให้ default เป็น OVERWRITE: ถ้าแถวถัดไปที่ Sheets
-      // เลือกให้เขียนมีข้อมูลค้างอยู่บางคอลัมน์ในช่วง A:T (ไม่ว่างสนิททั้งแถว) มันจะเริ่มเขียน
-      // ที่ "คอลัมน์ว่างตัวแรก" ของแถวนั้นแทนที่จะเริ่มที่คอลัมน์ A เสมอ — ทำให้ข้อมูลงานใหม่
-      // (jobId/ผู้แจ้ง/แผนก/เครื่องจักร/ระบบ) เคยไปโผล่ผิดที่ที่คอลัมน์ R เป็นต้นไปแทน A-E
-      // INSERT_ROWS แก้ปัญหานี้โดยแทรกแถวใหม่เสมอ ไม่พยายามเติมช่องว่างในแถวเดิม
-      insertDataOption: 'INSERT_ROWS',
       requestBody: {
         values: [[
           jobId, requester, dept, machine, side, op_type,
