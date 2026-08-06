@@ -2427,7 +2427,14 @@ async function exportAdminDashboardExcel(){
     Object.entries(stats.deptData).forEach(([k,v]) => sDept.addRow({ k, v }));
     sDept.getColumn('v').alignment = { horizontal:'center' };
 
-    // ── Sheet 4: แนวโน้มรายเดือน ──
+    // ── Sheet 4: แจ้งซ่อมแยกตามประเภทงาน ──
+    const sOpType = workbook.addWorksheet('แยกตามประเภทงาน');
+    sOpType.columns = [ { header:'ประเภทงาน', key:'k', width:32 }, { header:'จำนวน', key:'v', width:14 } ];
+    styleHeaderRow(sOpType.getRow(1));
+    Object.entries(stats.opTypeData).forEach(([k,v]) => sOpType.addRow({ k, v }));
+    sOpType.getColumn('v').alignment = { horizontal:'center' };
+
+    // ── Sheet 5: แนวโน้มรายเดือน ──
     const sMonthly = workbook.addWorksheet('แนวโน้มรายเดือน');
     sMonthly.columns = [ { header:'เดือน/ปี', key:'k', width:16 }, { header:'จำนวนแจ้งซ่อม', key:'v', width:18 } ];
     styleHeaderRow(sMonthly.getRow(1));
@@ -2435,7 +2442,7 @@ async function exportAdminDashboardExcel(){
     mKeys.forEach(k => sMonthly.addRow({ k, v: stats.monthlyData[k] }));
     sMonthly.getColumn('v').alignment = { horizontal:'center' };
 
-    // ── Sheet 5: Leaderboard ช่างซ่อม ──
+    // ── Sheet 6: Leaderboard ช่างซ่อม ──
     const sLeader = workbook.addWorksheet('Leaderboard ช่าง', { views:[{ state:'frozen', ySplit:1 }] });
     sLeader.columns = [
       { header:'#',            key:'rank',  width:6  },
@@ -2450,6 +2457,65 @@ async function exportAdminDashboardExcel(){
     styleHeaderRow(sLeader.getRow(1));
     leaders.forEach((t,i) => sLeader.addRow({ rank:i+1, name:t.name, total:t.total, done:t.done, closed:t.closed, back:t.back, avgFix:t.avgFixText, score:t.perfScore }));
     ['rank','total','done','closed','back','avgFix','score'].forEach(k => sLeader.getColumn(k).alignment = { horizontal:'center' });
+
+    // ── ซีทรายละเอียดงาน (list งานจริง) แยกตาม: ประเภทงาน / ระบบ / สถานะ ──
+    // ชื่อซีทใน Excel ห้ามมีอักขระ \ / ? * [ ] : และห้ามยาวเกิน 31 ตัวอักษร + ห้ามซ้ำกัน
+    const usedSheetNames = new Set(['ภาพรวม','สัดส่วนด้านปัญหา','แยกตามแผนก','แยกตามประเภทงาน','แนวโน้มรายเดือน','Leaderboard ช่าง']);
+    const excelSafeSheetName = (name) => {
+      let n = String(name).replace(/[\\\/\?\*\[\]:]/g, '').trim() || 'Sheet';
+      if (n.length > 31) n = n.slice(0, 31);
+      let base = n, i = 2;
+      while (usedSheetNames.has(n)) { const suf = `(${i})`; n = base.slice(0, 31 - suf.length) + suf; i++; }
+      usedSheetNames.add(n);
+      return n;
+    };
+    const addJobListSheet = (title, jobsList) => {
+      if (!jobsList.length) return; // ไม่มีงานในหมวดนี้ ข้ามไป ไม่ต้องสร้างซีทเปล่า
+      const sh = workbook.addWorksheet(excelSafeSheetName(title), { views:[{ state:'frozen', ySplit:1 }] });
+      sh.columns = [
+        { header:'รหัสงาน',           key:'id',      width:20 },
+        { header:'เครื่องจักร',       key:'machine', width:20 },
+        { header:'แผนก',              key:'dept',    width:24 },
+        { header:'วันที่แจ้ง',        key:'date',    width:20 },
+        { header:'รายละเอียด',        key:'detail',  width:38 },
+        { header:'ช่างผู้รับผิดชอบ',  key:'tech',    width:18 },
+        { header:'สถานะ',             key:'status',  width:20 },
+      ];
+      styleHeaderRow(sh.getRow(1));
+      jobsList.forEach(j => sh.addRow({ id:j.id, machine:j.machine, dept:j.dept, date:j.date, detail:j.detail, tech:j.technician||'-', status:j.status }));
+      ['id','dept','date','tech','status'].forEach(k => sh.getColumn(k).alignment = { horizontal:'center' });
+    };
+
+    // แยกตามประเภทงาน (ใช้การจัดกลุ่มแบบเดียวกับ calculateAdminStats เพื่อให้ตัวเลขตรงกับซีทสรุป)
+    const opTypeGroups = {};
+    filtered.forEach(j => {
+      let opType = j.opType || 'ไม่ระบุ';
+      if (opType.includes('ปรับปรุงประสิทธิภาพ')) opType = 'ปรับปรุงประสิทธิภาพ (Improvement)';
+      (opTypeGroups[opType] = opTypeGroups[opType] || []).push(j);
+    });
+    Object.entries(opTypeGroups).forEach(([opType, list]) => addJobListSheet(opType, list));
+
+    // แยกตามแผนก
+    const deptGroups = {};
+    filtered.forEach(j => {
+      const dept = j.dept || 'อื่นๆ';
+      (deptGroups[dept] = deptGroups[dept] || []).push(j);
+    });
+    Object.entries(deptGroups).forEach(([dept, list]) => addJobListSheet(dept, list));
+
+    // แยกตามระบบ (ไฟฟ้า/ลม/เครื่องกล ฯลฯ)
+    const sideGroups = {};
+    filtered.forEach(j => {
+      const side = j.side || 'อื่นๆ';
+      (sideGroups[side] = sideGroups[side] || []).push(j);
+    });
+    Object.entries(sideGroups).forEach(([side, list]) => addJobListSheet(side, list));
+
+    // แยกตามสถานะ (ใช้ matcher เดียวกับที่ใช้ตอนคลิกการ์ด KPI ในหน้า dashboard — DBM_CONFIG)
+    ['waiting','working','donerepair','closed','bounced'].forEach(k => {
+      const cfg = DBM_CONFIG[k];
+      addJobListSheet(cfg.label, filtered.filter(cfg.match));
+    });
 
     const buf = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
