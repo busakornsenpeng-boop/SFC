@@ -1175,8 +1175,7 @@ ${(() => {
     ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
 })()}`;
   let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>
-    <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>
-    <button class="tp-mact-btn" onclick="exportJobDetailPDF('${j.id}')"><i class="ion-ios-download"></i> ส่งออก PDF</button>`;
+    <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>`;
   if(j.status==='รอซ่อม') acts+=`<button class="tp-mact-btn tp-mact-accept" onclick="tpAcceptJob('${j.id}');tpCloseModal()"><i class="ion-ios-hand"></i> รับงาน</button>`;
   document.getElementById('tp-modal-actions').innerHTML=acts;
   document.getElementById('tp-modal-overlay').classList.add('show');
@@ -4365,8 +4364,8 @@ function openUpdateHistoryModal(id) {
     });
 }
 
-function exportJobDetailPDF(id) {
-  id = id || selectedJobForAction;
+function exportJobDetailPDF() {
+  const id = selectedJobForAction;
   const j  = getRepairJobsData().find(x => x.id === id);
   if (!j) { showToast('ไม่พบข้อมูลใบแจ้งซ่อม', 'error'); return; }
 

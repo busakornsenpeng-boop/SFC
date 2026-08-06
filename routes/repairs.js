@@ -145,7 +145,9 @@ async function getAllRepairs() {
     range: 'Repairs!A2:X1000',
   });
   const rows = res.data.values || [];
-  return rows.map(row => ({
+  return rows
+    .filter(row => row[0]) // ตัดแถวที่ถูก "ลบ" แล้ว (soft delete เคลียร์ค่าทั้งแถวออกหมด) ไม่ให้ปนไปกับสถิติ/กราฟ
+    .map(row => ({
     id:           row[0]  || '',
     name:         row[1]  || '',
     dept:         row[2]  || '',
