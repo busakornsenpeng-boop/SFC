@@ -1175,7 +1175,8 @@ ${(() => {
     ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
 })()}`;
   let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>
-    <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>`;
+    <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>
+    <button class="tp-mact-btn" onclick="exportJobDetailPDF('${j.id}')"><i class="ion-ios-download"></i> ส่งออก PDF</button>`;
   if(j.status==='รอซ่อม') acts+=`<button class="tp-mact-btn tp-mact-accept" onclick="tpAcceptJob('${j.id}');tpCloseModal()"><i class="ion-ios-hand"></i> รับงาน</button>`;
   document.getElementById('tp-modal-actions').innerHTML=acts;
   document.getElementById('tp-modal-overlay').classList.add('show');
@@ -2085,11 +2086,27 @@ function calculateAdminStats(jobs){
   const bounced = jobs.filter(j=>isBouncedStatus(j.status)).length;
   const total = jobs.length;
   const nonBounced = jobs.filter(j=>!isBouncedStatus(j.status));
-  const s={total,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},opTypeData:{},monthlyData:{},dailyData:{}};nonBounced.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;let opType=j.opType||'ไม่ระบุ';
+  const s={total,waiting:0,working:0,closed:0,doneRepair:0,bounced,sideData:{},deptData:{},opTypeData:{},monthlyData:{},dailyData:{}};
+  // สถานะ (รอซ่อม/กำลังซ่อม/ซ่อมเสร็จ/ปิดงาน) นับจาก nonBounced เท่านั้น — งานตีกลับมีการ์ดนับแยกของตัวเองแล้ว (bounced)
+  nonBounced.forEach(j=>{if(j.status==='รอซ่อม')s.waiting++;else if(j.status==='ปิดงาน')s.closed++;else if(j.status==='ซ่อมเสร็จแล้ว')s.doneRepair++;else s.working++;});
+  // กราฟแยกแผนก/ระบบ/ประเภทงาน และกราฟแนวโน้มรายเดือน-รายวัน นับจาก "jobs" ทั้งหมด (รวมตีกลับ) ให้ตรงกับนิยาม total
+  // เพราะงานตีกลับก็ยังถือเป็นใบแจ้งซ่อมที่เข้ามาจริงในช่วงเวลานั้น มี dept/opType ของมันอยู่แล้ว ไม่ควรถูกตัดออกจากสถิติภาพรวม
+  jobs.forEach(j=>{
+    const side=j.side||'อื่นๆ';s.sideData[side]=(s.sideData[side]||0)+1;
+    const dept=j.dept||'อื่นๆ';s.deptData[dept]=(s.deptData[dept]||0)+1;
+    let opType=j.opType||'ไม่ระบุ';
     // รวมป้าย "ปรับปรุงประสิทธิภาพ (Modify)" (ข้อมูลเก่า) เข้ากับ "ปรับปรุงประสิทธิภาพ (Improvement)" (ชื่อใหม่)
     // ให้เป็นแท่งเดียวกันในกราฟสถิติ โดยไม่แก้ไขข้อความ opType เดิมที่บันทึกไว้ในชีต
     if(opType.includes('ปรับปรุงประสิทธิภาพ'))opType='ปรับปรุงประสิทธิภาพ (Improvement)';
-    s.opTypeData[opType]=(s.opTypeData[opType]||0)+1;const jd=parseJobDate(j.date);if(jd){const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;}});return s;}
+    s.opTypeData[opType]=(s.opTypeData[opType]||0)+1;
+    const jd=parseJobDate(j.date);
+    if(jd){
+      const k=`${String(jd.getMonth()+1).padStart(2,'0')}/${jd.getFullYear()}`;s.monthlyData[k]=(s.monthlyData[k]||0)+1;
+      const dk=`${jd.getFullYear()}-${String(jd.getMonth()+1).padStart(2,'0')}-${String(jd.getDate()).padStart(2,'0')}`;s.dailyData[dk]=(s.dailyData[dk]||0)+1;
+    }
+  });
+  return s;
+}
 // KPI ของช่าง = ระยะเวลาเฉลี่ยที่ใช้ทำงานแต่ละงาน (รับงาน→เสร็จซ่อม) ไม่ใช่ Downtime รวม เพราะ Downtime
 // มีเวลาที่ไม่เกี่ยวกับตัวช่างปนอยู่ (รอแอดมินมอบหมายงาน/รอผู้แจ้งตรวจรับ) — ใช้ acceptedDate→doneDate เหมือน
 // "เวลาที่ใช้ซ่อม" ที่โชว์ในการ์ดงาน แล้วเฉลี่ยรวมทุกงานของช่างคนนั้น
@@ -4364,8 +4381,8 @@ function openUpdateHistoryModal(id) {
     });
 }
 
-function exportJobDetailPDF() {
-  const id = selectedJobForAction;
+function exportJobDetailPDF(id) {
+  id = id || selectedJobForAction;
   const j  = getRepairJobsData().find(x => x.id === id);
   if (!j) { showToast('ไม่พบข้อมูลใบแจ้งซ่อม', 'error'); return; }
 
