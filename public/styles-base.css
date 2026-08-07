@@ -48,7 +48,7 @@
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background-color:var(--bg);color:var(--text);font-family:var(--font-system);font-size:14px;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;opacity:0.4}
+  body::before{content:none}
   ::-webkit-scrollbar{width:7px;height:7px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
