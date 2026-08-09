@@ -128,7 +128,7 @@
             <div class="form-grid-2">
               <div class="form-field">
                 <label>ด้านปัญหา<span class="req">*</span></label>
-                <select id="rep-side" class="select-ctrl" required>
+                <select id="rep-side" class="select-ctrl" required onchange="toggleSideOther('rep-side')">
                   <option value="">เลือกด้านปัญหา</option>
                   <option>ระบบไฟฟ้า (Electrical)</option>
                   <option>ระบบเครื่องกล (Mechanical)</option>
@@ -136,7 +136,9 @@
                   <option>ระบบไฮดรอลิก (Hydraulic)</option>
                   <option>โครงสร้าง/สาธารณูปโภค (Utility)</option>
                   <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)</option>
+                  <option value="__OTHER__">อื่นๆ (โปรดระบุ)</option>
                 </select>
+                <input type="text" id="rep-side-other" class="input-ctrl d-none" placeholder="โปรดระบุด้านปัญหา..." style="margin-top:8px">
               </div>
               <div class="form-field">
                 <label>ประเภทงานซ่อม<span class="req">*</span></label>
@@ -1124,7 +1126,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>ด้านปัญหา</label>
-            <select id="rs-side" class="select-ctrl">
+            <select id="rs-side" class="select-ctrl" onchange="toggleSideOther('rs-side')">
               <option value="">เลือกด้านปัญหา</option>
               <option>ระบบไฟฟ้า (Electrical)</option>
               <option>ระบบเครื่องกล (Mechanical)</option>
@@ -1132,7 +1134,9 @@
               <option>ระบบไฮดรอลิก (Hydraulic)</option>
               <option>โครงสร้าง/สาธารณูปโภค (Utility)</option>
               <option>ระบบควบคุมและจัดเก็บข้อมูล(scada)</option>
+              <option value="__OTHER__">อื่นๆ (โปรดระบุ)</option>
             </select>
+            <input type="text" id="rs-side-other" class="input-ctrl d-none" placeholder="โปรดระบุด้านปัญหา..." style="margin-top:8px">
           </div>
           <div class="form-field">
             <label>ประเภทงานซ่อม</label>

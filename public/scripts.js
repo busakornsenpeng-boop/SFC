@@ -3409,7 +3409,16 @@ function clearUploadPreview(thumbGridId) {
   const tg = document.getElementById(thumbGridId);
   if (tg) tg.innerHTML = '';
 }
-function resetForm(formId,thumbGridId){const f=document.getElementById(formId);if(f)f.reset();clearUploadPreview(thumbGridId);}
+function resetForm(formId,thumbGridId){
+  const f=document.getElementById(formId);
+  if(f){
+    f.reset();
+    // form.reset() รีเซ็ตค่า select/input กลับเป็นค่าเริ่มต้นแล้ว แต่ไม่ได้ซ่อนช่อง "-other"
+    // ที่เคยถูกโชว์ไว้ (เช่น กรอก "อื่นๆ (โปรดระบุ)" ค้างไว้) กลับคืน จึงต้องซ่อนเองตรงนี้
+    f.querySelectorAll('[id$="-other"]').forEach(el => el.classList.add('d-none'));
+  }
+  clearUploadPreview(thumbGridId);
+}
 function copyJobIdToClipboard(){const id=document.getElementById('success-job-id')?.textContent;if(id&&navigator.clipboard)navigator.clipboard.writeText(id).then(()=>showToast('คัดลอกรหัสงานแล้ว!','success'));}
 function showSuccessModal(jobID, machine, location){
   const el=document.getElementById('success-job-id');if(el)el.textContent=jobID;
@@ -3878,6 +3887,14 @@ function submitRepairForm(event) {
   // ── กันกดส่งซ้ำ (double-submit) ──
   // เดิมไม่มีการ disable ปุ่ม ถ้าผู้ใช้กดซ้ำหลายรอบระหว่างรอ (เช่น ตอนอัปโหลดรูปช้า)
   // อาจเกิดใบแจ้งซ่อมซ้ำหลายใบ ทั้งที่จริงแล้ว request แรกกำลังทำงานอยู่เบื้องหลัง ไม่ได้ล้มเหลว
+  // เลือก "อื่นๆ (โปรดระบุ)" ในช่องด้านปัญหา แต่ไม่ได้กรอกข้อความ → กันไว้ก่อนส่ง
+  const sideSelectEl = document.getElementById('rep-side');
+  if (sideSelectEl && sideSelectEl.value === '__OTHER__' && !getSideValue('rep-side')) {
+    showToast('กรุณาระบุ "ด้านปัญหา" ที่เลือกอื่นๆ', 'warning');
+    document.getElementById('rep-side-other')?.focus();
+    return;
+  }
+
   const submitBtn = event.target.querySelector('button[type="submit"]');
   if (submitBtn && submitBtn.disabled) return; // กำลังส่งอยู่แล้ว ห้ามส่งซ้ำ
   if (submitBtn) {
@@ -3891,7 +3908,7 @@ function submitRepairForm(event) {
     dept:    document.getElementById('rep-dept').value,
     line:    document.getElementById('rep-line').value,
     machine: getMachineValue('rep-machine'),
-    side:    document.getElementById('rep-side').value,
+    side:    getSideValue('rep-side'),
     op_type: document.getElementById('rep-type').value,
     detail:  document.getElementById('rep-detail').value,
     phone:   document.getElementById('rep-phone').value,
@@ -4675,7 +4692,7 @@ function userOpenResubmitModal(id) {
   if (j.note) { reasonEl.textContent = j.note; reasonBox.style.display = 'block'; }
   else { reasonBox.style.display = 'none'; }
 
-  document.getElementById('rs-side').value   = j.side || '';
+  setSideValue('rs-side', j.side || '');
   document.getElementById('rs-type').value   = j.opType || '';
   document.getElementById('rs-detail').value = j.detail || '';
 
@@ -4710,7 +4727,13 @@ function userSubmitResubmit() {
   if (!resubmitJobId) return;
   const detail = document.getElementById('rs-detail')?.value.trim();
   if (!detail) { showToast('กรุณากรอกรายละเอียดที่แก้ไข', 'warning'); return; }
-  const side   = document.getElementById('rs-side')?.value || '';
+  const rsSideEl = document.getElementById('rs-side');
+  if (rsSideEl && rsSideEl.value === '__OTHER__' && !getSideValue('rs-side')) {
+    showToast('กรุณาระบุ "ด้านปัญหา" ที่เลือกอื่นๆ', 'warning');
+    document.getElementById('rs-side-other')?.focus();
+    return;
+  }
+  const side   = getSideValue('rs-side');
   const opType = document.getElementById('rs-type')?.value || '';
   const j = getRepairJobsData().find(x => x.id === resubmitJobId);
   if (!j) return;
@@ -5182,6 +5205,52 @@ function setSearchableSelectValue(selectId, value) {
 // รีเซ็ต select แบบค้นหาได้กลับเป็นค่าว่าง
 function resetSearchableSelect(selectId) {
   setSearchableSelectValue(selectId, '');
+}
+
+// ============================================================
+// "ด้านปัญหา" — เลือก "อื่นๆ (โปรดระบุ)" แล้วโชว์ช่องกรอกเอง
+// (แพทเทิร์นเดียวกับ __OTHER__ ของช่องเครื่องจักรด้านบน แต่เป็น select ธรรมดา)
+// ============================================================
+function toggleSideOther(selectId) {
+  const select = document.getElementById(selectId);
+  const other  = document.getElementById(selectId + '-other');
+  if (!select || !other) return;
+  if (select.value === '__OTHER__') {
+    other.classList.remove('d-none');
+    other.focus();
+  } else {
+    other.classList.add('d-none');
+    other.value = '';
+  }
+}
+
+// ดึงค่าที่ "จะใช้จริง" ของด้านปัญหา (คืนค่าที่พิมพ์เองถ้าเลือก "อื่นๆ")
+function getSideValue(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return '';
+  if (select.value === '__OTHER__') {
+    return (document.getElementById(selectId + '-other')?.value || '').trim();
+  }
+  return select.value;
+}
+
+// ตั้งค่า select ด้านปัญหา (ใช้ตอนเปิด modal แก้ไข/ส่งใหม่ — เผื่อค่าเดิมเป็น "อื่นๆ" ที่พิมพ์เอง)
+function setSideValue(selectId, value) {
+  const select = document.getElementById(selectId);
+  const other  = document.getElementById(selectId + '-other');
+  if (!select) return;
+  const match = Array.from(select.options).find(o => o.value === value);
+  if (match) {
+    select.value = value;
+    if (other) { other.classList.add('d-none'); other.value = ''; }
+  } else if (value) {
+    // ค่าเดิมไม่อยู่ใน list มาตรฐาน (เคยพิมพ์เองไว้) → ถือเป็น "อื่นๆ"
+    select.value = '__OTHER__';
+    if (other) { other.classList.remove('d-none'); other.value = value; }
+  } else {
+    select.value = '';
+    if (other) { other.classList.add('d-none'); other.value = ''; }
+  }
 }
 // ============================================================
 // ADMIN — PEOPLE PANEL (รวม "จัดการ Users" + "โปรไฟล์ช่าง")
