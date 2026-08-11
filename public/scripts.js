@@ -2243,7 +2243,7 @@ function initAdminDashboard(){
 const DBM_CONFIG = {
   // "แจ้งซ่อมทั้งหมด" นับรวมทุกงานรวมถึงตีกลับ ให้ตรงกับนิยาม total ใน calculateAdminStats() (และตรงกับจำนวนแถวในชีท)
   total:   { label: 'แจ้งซ่อมทั้งหมด', icon: 'ion-ios-clipboard',       match: j => true, color: 'blue' },
-  waiting: { label: 'รอซ่อม',          icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
+  waiting: { label: 'รอช่างรับงาน',     icon: 'ion-ios-hourglass',       match: j => j.status === 'รอซ่อม', color: 'yellow' },
   working: { label: 'กำลังซ่อม',       icon: 'ion-ios-construct',       match: j => isWorkingStatus(j.status), color: 'orange' },
   donerepair: { label: 'ซ่อมเสร็จแล้ว', icon: 'ion-ios-checkmark-circle-outline', match: j => j.status === 'ซ่อมเสร็จแล้ว', color: 'teal' },
   closed:  { label: 'ปิดงานเสร็จ',     icon: 'ion-ios-checkmark-circle', match: j => j.status === 'ปิดงาน', color: 'green' },
