@@ -1521,11 +1521,12 @@ function renderRepairsTable(){
       ? `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button><button class="btn-action" style="border-color:var(--accent);color:var(--accent);margin-left:6px" onclick="userOpenResubmitModal('${escapeHtml(j.id)}')"><i class="ion-ios-create"></i> แก้ไขและส่งใหม่</button>`
       : `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button>`;
     // งานทุกสถานะ — เปิดให้ผู้แจ้งทำแบบประเมินความพึงพอใจได้ตั้งแต่แจ้งซ่อมเข้ามาเลย (ไม่ต้องรอปิดงาน)
-    // ใช้ปุ่มไอคอนดาวเล็กๆ แทนปุ่มข้อความเต็ม กันไม่ให้แถวล้น/ขึ้นบรรทัดใหม่บนจอมือถือ
-    actBtns += isJobRated(j.id)
+    // แสดงเป็นไอคอนดาวเล็กๆ ที่มุมขวาบนของช่อง "ดำเนินการ" (ลอยเหนือปุ่มดูรายละเอียด)
+    // แทนที่จะเป็นปุ่มแยกอยู่ข้างๆ กัน — ให้ปุ่มดูรายละเอียดเป็นปุ่มหลักปุ่มเดียวของแถว
+    const rateBtn = isJobRated(j.id)
       ? `<button class="btn-icon-rate rated" title="ดูคะแนนที่ให้ไว้" onclick="openSatisfactionModal('${escapeHtml(j.id)}', true)"><i class="ion-ios-star"></i></button>`
       : `<button class="btn-icon-rate" title="ให้คะแนนความพึงพอใจ" onclick="openSatisfactionModal('${escapeHtml(j.id)}', false)"><i class="ion-ios-star-outline"></i></button>`;
-    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td>${actBtns}</td>`;tbody.appendChild(tr);});
+    const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td><div class="row-act-wrap">${rateBtn}${actBtns}</div></td>`;tbody.appendChild(tr);});
 }
 
 // สลับ sub-view ในแท็บ "จัดการ PM" ระหว่าง รายการ (ตาราง) กับ ปฏิทิน
