@@ -33,6 +33,15 @@ const SATISFACTION_QUESTIONS = [
   { key: 'q3', label: 'การให้คำแนะนำ และการอธิบายอาการ/วิธีแก้ไขปัญหา' },
   { key: 'q4', label: 'ความพึงพอใจโดยรวมต่อการซ่อม/บริการในครั้งนี้' },
 ];
+
+// ── แบบประเมินความพึงพอใจในการ "ใช้งานเว็บแอพ" โดยรวม (คนละอันกับประเมินงานซ่อมรายชิ้นด้านบน) ──
+let localAppFeedback = [];
+const APP_FEEDBACK_QUESTIONS = [
+  { key: 'q1', label: 'ความง่ายในการใช้งาน' },
+  { key: 'q2', label: 'ความรวดเร็วของระบบ' },
+  { key: 'q3', label: 'หน้าตา/การออกแบบ' },
+  { key: 'q4', label: 'ความพึงพอใจโดยรวม' },
+];
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarSelectedDate = null;
@@ -441,6 +450,7 @@ function handleLogout() {
   document.getElementById('dashboard-page').style.display  = 'none';
   document.getElementById('te-panel-page').style.display   = 'none'; // ← เหลือแค่นี้
   document.getElementById('login-page').style.display      = 'flex';
+  const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
   document.getElementById('password').value = '';
   const ud = document.getElementById('username-display');
   if(ud) { ud.value = ''; ud.placeholder = 'กรอก username'; }
@@ -471,6 +481,7 @@ function setupDashboard() {
   if (isRepairStaff(currentUser.role)) {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
+    const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
     initTEPanel();
     startAutoRefresh();
     return;
@@ -479,6 +490,7 @@ function setupDashboard() {
   // user, admin → dashboard เดิม
   document.getElementById('te-panel-page').style.display   = 'none';
   document.getElementById('dashboard-page').style.display  = 'block';
+  const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
   document.getElementById('user-display-name').textContent = currentUser.name;
   document.getElementById('user-display-role').textContent = currentUser.role;
 
@@ -4605,7 +4617,82 @@ function submitSatisfaction(repairId) {
     .catch(err => showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error'));
 }
 
-// ── หน้าสรุปผลประเมินความพึงพอใจ (ใช้ร่วมกันทั้งแท็บแอดมินและ modal ด่วนจากหน้าติดตามงาน) ──
+// ============================================================
+// แบบประเมินความพึงพอใจในการ "ใช้งานเว็บแอพ" โดยรวม — เปิดจากปุ่มลอยมุมขวาล่าง
+// ใช้ tp-modal-overlay กลางร่วมกับ modal อื่นๆ (ไม่ผูกกับ JobID ใดๆ, กดประเมินได้เรื่อยๆ)
+// ============================================================
+function openAppFeedbackModal() {
+  document.getElementById('tp-modal-title').textContent = 'ประเมินความพึงพอใจการใช้งานเว็บแอพ';
+
+  const rowsHtml = APP_FEEDBACK_QUESTIONS.map((q, qi) => {
+    const cellsHtml = SATISFACTION_SCALE.map(s =>
+      `<td style="text-align:center"><input type="radio" name="af-${q.key}" value="${s.v}" style="width:16px;height:16px;cursor:pointer"></td>`
+    ).join('');
+    return `<tr>
+      <td style="text-align:center;color:var(--text3);font-size:12px">${qi+1}</td>
+      <td style="font-size:13px;padding-right:8px">${escapeHtml(q.label)}</td>
+      ${cellsHtml}
+    </tr>`;
+  }).join('');
+
+  const headHtml = SATISFACTION_SCALE.map(s => `<th style="text-align:center;font-size:11px;color:var(--text3);font-weight:600">${s.lbl}<br>(${s.v})</th>`).join('');
+
+  document.getElementById('tp-modal-body').innerHTML = `
+    <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">
+      ⭐ ช่วยให้คะแนนความพึงพอใจในการใช้งานเว็บแอพนี้โดยรวม เพื่อนำไปปรับปรุงต่อไปครับ
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead><tr><td></td><td></td>${headHtml}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px">
+      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">ข้อเสนอแนะเพิ่มเติม</label>
+      <textarea id="af-comment" class="input-ctrl" rows="3" style="width:100%;resize:vertical;font-size:13px" placeholder="ความคิดเห็นหรือข้อเสนอแนะ (ถ้ามี)"></textarea>
+    </div>`;
+
+  document.getElementById('tp-modal-actions').innerHTML =
+    `<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()">ยกเลิก</button>
+     <button class="tp-mact-btn" style="background:var(--accent);color:#fff" onclick="submitAppFeedback()"><i class="ion-ios-checkmark"></i> ส่งแบบประเมิน</button>`;
+
+  document.getElementById('tp-modal-overlay').classList.add('show');
+}
+
+function submitAppFeedback() {
+  const scores = {};
+  for (const q of APP_FEEDBACK_QUESTIONS) {
+    const checked = document.querySelector(`input[name="af-${q.key}"]:checked`);
+    if (!checked) { showToast('กรุณาให้คะแนนให้ครบทุกข้อ', 'error'); return; }
+    scores[q.key] = Number(checked.value);
+  }
+  const comment = document.getElementById('af-comment')?.value || '';
+
+  const payload = {
+    username: currentUser ? currentUser.username : '',
+    requesterName: currentUser ? currentUser.name : '',
+    role: currentUser ? currentUser.role : '',
+    ...scores,
+    comment,
+  };
+
+  if (isLocalMode) {
+    localAppFeedback.push({ id: 'AF-' + Date.now(), date: new Date().toLocaleString('th-TH'), ...payload });
+    tpCloseModal(); showToast('ขอบคุณสำหรับความคิดเห็นครับ 🙏 (โหมดทดลอง)');
+    return;
+  }
+
+  authFetch(`${API_URL}/app-feedback`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) { showToast(res.message || 'ส่งแบบประเมินไม่สำเร็จ', 'error'); return; }
+      tpCloseModal();
+      showToast('ขอบคุณสำหรับความคิดเห็นครับ 🙏');
+    })
+    .catch(err => showToast('ส่งแบบประเมินไม่สำเร็จ: ' + err.message, 'error'));
+}
+
+
 function satisfactionSummaryHTML() {
   const data = getSatisfactionData();
   const n = data.length;

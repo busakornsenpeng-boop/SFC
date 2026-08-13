@@ -195,7 +195,6 @@
   <option value="">ทุกอาการเสีย</option>
   <option>ระบบไฟฟ้า</option><option>ระบบเครื่องกล</option><option>ระบบลม</option>
 </select>
-<button class="btn-action" style="white-space:nowrap" onclick="openSatisfactionSummaryModal()"><i class="ion-ios-star"></i> แบบประเมินความพึงพอใจ</button>
           </div>
           <div class="table-container">
             <table class="data-table">
@@ -858,6 +857,14 @@
   </div><!-- /container -->
 
   <!-- ════════════════════════════ SHARED MODALS ════════════════════════════ -->
+
+  <!-- ปุ่มลอยมุมขวาล่าง "ประเมินความพึงพอใจการใช้งานเว็บแอพ" — เห็นได้ทุกหน้า/ทุก role
+       (อยู่นอก section ที่มี display:none สลับกัน เพื่อไม่ให้หายไปตามการ toggle,
+       เริ่มต้นซ่อนไว้ก่อน แล้ว JS จะสั่งโชว์ตอน setupDashboard/ซ่อนตอน logout) -->
+  <button id="app-feedback-fab" class="app-feedback-fab" style="display:none"
+    onclick="openAppFeedbackModal()" title="ให้คะแนนความพึงพอใจการใช้งานเว็บแอพ">
+    <i class="ion-ios-star"></i>
+  </button>
 
   <!-- Modal ใช้ร่วมกับ Tech Panel และแบบประเมินความพึงพอใจ (ย้ายออกมานอก section
        te-panel-page เพราะ section นั้น display:none ตอนอยู่หน้า dashboard ปกติ
