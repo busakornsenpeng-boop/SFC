@@ -4072,9 +4072,12 @@ grid.innerHTML = myJobs.map(j => `
         const MAX_THUMBS = 3;
         const shown = imgs.slice(0, MAX_THUMBS);
         const extra = imgs.length - shown.length;
+        // แสดงรูปเป็น thumbnail สี่เหลี่ยมจัตุรัสขนาดคงที่ (ไม่ใช่ flex:1 ที่ยืดเต็มแถวเวลามีรูปเดียว
+        // — เดิมพอมีรูปเดียวจะกลายเป็นสี่เหลี่ยมเต็มความกว้างการ์ด ทำให้สูงกว่าการ์ดที่มี 3 รูปซะอีก)
+        // ขนาดคงที่ 72x72px เท่ากันทุกการ์ด ไม่ว่าจะมี 1, 2 หรือ 3 รูป การ์ดจะได้สูงเท่ากันเป็นแถว
         const thumbsHtml = shown.map((src, i) => {
           const isLast = i === shown.length - 1 && extra > 0;
-          return `<div style="position:relative;flex:1;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--bg2)">
+          return `<div style="position:relative;flex:none;width:72px;height:72px;border-radius:8px;overflow:hidden;background:var(--bg2)">
             <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">
             ${isLast ? `<div style="position:absolute;inset:0;background:rgba(16,24,40,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">+${extra}</div>` : ''}
           </div>`;

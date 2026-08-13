@@ -265,10 +265,13 @@
   .eng-panel{display:none;animation:tabFadeIn .25s ease-out}
   .eng-panel.active{display:block}
   /* ตรวจรับงาน Grid */
-  /* align-items:start กันไม่ให้การ์ดที่เนื้อหาสั้น (ไม่มีรูป) ถูก CSS Grid ยืดความสูงตามการ์ด
-     ที่ยาวที่สุดในแถวเดียวกัน (เช่นการ์ดที่แนบรูปหลายรูป) จนเหลือพื้นที่ว่างด้านล่างเยอะผิดปกติ */
-  .qc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
-  .qc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm)}
+  /* การ์ดแต่ละใบสูงไม่เท่ากันได้ (เนื้อหา/จำนวนรูปไม่เท่ากัน) แต่อยากให้ "ดูเรียงกันเป็นระเบียบ"
+     เลยปล่อยให้ Grid ยืดการ์ดทุกใบในแถวเดียวกันให้สูงเท่ากันตามปกติ (ไม่ใส่ align-items:start)
+     แล้วให้ .qc-card เป็น flex column พร้อม margin-top:auto ที่ .qc-card-actions (ดูด้านล่าง)
+     เพื่อดันแถบปุ่มไปชิดขอบล่างเสมอ ไม่ว่าการ์ดจะถูกยืดสูงแค่ไหน — ปุ่มของทุกการ์ดในแถวเดียวกัน
+     จะอยู่ระดับเดียวกันพอดี ดูเรียบร้อยกว่าเดิมที่ปุ่มลอยติดเนื้อหาแล้วเหลือพื้นที่ว่างโล่งๆ ด้านล่าง */
+  .qc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .qc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm);display:flex;flex-direction:column}
   .qc-card:hover{border-color:var(--border2);box-shadow:var(--shadow)}
   .qc-card-top{padding:14px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
   .qc-card-id{font-size:10px;font-family:var(--font-mono);color:var(--accent);font-weight:600}
@@ -279,7 +282,7 @@
   .qc-card-tech{font-size:11px;color:var(--text2);padding:0 16px;margin-bottom:10px}
   .qc-card-meta{display:flex;gap:6px;padding:0 16px 10px;flex-wrap:wrap}
   .qc-meta-tag{font-size:10px;padding:2px 8px;border-radius:var(--r-sm);border:1px solid var(--border);color:var(--text2)}
-  .qc-card-actions{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+  .qc-card-actions{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;margin-top:auto}
   .qc-btn-detail{flex:1;padding:8px;border-radius:var(--r-sm);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:600;font-family:inherit;transition:.15s}
   .qc-btn-detail:hover{border-color:var(--accent);color:var(--accent)}
   .qc-btn-do{flex:2;padding:8px;border-radius:var(--r-sm);border:none;background:var(--teal);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:700;font-family:inherit;transition:opacity .15s}
