@@ -3294,7 +3294,11 @@ function engAckDailyPM(){
   showToast('Local Mode — ไม่สามารถบันทึกได้','warning'); closeModal('daily-pm-detail-modal');
 }
 
-function tpCloseModal(){document.getElementById('tp-modal-overlay').classList.remove('show');}
+function tpCloseModal(){
+  document.getElementById('tp-modal-overlay').classList.remove('show');
+  const modalEl = document.getElementById('tp-modal');
+  if (modalEl) modalEl.style.maxWidth = ''; // รีเซ็ตความกว้าง เผื่อโมดัลก่อนหน้าเป็นแบบขยาย (เช่น แบบสำรวจความพึงพอใจ)
+}
 function tpCloseModalOutside(event){if(event.target===document.getElementById('tp-modal-overlay'))tpCloseModal();}
 function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('active');}
 function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('active');}
@@ -4524,80 +4528,83 @@ const RATING_SCALE = [
 // สร้าง HTML ของ radio-list แนวตั้งใช้ซ้ำได้ทั้ง 1.1/1.2/1.3 (name = ชื่อกลุ่ม, options = array ของ string)
 function afRadioListHtml(name, options) {
   return options.map((opt, i) => `
-    <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text2);cursor:pointer">
-      <input type="radio" name="${name}" value="${escapeHtml(opt)}" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+    <label style="display:flex;align-items:center;gap:11px;padding:10px 4px;font-size:15px;line-height:1.4;color:var(--text2);cursor:pointer">
+      <input type="radio" name="${name}" value="${escapeHtml(opt)}" style="width:19px;height:19px;cursor:pointer;flex-shrink:0">
       <span>${escapeHtml(opt)}</span>
     </label>`).join('');
 }
 
 function openAppFeedbackModal() {
   document.getElementById('tp-modal-title').textContent = 'ประเมินความพึงพอใจการใช้งานเว็บแอพ';
+  const modalEl = document.getElementById('tp-modal');
+  if (modalEl) modalEl.style.maxWidth = '640px'; // ขยายกว้างขึ้นกว่าโมดัลทั่วไป เพราะเนื้อหาเยอะ/มีตารางคะแนน 5 คอลัมน์
 
   const rowsHtml = APP_FEEDBACK_QUESTIONS.map((q, qi) => {
     const cellsHtml = RATING_SCALE.map(s =>
-      `<td style="text-align:center"><input type="radio" name="af-${q.key}" value="${s.v}" style="width:16px;height:16px;cursor:pointer"></td>`
+      `<td style="text-align:center;padding:10px 4px"><input type="radio" name="af-${q.key}" value="${s.v}" style="width:20px;height:20px;cursor:pointer"></td>`
     ).join('');
     return `<tr>
-      <td style="text-align:center;color:var(--text3);font-size:12px">${qi+1}</td>
-      <td style="font-size:13px;padding-right:8px">${escapeHtml(q.label)}</td>
+      <td style="text-align:center;color:var(--text3);font-size:13px;padding:10px 4px">${qi+1}</td>
+      <td style="font-size:14.5px;line-height:1.4;padding:10px 10px 10px 4px">${escapeHtml(q.label)}</td>
       ${cellsHtml}
     </tr>`;
   }).join('');
 
-  const headHtml = RATING_SCALE.map(s => `<th style="text-align:center;font-size:11px;color:var(--text3);font-weight:600">${s.lbl}<br>(${s.v})</th>`).join('');
+  const headHtml = RATING_SCALE.map(s => `<th style="text-align:center;font-size:12.5px;color:var(--text3);font-weight:600;padding-bottom:6px">${s.lbl}<br>(${s.v})</th>`).join('');
 
   const problemsHtml = APP_FEEDBACK_PROBLEMS.map(p => `
-    <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text2);cursor:pointer">
-      <input type="checkbox" name="af-problem" value="${p.key}" onclick="afOnProblemToggle(this)" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+    <label style="display:flex;align-items:center;gap:11px;padding:10px 4px;font-size:15px;line-height:1.4;color:var(--text2);cursor:pointer">
+      <input type="checkbox" name="af-problem" value="${p.key}" onclick="afOnProblemToggle(this)" style="width:19px;height:19px;cursor:pointer;flex-shrink:0">
       <span>${escapeHtml(p.label)}</span>
     </label>`).join('');
 
-  const sectionTitleStyle = 'font-size:13.5px;font-weight:700;color:var(--text);margin:18px 0 8px';
+  const sectionTitleStyle = 'font-size:16px;font-weight:700;color:var(--text);margin:28px 0 12px;padding-top:20px;border-top:1px solid var(--border)';
+  const subLabelStyle = 'font-size:14px;color:var(--text2);margin-bottom:8px;font-weight:600';
 
   document.getElementById('tp-modal-body').innerHTML = `
-    <div style="font-size:12.5px;color:var(--text2);margin-bottom:6px">
+    <div style="font-size:13.5px;color:var(--text2);margin-bottom:4px;line-height:1.5">
       ⭐ ช่วยตอบแบบสำรวจการใช้งานเว็บแอพนี้ เพื่อนำไปปรับปรุงและพัฒนาต่อไปครับ (ใช้เวลาประมาณ 3-5 นาที)
     </div>
 
-    <div style="${sectionTitleStyle};margin-top:10px">ส่วนที่ 1: ข้อมูลทั่วไปและบริบทการใช้งาน</div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.1 ฝ่าย / แผนก หรือกลุ่มผู้ใช้งาน</div>
+    <div style="${sectionTitleStyle};margin-top:16px;border-top:none;padding-top:0">ส่วนที่ 1: ข้อมูลทั่วไปและบริบทการใช้งาน</div>
+    <div style="margin-bottom:18px">
+      <div style="${subLabelStyle}">1.1 ฝ่าย / แผนก หรือกลุ่มผู้ใช้งาน</div>
       ${afRadioListHtml('af-department', APP_FEEDBACK_DEPARTMENTS)}
     </div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.2 อุปกรณ์หลักที่ใช้เข้าใช้งานแอปพลิเคชัน</div>
+    <div style="margin-bottom:18px">
+      <div style="${subLabelStyle}">1.2 อุปกรณ์หลักที่ใช้เข้าใช้งานแอปพลิเคชัน</div>
       ${afRadioListHtml('af-device', APP_FEEDBACK_DEVICES)}
     </div>
     <div>
-      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.3 ความถี่ในการเข้าใช้งานแอปพลิเคชัน</div>
+      <div style="${subLabelStyle}">1.3 ความถี่ในการเข้าใช้งานแอปพลิเคชัน</div>
       ${afRadioListHtml('af-frequency', APP_FEEDBACK_FREQUENCIES)}
     </div>
 
     <div style="${sectionTitleStyle}">ส่วนที่ 2: โปรดประเมินประสิทธิภาพความพึงพอใจ</div>
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:480px">
         <thead><tr><td></td><td></td>${headHtml}</tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
 
     <div style="${sectionTitleStyle}">ส่วนที่ 3: ปัญหาและข้อผิดพลาดที่พบจากการใช้งาน</div>
-    <div style="font-size:12.5px;color:var(--text3);margin-bottom:6px">3.1 คุณเคยพบปัญหาจากการใช้งานแอปพลิเคชันหรือไม่? (เลือกตอบได้มากกว่า 1 ข้อ)</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:8px;font-weight:600">3.1 คุณเคยพบปัญหาจากการใช้งานแอปพลิเคชันหรือไม่? (เลือกตอบได้มากกว่า 1 ข้อ)</div>
     ${problemsHtml}
-    <input id="af-problem-other" class="input-ctrl" style="margin-top:6px;font-size:13px" placeholder="อื่นๆ (ถ้ามี โปรดระบุ)">
+    <input id="af-problem-other" class="input-ctrl" style="margin-top:10px;font-size:14.5px;padding:12px 14px" placeholder="อื่นๆ (ถ้ามี โปรดระบุ)">
 
     <div style="${sectionTitleStyle}">ส่วนที่ 4: ข้อเสนอแนะและความต้องการเพิ่มเติม</div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.1 ฟังก์ชันใดในแอปพลิเคชันที่คุณคิดว่าจำเป็นต้องปรับปรุงด่วนที่สุด</label>
-      <input id="af-improve-most" class="input-ctrl" style="font-size:13px" placeholder="ข้อความคำตอบสั้นๆ">
+    <div style="margin-bottom:16px">
+      <label style="${subLabelStyle}">4.1 ฟังก์ชันใดในแอปพลิเคชันที่คุณคิดว่าจำเป็นต้องปรับปรุงด่วนที่สุด</label>
+      <input id="af-improve-most" class="input-ctrl" style="font-size:14.5px;padding:12px 14px" placeholder="ข้อความคำตอบสั้นๆ">
     </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.2 ฟังก์ชันใหม่ หรือความสามารถใหม่ที่คุณอยากให้มีเพิ่มในแอปพลิเคชัน</label>
-      <textarea id="af-new-feature" class="input-ctrl" rows="2" style="width:100%;resize:vertical;font-size:13px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
+    <div style="margin-bottom:16px">
+      <label style="${subLabelStyle}">4.2 ฟังก์ชันใหม่ หรือความสามารถใหม่ที่คุณอยากให้มีเพิ่มในแอปพลิเคชัน</label>
+      <textarea id="af-new-feature" class="input-ctrl" rows="3" style="width:100%;resize:vertical;font-size:14.5px;padding:12px 14px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
     </div>
     <div>
-      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.3 ความคิดเห็นหรือข้อเสนอแนะเพิ่มเติม</label>
-      <textarea id="af-additional-comment" class="input-ctrl" rows="2" style="width:100%;resize:vertical;font-size:13px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
+      <label style="${subLabelStyle}">4.3 ความคิดเห็นหรือข้อเสนอแนะเพิ่มเติม</label>
+      <textarea id="af-additional-comment" class="input-ctrl" rows="3" style="width:100%;resize:vertical;font-size:14.5px;padding:12px 14px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
     </div>`;
 
   document.getElementById('tp-modal-actions').innerHTML =
