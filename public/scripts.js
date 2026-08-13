@@ -25,6 +25,14 @@ let localRepairs = [];
 let localPMCalendar = [];
 let localPMHistory = [];
 let cachedJobs = [], cachedPM = [], cachedPMHistory = [];
+let localSatisfaction = [];
+let cachedSatisfaction = [], satisfactionSummary = null;
+const SATISFACTION_QUESTIONS = [
+  { key: 'q1', label: 'ความสะดวกในการติดต่อแจ้งซ่อม' },
+  { key: 'q2', label: 'ความรวดเร็วในการให้บริการ' },
+  { key: 'q3', label: 'การให้คำแนะนำ และการอธิบายอาการ/วิธีแก้ไขปัญหา' },
+  { key: 'q4', label: 'ความพึงพอใจโดยรวมต่อการซ่อม/บริการในครั้งนี้' },
+];
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 let calendarSelectedDate = null;
@@ -207,11 +215,14 @@ function loadAllData() {
   .then(r => r.json())
   .catch(err => { console.error('[masterdata] fetch failed:', err); return { success: false }; }),
     fetch(`${API_URL}/users/technicians`).then(r => r.json()).catch(() => ({ data: [] })),
+    authFetch(`${API_URL}/satisfaction`).then(r => r.json()).catch(() => ({ data: [], summary: null })),
   ])
-  .then(([repairsRes, pmRes, pmHistRes, masterRes, techRes]) => {
+  .then(([repairsRes, pmRes, pmHistRes, masterRes, techRes, satRes]) => {
     cachedJobs      = repairsRes.data  || [];
     cachedPM        = pmRes.data       || [];
     cachedPMHistory = pmHistRes.data   || [];
+    cachedSatisfaction = satRes.data    || [];
+    satisfactionSummary = satRes.summary || null;
    if (masterRes.success) {
   populateMachineDropdown(masterRes.machines);
   populateDeptDropdown(masterRes.departments);
@@ -490,7 +501,8 @@ function setupDashboard() {
     {panel:'admin-dashboard',    label:'Dashboard ภาพรวม',   icon:'ion-ios-pie'},
     {panel:'admin-repairs',      label:'จัดการใบแจ้งซ่อม',   icon:'ion-ios-options'},
     {panel:'pm-table',           label:'จัดการ PM',          icon:'ion-ios-clipboard'},
-    {panel:'admin-people',       label:'จัดการผู้ใช้งาน',    icon:'ion-ios-people'}
+    {panel:'admin-people',       label:'จัดการผู้ใช้งาน',    icon:'ion-ios-people'},
+    {panel:'satisfaction',       label:'ผลประเมินความพึงพอใจ', icon:'ion-ios-star'}
   ]
 };
 
@@ -518,6 +530,7 @@ function setupDashboard() {
    if (ed && currentUser) ed.value = currentUser.dept || ''; 
   }
   startAutoRefresh();
+  try { setTimeout(checkPendingSatisfactionSurveys, 600); } catch(e) {}
 }
 
 function switchViewPanel(panelId, tabBtn) {
@@ -535,6 +548,7 @@ function switchViewPanel(panelId, tabBtn) {
 if(panelId==='admin-people')    initAdminPeoplePanel();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
+  if(panelId==='satisfaction')    renderSatisfactionPanel();
 };
 
 // ============================================================
@@ -566,10 +580,12 @@ function silentRefreshData() {
     fetch(`${API_URL}/repairs`).then(r => r.json()).catch(() => null),
     fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => null),
     fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => null),
-  ]).then(([repairsRes, pmRes, pmHistRes]) => {
+    authFetch(`${API_URL}/satisfaction`).then(r => r.json()).catch(() => null),
+  ]).then(([repairsRes, pmRes, pmHistRes, satRes]) => {
     if (repairsRes && repairsRes.data) cachedJobs      = repairsRes.data;
     if (pmRes && pmRes.data)           cachedPM        = pmRes.data;
     if (pmHistRes && pmHistRes.data)   cachedPMHistory = pmHistRes.data;
+    if (satRes && satRes.data)         { cachedSatisfaction = satRes.data; satisfactionSummary = satRes.summary || null; }
     rerenderCurrentView();
   }).catch(() => {}); // เงียบไว้ก่อน ถ้ารอบนี้พลาด รอบถัดไปใน 20 วิจะลองใหม่เอง
 }
@@ -602,6 +618,7 @@ function rerenderCurrentView() {
   if (panelId === 'panel-qc-panel')         renderUserQCPanel();
   if (panelId === 'panel-pm-table')         pmSwView(pmSubView);
   if (panelId === 'panel-pm-history')       renderPMHistoryTable();
+  if (panelId === 'panel-satisfaction')     renderSatisfactionPanel();
 }
 
 function refreshData(msg='กำลังอัปเดตข้อมูล...') {
@@ -609,9 +626,29 @@ function refreshData(msg='กำลังอัปเดตข้อมูล...
   showLoading(msg); loadAllData();
 }
 
-function getRepairJobsData(){ return isLocalMode ? localRepairs    : cachedJobs; }
-function getPMData()        { return isLocalMode ? localPMCalendar : cachedPM; }
-function getPMHistoryData() { return isLocalMode ? localPMHistory  : cachedPMHistory; }
+function getRepairJobsData()   { return isLocalMode ? localRepairs      : cachedJobs; }
+function getPMData()           { return isLocalMode ? localPMCalendar   : cachedPM; }
+function getPMHistoryData()    { return isLocalMode ? localPMHistory    : cachedPMHistory; }
+function getSatisfactionData() { return isLocalMode ? localSatisfaction : cachedSatisfaction; }
+function isJobRated(repairId)  { return getSatisfactionData().some(s => s.repairId === repairId); }
+
+// ── เด้ง popup เตือนผู้แจ้งซ่อมให้ทำแบบประเมิน ตอน login เข้าเว็บ (ถ้ามีงานปิดแล้วแต่ยังไม่ประเมิน) ──
+// เรียกจาก setupDashboard() แบบ guarded (try/catch + setTimeout) จึงไม่กระทบ flow login เดิม
+// ต่อให้ error ก็แค่ popup ไม่เด้ง ไม่กระทบส่วนอื่นของเว็บ
+function checkPendingSatisfactionSurveys() {
+  if (!currentUser || currentUser.role !== 'user') return; // เฉพาะผู้แจ้งซ่อม
+  if (sessionStorage.getItem('sv-prompted')) return;        // เด้งแค่ครั้งเดียวต่อ session
+
+  const pending = getRepairJobsData().filter(j =>
+    j.status === 'ปิดงาน' &&
+    (j.name === currentUser.name || j.requester === currentUser.name) &&
+    !isJobRated(j.id)
+  );
+  if (!pending.length) return;
+
+  sessionStorage.setItem('sv-prompted', '1');
+  openSatisfactionModal(pending[0].id, false);
+}
 
 // ============================================================
 // ENGINEER PANEL LOGIC
@@ -1481,9 +1518,15 @@ function renderRepairsTable(){
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text3)">ไม่พบข้อมูลรายการแจ้งซ่อม</td></tr>`;return;}
   filtered.forEach(j=>{const sc={รอซ่อม:'pill-waiting',กำลังซ่อม:'pill-repairing','ส่งซ่อมภายนอก':'pill-external',ซ่อมเสร็จแล้ว:'pill-completed',ปิดงาน:'pill-closed','แก้ไข (ตีกลับ)':'pill-fail',ตีกลับ:'pill-fail'}[j.status]||'pill-waiting';
     const isBounced = j.status==='ตีกลับ'||j.status==='แก้ไข (ตีกลับ)';
-    const actBtns = isBounced
+    let actBtns = isBounced
       ? `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button><button class="btn-action" style="border-color:var(--accent);color:var(--accent);margin-left:6px" onclick="userOpenResubmitModal('${escapeHtml(j.id)}')"><i class="ion-ios-create"></i> แก้ไขและส่งใหม่</button>`
       : `<button class="btn-action" onclick="viewJobDetail('${escapeHtml(j.id)}')">ดูรายละเอียด</button>`;
+    // งาน "ปิดงาน" แล้ว — เปิดให้ผู้แจ้งทำแบบประเมินความพึงพอใจได้ (ทำได้ครั้งเดียวต่องาน)
+    if (j.status === 'ปิดงาน') {
+      actBtns += isJobRated(j.id)
+        ? `<button class="btn-action" style="border-color:var(--green,#16a34a);color:var(--green,#16a34a);margin-left:6px" onclick="openSatisfactionModal('${escapeHtml(j.id)}', true)"><i class="ion-ios-star"></i> ดูคะแนนที่ให้ไว้</button>`
+        : `<button class="btn-action" style="border-color:#f59e0b;color:#f59e0b;margin-left:6px" onclick="openSatisfactionModal('${escapeHtml(j.id)}', false)"><i class="ion-ios-star-outline"></i> ให้คะแนนความพึงพอใจ</button>`;
+    }
     const tr=document.createElement('tr');tr.innerHTML=`<td style="font-family:var(--font-mono);font-weight:600;font-size:12px">${escapeHtml(j.id)}</td><td style="color:var(--text2);font-size:12px">${escapeHtml(j.date)}</td><td style="font-weight:600">${escapeHtml(j.machine)}</td><td><span class="lbl-tag">${escapeHtml((j.side||'').split(' ')[0])}</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(j.detail)}</td><td style="color:var(--text2)">${escapeHtml(j.technician||'-')}</td><td><span class="pill ${sc}">${escapeHtml(j.status)}</span></td><td>${actBtns}</td>`;tbody.appendChild(tr);});
 }
 
@@ -4337,6 +4380,11 @@ function viewJobDetail(id) {
       return `<div class="spec-row"><span class="spec-lbl">Downtime (แจ้งซ่อม→ซ่อมเสร็จ)</span><span class="spec-val">${escapeHtml(downtimeText)}</span></div>`;
     })()}
     ${j.note ? `<div class="spec-row"><span class="spec-lbl">หมายเหตุ</span><span class="spec-val">${escapeHtml(j.note)}</span></div>` : ''}
+    ${(() => {
+      const sv = getSatisfactionData().find(s => s.repairId === j.id);
+      if (!sv) return '';
+      return `<div class="spec-row"><span class="spec-lbl">คะแนนความพึงพอใจ</span><span class="spec-val">⭐ ${Number(sv.avg).toFixed(2)} / 5 <button class="btn-action" style="margin-left:8px;padding:2px 8px;font-size:11px" onclick="openSatisfactionModal('${escapeHtml(j.id)}', true)">ดูรายละเอียด</button></span></div>`;
+    })()}
     `;
 
   let imgHtml = '';
@@ -4462,6 +4510,161 @@ function openUpdateHistoryModal(id) {
       document.getElementById('tp-modal-body').innerHTML =
         `<div class="tp-empty"><i class="ion-ios-warning"></i> โหลดประวัติไม่สำเร็จ กรุณาลองใหม่</div>`;
     });
+}
+
+// ============================================================
+// แบบประเมินความพึงพอใจในการซ่อม
+// ใช้ tp-modal-overlay กลางร่วมกับ openUpdateHistoryModal — ทำได้ทั้งกรอกใหม่ (readOnly=false)
+// และดูคะแนนที่เคยให้ไว้แล้ว (readOnly=true)
+// ============================================================
+const SATISFACTION_SCALE = [
+  { v: 5, lbl: 'มากที่สุด' }, { v: 4, lbl: 'มาก' }, { v: 3, lbl: 'ปานกลาง' },
+  { v: 2, lbl: 'น้อย' }, { v: 1, lbl: 'น้อยมาก' },
+];
+
+function openSatisfactionModal(repairId, readOnly) {
+  const j = getRepairJobsData().find(x => x.id === repairId);
+  if (!j) return;
+  const existing = getSatisfactionData().find(s => s.repairId === repairId);
+  readOnly = readOnly || !!existing;
+
+  document.getElementById('tp-modal-title').textContent = 'แบบประเมินความพึงพอใจในการซ่อม — ' + repairId;
+
+  const rowsHtml = SATISFACTION_QUESTIONS.map((q, qi) => {
+    const cellsHtml = SATISFACTION_SCALE.map(s => {
+      const checked = existing && Number(existing[q.key]) === s.v ? 'checked' : '';
+      const disabled = readOnly ? 'disabled' : '';
+      return `<td style="text-align:center"><input type="radio" name="sv-${q.key}" value="${s.v}" ${checked} ${disabled} style="width:16px;height:16px;cursor:${readOnly?'default':'pointer'}"></td>`;
+    }).join('');
+    return `<tr>
+      <td style="text-align:center;color:var(--text3);font-size:12px">${qi+1}</td>
+      <td style="font-size:13px;padding-right:8px">${escapeHtml(q.label)}</td>
+      ${cellsHtml}
+    </tr>`;
+  }).join('');
+
+  const headHtml = SATISFACTION_SCALE.map(s => `<th style="text-align:center;font-size:11px;color:var(--text3);font-weight:600">${s.lbl}<br>(${s.v})</th>`).join('');
+
+  document.getElementById('tp-modal-body').innerHTML = `
+    <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">
+      🔧 เครื่องจักร: <b>${escapeHtml(j.machine||'-')}</b>${existing && existing.date ? ` &nbsp;•&nbsp; ให้คะแนนเมื่อ ${escapeHtml(existing.date)}` : ''}
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead><tr><td></td><td></td>${headHtml}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px">
+      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">ข้อเสนอแนะเพิ่มเติม</label>
+      <textarea id="sv-comment" class="input-ctrl" ${readOnly?'disabled':''} rows="3" style="width:100%;resize:vertical;font-size:13px" placeholder="ความคิดเห็นหรือข้อเสนอแนะ (ถ้ามี)">${existing ? escapeHtml(existing.comment||'') : ''}</textarea>
+    </div>`;
+
+  document.getElementById('tp-modal-actions').innerHTML = readOnly
+    ? `<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>`
+    : `<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()">ยกเลิก</button>
+       <button class="tp-mact-btn" style="background:var(--accent);color:#fff" onclick="submitSatisfaction('${escapeHtml(repairId)}')"><i class="ion-ios-checkmark"></i> บันทึกแบบประเมิน</button>`;
+
+  document.getElementById('tp-modal-overlay').classList.add('show');
+}
+
+function submitSatisfaction(repairId) {
+  const j = getRepairJobsData().find(x => x.id === repairId);
+  if (!j) return;
+
+  const scores = {};
+  for (const q of SATISFACTION_QUESTIONS) {
+    const checked = document.querySelector(`input[name="sv-${q.key}"]:checked`);
+    if (!checked) { showToast('กรุณาให้คะแนนให้ครบทุกข้อ', 'error'); return; }
+    scores[q.key] = Number(checked.value);
+  }
+  const comment = document.getElementById('sv-comment')?.value || '';
+
+  const payload = {
+    repairId,
+    requesterName: j.name || j.requester || (currentUser ? currentUser.name : ''),
+    machine: j.machine || '',
+    ...scores,
+    comment,
+  };
+
+  if (isLocalMode) {
+    localSatisfaction.push({ id: 'SV-' + Date.now(), date: new Date().toLocaleString('th-TH'), ...payload });
+    tpCloseModal(); showToast('บันทึกแบบประเมินเรียบร้อย (โหมดทดลอง)'); renderRepairsTable();
+    return;
+  }
+
+  authFetch(`${API_URL}/satisfaction`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) { showToast(res.message || 'บันทึกไม่สำเร็จ', 'error'); return; }
+      tpCloseModal();
+      showToast('บันทึกแบบประเมินความพึงพอใจเรียบร้อย ขอบคุณครับ 🙏');
+      cachedSatisfaction.push({ id: res.id, repairId, date: new Date().toLocaleString('th-TH'), avg: (scores.q1+scores.q2+scores.q3+scores.q4)/4, ...payload });
+      renderRepairsTable();
+    })
+    .catch(err => showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error'));
+}
+
+// ── หน้าสรุปผลประเมินความพึงพอใจ (ฝั่งแอดมิน) ──
+function renderSatisfactionPanel() {
+  const wrap = document.getElementById('panel-satisfaction');
+  if (!wrap) return;
+
+  const data = getSatisfactionData();
+  const n = data.length;
+  const avgOf = key => n ? (data.reduce((s, d) => s + (Number(d[key]) || 0), 0) / n) : 0;
+  const summary = satisfactionSummary || {
+    total: n,
+    avgOverall: n ? (data.reduce((s, d) => s + (Number(d.avg) || 0), 0) / n) : 0,
+    q1: avgOf('q1'), q2: avgOf('q2'), q3: avgOf('q3'), q4: avgOf('q4'),
+  };
+
+  const kpiHtml = `
+    <div class="adm-kpi-bar-v2">
+      <div class="adm-kpi-v2 kv-purple">
+        <div class="kv-icon"><i class="ion-ios-star"></i></div>
+        <div class="kv-body"><div class="kv-val">${summary.total}</div><div class="kv-lbl">แบบประเมินทั้งหมด</div></div>
+      </div>
+      <div class="adm-kpi-v2 kv-green">
+        <div class="kv-icon"><i class="ion-ios-happy"></i></div>
+        <div class="kv-body"><div class="kv-val">${(summary.avgOverall||0).toFixed(2)} / 5</div><div class="kv-lbl">คะแนนเฉลี่ยรวม</div></div>
+      </div>
+      ${SATISFACTION_QUESTIONS.map(q => `
+      <div class="adm-kpi-v2 kv-blue">
+        <div class="kv-icon"><i class="ion-ios-checkmark-circle-outline"></i></div>
+        <div class="kv-body"><div class="kv-val">${(summary[q.key]||0).toFixed(2)}</div><div class="kv-lbl">${escapeHtml(q.label)}</div></div>
+      </div>`).join('')}
+    </div>`;
+
+  const rowsHtml = !n
+    ? `<tr><td colspan="8" style="text-align:center;color:var(--text3)">ยังไม่มีแบบประเมินที่เข้ามา</td></tr>`
+    : data.slice().reverse().map(d => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px">${escapeHtml(d.repairId)}</td>
+        <td style="color:var(--text2);font-size:12px">${escapeHtml(d.date||'-')}</td>
+        <td style="font-weight:600">${escapeHtml(d.machine||'-')}</td>
+        <td style="color:var(--text2)">${escapeHtml(d.requesterName||'-')}</td>
+        <td style="text-align:center">${d.q1}</td><td style="text-align:center">${d.q2}</td>
+        <td style="text-align:center">${d.q3}</td><td style="text-align:center">${d.q4}</td>
+        <td style="text-align:center;font-weight:700;color:var(--accent)">${Number(d.avg).toFixed(2)}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(d.comment||'')}">${escapeHtml(d.comment||'-')}</td>
+      </tr>`).join('');
+
+  wrap.innerHTML = `
+    <div class="card" style="margin-bottom:16px">${kpiHtml}</div>
+    <div class="card">
+      <div class="card-title"><i class="ion-ios-star"></i> รายการแบบประเมินความพึงพอใจ</div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead><tr>
+            <th>JobID</th><th>วันที่ประเมิน</th><th>เครื่องจักร</th><th>ผู้แจ้ง</th>
+            <th>สะดวก</th><th>รวดเร็ว</th><th>คำแนะนำ</th><th>โดยรวม</th><th>เฉลี่ย</th><th>ข้อเสนอแนะ</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function exportJobDetailPDF(id) {
