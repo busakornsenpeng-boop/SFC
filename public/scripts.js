@@ -4064,11 +4064,22 @@ grid.innerHTML = myJobs.map(j => `
         <span class="qc-meta-tag">${(j.side||'').split(' ')[0]}</span>
       </div>
       ${(() => {
+        // แสดงรูปเป็นแถบ thumbnail ขนาดคงที่ (ไม่ไล่รูปเต็มความกว้างทีละรูปแบบเดิม) เพื่อไม่ให้
+        // การ์ดที่แนบรูปหลายรูปสูงผิดปกติจนแถวในกริดเรียงกันไม่สวย — จำกัดโชว์ 3 รูป ที่เหลือรวมเป็น "+N"
         let imgs = [];
         try { imgs = JSON.parse(j.imgAfter || '[]'); } catch(e) { imgs = []; }
-        return imgs.map(src =>
-          '<img src="' + src + '" style="width:100%;border-radius:8px;margin:8px 0;object-fit:cover;max-height:160px" onerror="this.style.display=\'none\'">'
-        ).join('');
+        if (!imgs.length) return '';
+        const MAX_THUMBS = 3;
+        const shown = imgs.slice(0, MAX_THUMBS);
+        const extra = imgs.length - shown.length;
+        const thumbsHtml = shown.map((src, i) => {
+          const isLast = i === shown.length - 1 && extra > 0;
+          return `<div style="position:relative;flex:1;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:var(--bg2)">
+            <img src="${src}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">
+            ${isLast ? `<div style="position:absolute;inset:0;background:rgba(16,24,40,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">+${extra}</div>` : ''}
+          </div>`;
+        }).join('');
+        return `<div style="display:flex;gap:6px;padding:0 16px 10px">${thumbsHtml}</div>`;
       })()}
       <div class="qc-card-actions">
         <button class="qc-btn-detail" onclick="viewJobDetail('${j.id}')"><i class="ion-ios-eye"></i> ดูรายละเอียด</button>
