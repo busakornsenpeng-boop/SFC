@@ -27,6 +27,8 @@ let localPMHistory = [];
 let cachedJobs = [], cachedPM = [], cachedPMHistory = [];
 
 // ── แบบประเมินความพึงพอใจในการ "ใช้งานเว็บแอพ" โดยรวม (คนละอันกับประเมินงานซ่อมรายชิ้นด้านบน) ──
+// อัปเดต: ขยายเป็นแบบสำรวจ 4 ส่วน (ข้อมูลทั่วไป / คะแนนความพึงพอใจ / ปัญหาที่พบ / ข้อเสนอแนะ)
+// ให้ตรงกับ routes/appfeedback.js ฝั่ง backend — ต้องเรียงค่าตรงกับที่ backend รับ (ดูฟังก์ชัน submitAppFeedback)
 let localAppFeedback = [];
 const APP_FEEDBACK_QUESTIONS = [
   { key: 'q1', label: 'ความง่ายในการใช้งาน (เมนูชัดเจน ไม่งงขั้นตอน)' },
@@ -35,6 +37,38 @@ const APP_FEEDBACK_QUESTIONS = [
   { key: 'q4', label: 'ความถูกต้องของข้อมูล (ระบบคำนวณและแสดงผลถูกต้อง)' },
   { key: 'q5', label: 'ความเสถียรของระบบ (ไม่ค่อยค้าง หรือเด้งหลุด)' },
   { key: 'q6', label: 'ภาพรวมความพึงพอใจในการใช้งาน' },
+];
+const APP_FEEDBACK_DEPARTMENTS = [
+  'ฝ่ายผลิต / ปฏิบัติการ',
+  'ฝ่ายคลังสินค้า / สต็อก',
+  'ฝ่ายซ่อมบำรุง / วางแผน',
+  'ฝ่ายควบคุมคุณภาพ (QA/QC)',
+  'ฝ่ายบริหาร / สำนักงาน',
+  'อื่นๆ',
+];
+const APP_FEEDBACK_DEVICES = [
+  'สมาร์ทโฟนระบบ Android (เช่น Samsung, OPPO, Vivo, Xiaomi)',
+  'สมาร์ทโฟนระบบ iOS (iPhone)',
+  'แท็บเล็ต / iPad',
+  'คอมพิวเตอร์ / เว็บเบราว์เซอร์ (Web Application)',
+];
+const APP_FEEDBACK_FREQUENCIES = [
+  'ทุกวัน (หลายครั้งต่อวัน)',
+  'ทุกวัน (วันละ 1 ครั้ง)',
+  '2-3 ครั้งต่อสัปดาห์',
+  'สัปดาห์ละ 1 ครั้ง',
+  'นานๆ ครั้ง / นานกว่า 1 สัปดาห์ครั้ง',
+];
+const APP_FEEDBACK_PROBLEMS = [
+  { key: 'p1', label: 'ไม่เคยพบปัญหาใดๆ (ใช้งานได้ราบรื่นดี)' },
+  { key: 'p2', label: 'แอปพลิเคชันช้า / โหลดนาน ขณะเปิดหน้าหรือบันทึกข้อมูล' },
+  { key: 'p3', label: 'แอปหลุด / เด้งออกอัตโนมัติ ขณะกำลังใช้งาน' },
+  { key: 'p4', label: 'แนบรูปภาพหรือสแกนไฟล์ไม่ได้ / ล่าช้า' },
+  { key: 'p5', label: 'ข้อมูลไม่บันทึก / ข้อมูลสูญหาย หลังกดส่ง' },
+  { key: 'p6', label: 'การแสดงผลผิดเพี้ยน (ตัวหนังสือซ้อน ปุ่มกดทับกัน)' },
+  { key: 'p7', label: 'สับสนขั้นตอนการใช้งาน ไม่รู้ว่าต้องกดตรงไหนต่อ' },
+  { key: 'p8', label: 'การแจ้งเตือน (Notification) ไม่ทำงาน หรือล่าช้า' },
+  { key: 'p9', label: 'ระบบคำนวณหรือแสดงผลสถิติผิดพลาด' },
 ];
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
@@ -4487,6 +4521,15 @@ const RATING_SCALE = [
   { v: 2, lbl: 'น้อย' }, { v: 1, lbl: 'น้อยมาก' },
 ];
 
+// สร้าง HTML ของ radio-list แนวตั้งใช้ซ้ำได้ทั้ง 1.1/1.2/1.3 (name = ชื่อกลุ่ม, options = array ของ string)
+function afRadioListHtml(name, options) {
+  return options.map((opt, i) => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text2);cursor:pointer">
+      <input type="radio" name="${name}" value="${escapeHtml(opt)}" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+      <span>${escapeHtml(opt)}</span>
+    </label>`).join('');
+}
+
 function openAppFeedbackModal() {
   document.getElementById('tp-modal-title').textContent = 'ประเมินความพึงพอใจการใช้งานเว็บแอพ';
 
@@ -4503,19 +4546,58 @@ function openAppFeedbackModal() {
 
   const headHtml = RATING_SCALE.map(s => `<th style="text-align:center;font-size:11px;color:var(--text3);font-weight:600">${s.lbl}<br>(${s.v})</th>`).join('');
 
+  const problemsHtml = APP_FEEDBACK_PROBLEMS.map(p => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" name="af-problem" value="${p.key}" onclick="afOnProblemToggle(this)" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+      <span>${escapeHtml(p.label)}</span>
+    </label>`).join('');
+
+  const sectionTitleStyle = 'font-size:13.5px;font-weight:700;color:var(--text);margin:18px 0 8px';
+
   document.getElementById('tp-modal-body').innerHTML = `
-    <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">
-      ⭐ ช่วยให้คะแนนความพึงพอใจในการใช้งานเว็บแอพนี้โดยรวม เพื่อนำไปปรับปรุงต่อไปครับ
+    <div style="font-size:12.5px;color:var(--text2);margin-bottom:6px">
+      ⭐ ช่วยตอบแบบสำรวจการใช้งานเว็บแอพนี้ เพื่อนำไปปรับปรุงและพัฒนาต่อไปครับ (ใช้เวลาประมาณ 3-5 นาที)
     </div>
+
+    <div style="${sectionTitleStyle};margin-top:10px">ส่วนที่ 1: ข้อมูลทั่วไปและบริบทการใช้งาน</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.1 ฝ่าย / แผนก หรือกลุ่มผู้ใช้งาน</div>
+      ${afRadioListHtml('af-department', APP_FEEDBACK_DEPARTMENTS)}
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.2 อุปกรณ์หลักที่ใช้เข้าใช้งานแอปพลิเคชัน</div>
+      ${afRadioListHtml('af-device', APP_FEEDBACK_DEVICES)}
+    </div>
+    <div>
+      <div style="font-size:12.5px;color:var(--text2);margin-bottom:4px">1.3 ความถี่ในการเข้าใช้งานแอปพลิเคชัน</div>
+      ${afRadioListHtml('af-frequency', APP_FEEDBACK_FREQUENCIES)}
+    </div>
+
+    <div style="${sectionTitleStyle}">ส่วนที่ 2: โปรดประเมินประสิทธิภาพความพึงพอใจ</div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead><tr><td></td><td></td>${headHtml}</tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
-    <div style="margin-top:14px">
-      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">ข้อเสนอแนะเพิ่มเติม</label>
-      <textarea id="af-comment" class="input-ctrl" rows="3" style="width:100%;resize:vertical;font-size:13px" placeholder="ความคิดเห็นหรือข้อเสนอแนะ (ถ้ามี)"></textarea>
+
+    <div style="${sectionTitleStyle}">ส่วนที่ 3: ปัญหาและข้อผิดพลาดที่พบจากการใช้งาน</div>
+    <div style="font-size:12.5px;color:var(--text3);margin-bottom:6px">3.1 คุณเคยพบปัญหาจากการใช้งานแอปพลิเคชันหรือไม่? (เลือกตอบได้มากกว่า 1 ข้อ)</div>
+    ${problemsHtml}
+    <input id="af-problem-other" class="input-ctrl" style="margin-top:6px;font-size:13px" placeholder="อื่นๆ (ถ้ามี โปรดระบุ)">
+
+    <div style="${sectionTitleStyle}">ส่วนที่ 4: ข้อเสนอแนะและความต้องการเพิ่มเติม</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.1 ฟังก์ชันใดในแอปพลิเคชันที่คุณคิดว่าจำเป็นต้องปรับปรุงด่วนที่สุด</label>
+      <input id="af-improve-most" class="input-ctrl" style="font-size:13px" placeholder="ข้อความคำตอบสั้นๆ">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.2 ฟังก์ชันใหม่ หรือความสามารถใหม่ที่คุณอยากให้มีเพิ่มในแอปพลิเคชัน</label>
+      <textarea id="af-new-feature" class="input-ctrl" rows="2" style="width:100%;resize:vertical;font-size:13px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
+    </div>
+    <div>
+      <label style="font-size:12.5px;color:var(--text2);display:block;margin-bottom:6px">4.3 ความคิดเห็นหรือข้อเสนอแนะเพิ่มเติม</label>
+      <textarea id="af-additional-comment" class="input-ctrl" rows="2" style="width:100%;resize:vertical;font-size:13px" placeholder="ข้อความคำตอบแบบยาว"></textarea>
     </div>`;
 
   document.getElementById('tp-modal-actions').innerHTML =
@@ -4525,21 +4607,51 @@ function openAppFeedbackModal() {
   document.getElementById('tp-modal-overlay').classList.add('show');
 }
 
+// เลือก "ไม่เคยพบปัญหาใดๆ" (p1) กับปัญหาข้ออื่นพร้อมกันไม่ได้ — เลือกฝั่งใดฝั่งหนึ่ง กันคำตอบขัดแย้งกันเอง
+function afOnProblemToggle(el) {
+  const boxes = document.querySelectorAll('input[name="af-problem"]');
+  if (el.value === 'p1' && el.checked) {
+    boxes.forEach(b => { if (b.value !== 'p1') b.checked = false; });
+  } else if (el.checked) {
+    boxes.forEach(b => { if (b.value === 'p1') b.checked = false; });
+  }
+}
+
 function submitAppFeedback() {
+  const department = document.querySelector('input[name="af-department"]:checked')?.value;
+  const device      = document.querySelector('input[name="af-device"]:checked')?.value;
+  const frequency   = document.querySelector('input[name="af-frequency"]:checked')?.value;
+  if (!department || !device || !frequency) {
+    showToast('กรุณากรอกข้อมูลส่วนที่ 1 ให้ครบ (แผนก, อุปกรณ์, ความถี่การใช้งาน)', 'error');
+    return;
+  }
+
   const scores = {};
   for (const q of APP_FEEDBACK_QUESTIONS) {
     const checked = document.querySelector(`input[name="af-${q.key}"]:checked`);
-    if (!checked) { showToast('กรุณาให้คะแนนให้ครบทุกข้อ', 'error'); return; }
+    if (!checked) { showToast('กรุณาให้คะแนนความพึงพอใจให้ครบทุกข้อ (ส่วนที่ 2)', 'error'); return; }
     scores[q.key] = Number(checked.value);
   }
-  const comment = document.getElementById('af-comment')?.value || '';
+
+  const problems = Array.from(document.querySelectorAll('input[name="af-problem"]:checked')).map(b => b.value);
+  if (!problems.length) {
+    showToast('กรุณาเลือกอย่างน้อย 1 ข้อในส่วนที่ 3 (เลือก "ไม่เคยพบปัญหาใดๆ" ได้ถ้าไม่มีปัญหา)', 'error');
+    return;
+  }
+  const problemsOther = document.getElementById('af-problem-other')?.value || '';
+
+  const improveMost       = document.getElementById('af-improve-most')?.value || '';
+  const newFeature         = document.getElementById('af-new-feature')?.value || '';
+  const additionalComment  = document.getElementById('af-additional-comment')?.value || '';
 
   const payload = {
     username: currentUser ? currentUser.username : '',
     requesterName: currentUser ? currentUser.name : '',
     role: currentUser ? currentUser.role : '',
+    department, device, frequency,
     ...scores,
-    comment,
+    problems, problemsOther,
+    improveMost, newFeature, additionalComment,
   };
 
   if (isLocalMode) {
