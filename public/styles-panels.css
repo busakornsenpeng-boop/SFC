@@ -265,7 +265,9 @@
   .eng-panel{display:none;animation:tabFadeIn .25s ease-out}
   .eng-panel.active{display:block}
   /* ตรวจรับงาน Grid */
-  .qc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  /* align-items:start กันไม่ให้การ์ดที่เนื้อหาสั้น (ไม่มีรูป) ถูก CSS Grid ยืดความสูงตามการ์ด
+     ที่ยาวที่สุดในแถวเดียวกัน (เช่นการ์ดที่แนบรูปหลายรูป) จนเหลือพื้นที่ว่างด้านล่างเยอะผิดปกติ */
+  .qc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
   .qc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow-sm)}
   .qc-card:hover{border-color:var(--border2);box-shadow:var(--shadow)}
   .qc-card-top{padding:14px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
