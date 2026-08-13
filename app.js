@@ -12,6 +12,7 @@ const dailyPMRoutes = require('./routes/dailypm');
 const adminRoutes = require('./routes/admin');
 const lineWebhookRoutes = require('./routes/linewebhook');
 const techProfileRoutes = require('./routes/techprofiles');
+const appFeedbackRoutes = require('./routes/appfeedback');
 const { verifyAdminToken } = require('./middleware/adminAuth');
 const { broadcastToAdmins } = require('./routes/notify');
 
@@ -64,6 +65,7 @@ function createApp() {
   app.use('/api/admin', adminRoutes);
   app.use('/api/line/webhook', lineWebhookRoutes);
   app.use('/api/tech-profiles', techProfileRoutes);
+  app.use('/api/app-feedback', appFeedbackRoutes);
 
   if (process.env.ENABLE_LINE_TEST_ENDPOINT === 'true') {
     app.post('/api/test-line-notify', verifyAdminToken, async (req, res, next) => {
