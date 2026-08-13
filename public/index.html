@@ -853,8 +853,14 @@
     <div class="tp-sec te-sec" id="te-v-hist"  style="display:none"></div>
     <div class="tp-sec te-sec" id="te-v-daily" style="display:none"></div>
   </div>
+</section>
+  </div><!-- /container -->
 
-  <!-- Modal ใช้ร่วมกับ Tech Panel เดิม -->
+  <!-- ════════════════════════════ SHARED MODALS ════════════════════════════ -->
+
+  <!-- Modal ใช้ร่วมกับ Tech Panel และแบบประเมินความพึงพอใจ (ย้ายออกมานอก section
+       te-panel-page เพราะ section นั้น display:none ตอนอยู่หน้า dashboard ปกติ
+       ทำให้ modal ที่ซ้อนอยู่ข้างในแสดงผลไม่ได้เลยแม้ JS จะเพิ่มคลาส .show ให้แล้วก็ตาม) -->
   <div class="tp-modal-overlay" id="tp-modal-overlay" onclick="tpCloseModalOutside(event)">
     <div class="tp-modal" id="tp-modal">
       <div class="tp-modal-hdr">
@@ -865,10 +871,6 @@
       <div class="tp-modal-actions" id="tp-modal-actions"></div>
     </div>
   </div>
-</section>
-  </div><!-- /container -->
-
-  <!-- ════════════════════════════ SHARED MODALS ════════════════════════════ -->
 
 <!-- ══ REGISTER MODAL ══ -->
 <div id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(16,24,40,0.55);z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;">
