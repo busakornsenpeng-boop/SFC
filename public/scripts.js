@@ -4605,11 +4605,8 @@ function submitSatisfaction(repairId) {
     .catch(err => showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error'));
 }
 
-// ── หน้าสรุปผลประเมินความพึงพอใจ (ฝั่งแอดมิน) ──
-function renderSatisfactionPanel() {
-  const wrap = document.getElementById('panel-satisfaction');
-  if (!wrap) return;
-
+// ── หน้าสรุปผลประเมินความพึงพอใจ (ใช้ร่วมกันทั้งแท็บแอดมินและ modal ด่วนจากหน้าติดตามงาน) ──
+function satisfactionSummaryHTML() {
   const data = getSatisfactionData();
   const n = data.length;
   const avgOf = key => n ? (data.reduce((s, d) => s + (Number(d[key]) || 0), 0) / n) : 0;
@@ -4650,7 +4647,7 @@ function renderSatisfactionPanel() {
         <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(d.comment||'')}">${escapeHtml(d.comment||'-')}</td>
       </tr>`).join('');
 
-  wrap.innerHTML = `
+  return `
     <div class="card" style="margin-bottom:16px">${kpiHtml}</div>
     <div class="card">
       <div class="card-title"><i class="ion-ios-star"></i> รายการแบบประเมินความพึงพอใจ</div>
@@ -4664,6 +4661,22 @@ function renderSatisfactionPanel() {
         </table>
       </div>
     </div>`;
+}
+
+function renderSatisfactionPanel() {
+  const wrap = document.getElementById('panel-satisfaction');
+  if (!wrap) return;
+  wrap.innerHTML = satisfactionSummaryHTML();
+}
+
+// ปุ่มด่วนจากแถบตัวกรองในหน้า "ติดตามงานซ่อม" — เปิดสรุปผลประเมินความพึงพอใจใน modal กลาง
+// โดยไม่ต้องมีแท็บแยกในเมนูหลัก (ใช้ modal เดียวกับ tp-modal-overlay ที่ใช้ร่วมกับปุ่มดาวรายแถว)
+function openSatisfactionSummaryModal() {
+  document.getElementById('tp-modal-title').textContent = 'สรุปผลแบบประเมินความพึงพอใจ';
+  document.getElementById('tp-modal-body').innerHTML = satisfactionSummaryHTML();
+  document.getElementById('tp-modal-actions').innerHTML =
+    `<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>`;
+  document.getElementById('tp-modal-overlay').classList.add('show');
 }
 
 function exportJobDetailPDF(id) {
