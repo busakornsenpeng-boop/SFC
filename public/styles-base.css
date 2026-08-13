@@ -133,13 +133,8 @@
   .actions-panel{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
   .btn-action{background:none;color:var(--teal);font-weight:600;cursor:pointer;padding:5px 10px;border-radius:3px;border:1px solid rgba(13,148,136,0.22);transition:all 0.15s;white-space:nowrap;font-family:inherit;font-size:12px}
   .btn-action:hover{background:var(--teal-bg)}
-  /* ช่อง "ดำเนินการ" ต่อแถว — ปุ่มดูรายละเอียด/แก้ไขเป็นปุ่มหลักตามปกติ ส่วนไอคอนดาว
-     "ให้คะแนนความพึงพอใจ" ลอยเป็น badge เล็กๆ ที่มุมขวาบนของช่อง แยกจากปุ่มหลักชัดเจน
-     ไม่ใช่ปุ่มแยกอยู่ในบรรทัดเดียวกันอีกต่อไป */
+  /* ช่อง "ดำเนินการ" ต่อแถว — ปุ่มดูรายละเอียด/แก้ไขเป็นปุ่มหลักตามปกติ */
   .row-act-wrap{position:relative;display:inline-block;padding-top:14px}
-  .btn-icon-rate{position:absolute;top:-4px;right:-4px;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border-radius:50%;background:var(--surface,#fff);border:1px solid #f59e0b;color:#f59e0b;font-size:11px;line-height:1;cursor:pointer;transition:all 0.15s;box-shadow:0 1px 3px rgba(16,24,40,0.12);z-index:1}
-  .btn-icon-rate:hover{transform:scale(1.12)}
-  .btn-icon-rate.rated{border-color:var(--green,#16a34a);color:var(--green,#16a34a)}
   /* ปุ่มลอยมุมขวาล่าง "ประเมินความพึงพอใจการใช้งานเว็บแอพ" */
   .app-feedback-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(46,92,230,0.35);z-index:8000;transition:transform .15s,box-shadow .15s}
   .app-feedback-fab:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 8px 22px rgba(46,92,230,0.45)}
