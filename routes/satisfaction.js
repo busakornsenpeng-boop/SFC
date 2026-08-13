@@ -1,6 +1,6 @@
 // routes/satisfaction.js
 // ─────────────────────────────────────────────────────────────
-// แบบประเมินความพึงพอใจในการซ่อม — ผู้แจ้งซ่อมทำได้เมื่องานสถานะ "ปิดงาน" แล้ว
+// แบบประเมินความพึงพอใจในการซ่อม — ผู้แจ้งซ่อมทำได้ทุกสถานะงาน (ตั้งแต่แจ้งซ่อมเข้ามาเลย ไม่ต้องรอปิดงาน)
 // ทำได้ครั้งเดียวต่องาน (กันประเมินซ้ำจาก repairId เดิม)
 //
 // Google Sheet: Satisfaction!A2:J1000
@@ -88,14 +88,11 @@ router.post('/', requireAuth, async (req, res) => {
       return res.json({ success: false, message: 'กรุณาให้คะแนนครบทุกข้อ (1-5)' });
     }
 
-    // เช็คว่างานนี้ปิดงานแล้วจริง และยังไม่เคยถูกประเมิน
+    // เช็คว่างานนี้มีอยู่จริง และยังไม่เคยถูกประเมิน (ประเมินได้ทุกสถานะ ไม่ต้องรอปิดงาน)
     const repRes  = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'Repairs!A2:W1000' });
     const repRows = repRes.data.values || [];
     const repRow  = repRows.find(r => r[0] === repairId);
     if (!repRow) return res.json({ success: false, message: 'ไม่พบใบแจ้งซ่อมนี้' });
-    if ((repRow[9] || '') !== 'ปิดงาน') {
-      return res.json({ success: false, message: 'ทำแบบประเมินได้เมื่องานถูกปิดงานแล้วเท่านั้น' });
-    }
 
     const existing = await getAllSurveys();
     if (existing.some(d => d.repairId === repairId)) {
