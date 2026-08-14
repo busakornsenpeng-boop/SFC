@@ -1049,7 +1049,7 @@ function mapJobToTechPanel(j) {
   return{id:j.id,title:j.machine||'-',desc:j.detail||'-',dept:j.dept||'',type:j.side?j.side.split('(')[0].trim():'',priority:j.opType||null,isEmergency:isEmergencyJob(j),date:j.date?(String(j.date).trim().match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)||[String(j.date).trim()])[0]:'-',overdue:(j.hoursOpen||0)>24&&j.status==='รอซ่อม',overdueHrs:j.hoursOpen||0,status:statusMap[j.status]||j.status,qcFailed,assignee:j.technician||null,progress:j.note||'',acceptedDate:j.acceptedDate||'',doneDate:j.doneDate||''};
 }
 function tpGetAllJobs(){return getRepairJobsData().map(mapJobToTechPanel);}
-function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
+function tpFmtThai(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);if(m<1||m>12)return s;return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
 function tpFmt(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function tpUpdateStats(){
   const jobs=tpGetAllJobs();const pmList=getPMData();
@@ -1652,7 +1652,7 @@ function showDayEventsDetail(ds){
 
 function shiftSelectedDay(offset){if(!calendarSelectedDate)return;const[y,m,d]=calendarSelectedDate.split('-').map(Number);const cur=new Date(y,m-1,d);cur.setDate(cur.getDate()+offset);calendarSelectedDate=tpFmt(cur);calendarMonth=cur.getMonth();calendarYear=cur.getFullYear();renderCalendar();showDayEventsDetail(calendarSelectedDate);}
 function clearSelectedDayNav(){calendarSelectedDate=null;const nav=document.getElementById('cal-day-navigator');const card=document.getElementById('cal-day-detail-card');if(nav)nav.style.display='none';if(card)card.style.display='none';renderCalendar();}
-function fmtThaiFull(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
+function fmtThaiFull(s){if(!s)return'';try{const[y,m,d]=s.split('-').map(Number);if(m<1||m>12)return s;return`${d} ${monthsThai[m-1]} ${y+543}`;}catch(e){return s;}}
 
 function openPMChecklistForm(pmId,machineName){
   const p=getPMData().find(x=>x.id===pmId);if(!p)return;
