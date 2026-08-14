@@ -371,9 +371,9 @@ function showToast(msg, type='success') {
 function handleServerResponse(res) {
   if(!res) return;
   let msg=res, type='info';
-  if(res.startsWith('✅')){msg=res.slice(2).trim();type='success';}
-  else if(res.startsWith('❌')){msg=res.slice(2).trim();type='error';}
-  else if(res.startsWith('⚠️')){msg=res.slice(3).trim();type='warning';}
+  if(res.startsWith('✅')){msg=res.replace(/^✅\s*/, '').trim();type='success';}
+  else if(res.startsWith('❌')){msg=res.replace(/^❌\s*/, '').trim();type='error';}
+  else if(res.startsWith('⚠️')){msg=res.replace(/^⚠️\s*/, '').trim();type='warning';}
   showToast(msg,type);
 }
 
