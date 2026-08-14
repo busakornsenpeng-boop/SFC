@@ -240,80 +240,85 @@ document.addEventListener('DOMContentLoaded', function() {
     if(s) { currentUser = JSON.parse(s); setupDashboard(); }
   } else {
     // ── กู้ session กลับมาถ้ามี token ค้างจาก sessionStorage (เช่นตอนกด refresh หน้าเว็บ) ──
-    // ยืนยันกับ backend ก่อนเสมอ (ผ่าน /api/users/me) กัน token หมดอายุ/ถูกเพิกถอนแล้วแต่ยังค้างอยู่
+    // ยืนยันกับ backend ผ่าน /api/users/me พร้อมๆ กับโหลดข้อมูลหลัก (fetchCoreData) แบบขนาน
+    // (เดิมรอ /me เสร็จก่อนค่อยเริ่มโหลดข้อมูลหลัก ทำให้รีเฟรชหน้าช้าเป็นสองเท่า โดยเฉพาะตอน
+    // Render เพิ่งตื่นจาก cold-start — รวมเป็น request ขนานกันแทน ประหยัดเวลาไปเกือบครึ่ง)
     const savedToken = sessionStorage.getItem('sfc_auth_token');
     if (savedToken) {
       authToken = savedToken;
-      showLoading('กำลังกู้คืนเซสชัน...');
-      authFetch(`${API_URL}/users/me`)
-        .then(r => r.json())
-        .then(res => {
-          if (res && res.success) {
-            currentUser = {
-              username: res.username,
-              name:     res.name,
-              role:     res.role,
-              avatar:   res.avatar,
-              isChief:  res.isChief,
-              dept:     res.dept,
-            };
-            loadAllData(); // จะเรียก setupDashboard() ต่อให้เองเมื่อโหลดข้อมูลหลักเสร็จ (currentUser ถูกตั้งไว้แล้ว), overlay ยังเปิดอยู่ต่อเนื่องจากตอนกู้ session
-          } else {
-            // token ใช้ไม่ได้แล้ว → เคลียร์ทิ้งแล้วให้ login ใหม่ตามปกติ
-            sessionStorage.removeItem('sfc_auth_token');
-            authToken = null;
-            hideLoading();
-            loadAllData();
-          }
-        })
-        .catch(() => {
+      showLoading('กำลังเข้าสู่ระบบ...');
+      const meP   = authFetch(`${API_URL}/users/me`).then(r => r.json()).catch(() => null);
+      const dataP = fetchCoreData().catch(err => {
+        showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+      });
+      Promise.all([meP, dataP]).then(([res]) => {
+        hideLoading();
+        if (res && res.success) {
+          currentUser = {
+            username: res.username,
+            name:     res.name,
+            role:     res.role,
+            avatar:   res.avatar,
+            isChief:  res.isChief,
+            dept:     res.dept,
+          };
+          setupDashboard();
+        } else {
+          // token ใช้ไม่ได้แล้ว → เคลียร์ทิ้งแล้วให้ login ใหม่ตามปกติ (ข้อมูล master/dropdown
+          // ที่โหลดมาแล้วจาก fetchCoreData ด้านบนยังใช้ได้ตามปกติสำหรับหน้า login)
           sessionStorage.removeItem('sfc_auth_token');
           authToken = null;
-          hideLoading();
-          loadAllData();
-        });
+        }
+      });
     } else {
       loadAllData();
     }
   }
 });
 
-function loadAllData() {
-  showLoading('กำลังโหลดข้อมูลหลัก...');
+// ── ดึงข้อมูลหลัก (repairs/pm/pm history/masterdata/technicians) ล้วนๆ ไม่ยุ่งกับ loading overlay ──
+// แยกออกมาจาก loadAllData() เพื่อให้เรียกพร้อมกับการเช็ค session (/api/users/me) แบบขนานได้ตอนกู้ session
+function fetchCoreData() {
   return Promise.all([
     fetch(`${API_URL}/repairs`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm`).then(r => r.json()).catch(() => ({ data: [] })),
     fetch(`${API_URL}/pm/history`).then(r => r.json()).catch(() => ({ data: [] })),
-   fetch(`${API_URL}/masterdata`)
-  .then(r => r.json())
-  .catch(err => { console.error('[masterdata] fetch failed:', err); return { success: false }; }),
+    fetch(`${API_URL}/masterdata`)
+      .then(r => r.json())
+      .catch(err => { console.error('[masterdata] fetch failed:', err); return { success: false }; }),
     fetch(`${API_URL}/users/technicians`).then(r => r.json()).catch(() => ({ data: [] })),
   ])
   .then(([repairsRes, pmRes, pmHistRes, masterRes, techRes]) => {
     cachedJobs      = repairsRes.data  || [];
     cachedPM        = pmRes.data       || [];
     cachedPMHistory = pmHistRes.data   || [];
-   if (masterRes.success) {
-  populateMachineDropdown(masterRes.machines);
-  populateDeptDropdown(masterRes.departments);
-  populateLineDropdown(masterRes.lines);
-} else {
-  console.error('[masterdata] success=false, response:', masterRes);
-  populateLineDropdown([]);      // จะขึ้น error แทนค้าง "กำลังโหลด..."
-  populateMachineDropdown([]);
-  showToast('โหลดข้อมูล master (สถานที่/เครื่องจักร) ไม่สำเร็จ กรุณารีเฟรชหน้า', 'error');
-}
+    if (masterRes.success) {
+      populateMachineDropdown(masterRes.machines);
+      populateDeptDropdown(masterRes.departments);
+      populateLineDropdown(masterRes.lines);
+    } else {
+      console.error('[masterdata] success=false, response:', masterRes);
+      populateLineDropdown([]);      // จะขึ้น error แทนค้าง "กำลังโหลด..."
+      populateMachineDropdown([]);
+      showToast('โหลดข้อมูล master (สถานที่/เครื่องจักร) ไม่สำเร็จ กรุณารีเฟรชหน้า', 'error');
+    }
     if (techRes.data) {
       populateTechDropdown(techRes.data);
     }
-    
-    hideLoading();
-    if(currentUser) setupDashboard();
-  })
-  .catch(err => {
-    hideLoading();
-    showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
   });
+}
+
+function loadAllData() {
+  showLoading('กำลังโหลดข้อมูลหลัก...');
+  return fetchCoreData()
+    .then(() => {
+      hideLoading();
+      if (currentUser) setupDashboard();
+    })
+    .catch(err => {
+      hideLoading();
+      showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+    });
 }
 
 let _loadingWatchdog = null;
