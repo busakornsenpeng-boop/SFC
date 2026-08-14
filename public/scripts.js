@@ -109,10 +109,11 @@ function authFetch(url, options = {}, _retriesLeft = 1) {
   return fetch(url, { ...options, headers })
     .then(res => {
       if (res.status === 401) {
-        // token หมดอายุ/ไม่ถูกต้อง → บังคับ login ใหม่
-        currentUser = null;
-        authToken = null;
-        showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
+        // token หมดอายุ/ไม่ถูกต้อง → เคลียร์ session แล้วเด้งกลับหน้า login จริงๆ
+        // (เดิมแค่เคลียร์ตัวแปรในหน่วยความจำ แต่ไม่ได้สลับ UI กลับไปหน้า login ให้)
+        const wasLoggedIn = !!currentUser;
+        handleLogout();
+        if (wasLoggedIn) showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
       }
       return res;
     })
@@ -238,7 +239,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const s = sessionStorage.getItem('mock_session');
     if(s) { currentUser = JSON.parse(s); setupDashboard(); }
   } else {
-    loadAllData();
+    // ── กู้ session กลับมาถ้ามี token ค้างจาก sessionStorage (เช่นตอนกด refresh หน้าเว็บ) ──
+    // ยืนยันกับ backend ก่อนเสมอ (ผ่าน /api/users/me) กัน token หมดอายุ/ถูกเพิกถอนแล้วแต่ยังค้างอยู่
+    const savedToken = sessionStorage.getItem('sfc_auth_token');
+    if (savedToken) {
+      authToken = savedToken;
+      showLoading('กำลังกู้คืนเซสชัน...');
+      authFetch(`${API_URL}/users/me`)
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.success) {
+            currentUser = {
+              username: res.username,
+              name:     res.name,
+              role:     res.role,
+              avatar:   res.avatar,
+              isChief:  res.isChief,
+              dept:     res.dept,
+            };
+            loadAllData(); // จะเรียก setupDashboard() ต่อให้เองเมื่อโหลดข้อมูลหลักเสร็จ (currentUser ถูกตั้งไว้แล้ว), overlay ยังเปิดอยู่ต่อเนื่องจากตอนกู้ session
+          } else {
+            // token ใช้ไม่ได้แล้ว → เคลียร์ทิ้งแล้วให้ login ใหม่ตามปกติ
+            sessionStorage.removeItem('sfc_auth_token');
+            authToken = null;
+            hideLoading();
+            loadAllData();
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem('sfc_auth_token');
+          authToken = null;
+          hideLoading();
+          loadAllData();
+        });
+    } else {
+      loadAllData();
+    }
   }
 });
 
@@ -363,6 +399,10 @@ function handleLoginSubmit(event) {
       dept :    res.dept,
     };
     authToken = res.token || null;
+    // ── เก็บ token ไว้ใน sessionStorage กันเด้งออกไป login ใหม่ตอนกด refresh หน้าเว็บ ──
+    // (sessionStorage หายไปเองตอนปิดแท็บ/เบราว์เซอร์ ต่างจาก localStorage ที่ค้างถาวร —
+    // ยังกู้ session กลับมาได้ระหว่างที่แท็บเปิดอยู่ แต่ไม่ค้างข้ามรอบเปิดเบราว์เซอร์)
+    if (authToken) sessionStorage.setItem('sfc_auth_token', authToken);
 
     // ── ล้างตัวตนที่เคยระบุไว้ ทุกครั้งที่ login สำเร็จ กันชื่อคนก่อนหน้าค้างข้ามรอบ ──
     sessionStorage.removeItem('identified_tech_' + currentUser.username);
@@ -471,6 +511,7 @@ function handleLogout() {
   currentAdminTimeFilter = 'all';
   currentUser = null;
   authToken = null;
+  sessionStorage.removeItem('sfc_auth_token'); // เคลียร์ token ที่เก็บไว้กันเด้งออกตอน refresh
   if (isLocalMode) sessionStorage.removeItem('mock_session');
   document.getElementById('dashboard-page').style.display  = 'none';
   document.getElementById('te-panel-page').style.display   = 'none'; // ← เหลือแค่นี้
