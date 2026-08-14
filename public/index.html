@@ -701,6 +701,85 @@
           </div>
         </div>
       </div><!-- /panel-ins-daily-pm -->
+      <!-- ============================================================
+     FORKLIFT PRE-USE CHECK — ตรวจเช็คก่อนเริ่มผลิต (รถโฟล์คลิฟท์)
+     วางส่วน "PANEL" นี้ในตำแหน่งเดียวกับ panel อื่นๆ เช่นใกล้ๆ
+     <div id="panel-ins-daily-pm" class="view-panel">...</div>
+     แล้วเพิ่มปุ่มเมนู/แท็บที่เรียก flcInit() + แสดง panel นี้
+     (รูปแบบเดียวกับปุ่ม "Daily PM" ของ Inspector/TE ที่มีอยู่แล้ว)
+     ============================================================ -->
+
+<!-- PANEL: Forklift Pre-use Check -->
+<div id="panel-forklift-check" class="view-panel">
+  <div class="panel-header">
+    <h2><i class="ion-ios-car"></i> ตรวจเช็คก่อนเริ่มผลิต — รถโฟล์คลิฟท์</h2>
+    <div class="form-field" style="max-width:220px;margin:0">
+      <label>แผนก</label>
+      <select id="flc-dept-select" class="select-ctrl" onchange="flcOnDeptChange(this)">
+        <option value="ENG">ENG</option>
+        <option value="PDB">PDB</option>
+        <option value="PDF">PDF</option>
+        <option value="WFG">WFG</option>
+        <option value="WRM ADD">WRM ADD</option>
+        <option value="WRM-TF">WRM-TF</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">
+    <span id="flc-today-count" style="font-size:13px;color:var(--text2)"></span>
+  </div>
+
+  <div id="flc-today-list"></div>
+
+  <h3 style="margin-top:24px">ประวัติการตรวจเช็ค</h3>
+  <div id="flc-hist-body"></div>
+</div><!-- /panel-forklift-check -->
+
+<!-- MODAL: ฟอร์มตรวจเช็ค -->
+<div class="modal" id="flc-check-modal">
+  <div class="modal-content" style="max-width:640px">
+    <div class="modal-header">
+      <span class="modal-title" id="flc-form-title">ตรวจเช็ครถ</span>
+      <button class="modal-close" onclick="flcCloseForm()"><i class="ion-ios-close"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="flc-form-code">
+      <div class="form-field">
+        <label>บทบาทผู้ตรวจ<span class="pm-req">*</span></label>
+        <select id="flc-form-role" class="select-ctrl"></select>
+      </div>
+      <div class="form-field">
+        <label>ชื่อผู้ตรวจ<span class="pm-req">*</span></label>
+        <input type="text" id="flc-form-name" class="input-ctrl" placeholder="ระบุชื่อผู้ตรวจ">
+      </div>
+
+      <div id="flc-checklist-container" style="margin:12px 0"></div>
+
+      <div class="form-field">
+        <label>เลขชั่วโมงการใช้งานรถ (ถ้ามี)</label>
+        <input type="text" id="flc-form-hourmeter" class="input-ctrl" placeholder="เช่น 1850">
+      </div>
+      <div class="form-field">
+        <label>รายการที่ต้องการปรับปรุงแก้ไข / หมายเหตุเพิ่มเติม</label>
+        <textarea id="flc-form-remarks" class="textarea-ctrl" placeholder="ระบุรายละเอียด (ถ้ามี)"></textarea>
+      </div>
+
+      <button class="btn btn-accent" style="width:100%;margin-top:8px" onclick="flcSubmitForm()">บันทึกผลตรวจเช็ค</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: รายละเอียดประวัติ -->
+<div class="modal" id="flc-detail-modal">
+  <div class="modal-content" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title" id="flc-detail-title">รายละเอียด</span>
+      <button class="modal-close" onclick="closeModal('flc-detail-modal')"><i class="ion-ios-close"></i></button>
+    </div>
+    <div class="modal-body" id="flc-detail-body"></div>
+  </div>
+</div>
 <div id="panel-admin-people" class="view-panel">
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
     <button class="people-subtab active" id="pst-users" onclick="switchPeopleSubTab('users',this)"
