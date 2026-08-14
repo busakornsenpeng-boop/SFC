@@ -83,11 +83,13 @@ const THAI_MONTHS_ABBR = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ
 // key รูปแบบ "MM/YYYY" (ปี ค.ศ.) → "ก.ค. 2569" (เดือนไทย + ปี พ.ศ.)
 function formatMonthlyAxisLabel(key){
   const [mm, yyyy] = key.split('/').map(Number);
+  if(mm<1||mm>12) return key;
   return `${THAI_MONTHS_ABBR[mm-1]} ${yyyy+543}`;
 }
 // key รูปแบบ "YYYY-MM-DD" (ปี ค.ศ.) → "24 ก.ค. 2569"
 function formatDailyAxisLabel(key){
   const [yyyy, mm, dd] = key.split('-').map(Number);
+  if(mm<1||mm>12) return key;
   return `${dd} ${THAI_MONTHS_ABBR[mm-1]} ${yyyy+543}`;
 }
 function setMonthlyChartGranularity(mode){
@@ -2644,6 +2646,7 @@ function changeAdminTimeFilter(ft){
 function formatThaiDate(isoStr){
   if(!isoStr) return '';
   const[y,m,d]=isoStr.split('-').map(Number);
+  if(m<1||m>12) return isoStr;
   const months=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   return `${d} ${months[m-1]} ${y+543}`;
 }
