@@ -2093,7 +2093,8 @@ function thaiDateToInputValue(str){
     let[,d,m,y,hh,mm]=match;y=parseInt(y);if(y>2400)y-=543;
     const mo=String(m).padStart(2,'0');
     const da=String(d).padStart(2,'0');
-    return `${y}-${mo}-${da}T${(hh||'00').padStart(2,'0')}:${(mm||'00').padStart(2,'0')}`;
+    const yyyy=String(y).padStart(4,'0');
+    return `${yyyy}-${mo}-${da}T${(hh||'00').padStart(2,'0')}:${(mm||'00').padStart(2,'0')}`;
   }catch(e){return '';}
 }
 // แปลงข้อความวันที่แบบที่ระบบเก็บ "D/M/YYYY, HH:mm:ss" (รองรับทั้งปี พ.ศ./ค.ศ.) ให้เป็น Date object
