@@ -238,6 +238,69 @@ router.post('/login', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// GET /api/users/me
+// คืนโปรไฟล์ผู้ใช้ปัจจุบัน โดยอ่าน username/role จาก JWT ที่แนบมา (ผ่าน requireAuth)
+// ใช้ตอนโหลดหน้าเว็บใหม่ (refresh) เพื่อกู้ session กลับมาโดยไม่ต้อง login ใหม่ —
+// ฝั่ง frontend เก็บ token ไว้ใน sessionStorage แล้วเรียก endpoint นี้ตอน DOMContentLoaded
+// เพื่อยืนยันว่า token ยังไม่หมดอายุ พร้อมดึงข้อมูลโปรไฟล์ล่าสุด (เผื่อแอดมินแก้ชื่อ/avatar
+// หลัง login ไปแล้ว) — คืนข้อมูลรูปแบบเดียวกับตอน login (ไม่มี token ซ้ำเพราะมีอยู่แล้วฝั่ง client)
+// ─────────────────────────────────────────────────────────────
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const authInfo = req.admin || req.user || {};
+    const username  = authInfo.username;
+    if (!username) {
+      return res.status(401).json({ success: false, message: 'token ไม่ถูกต้อง' });
+    }
+
+    if (username === ADMIN_ACCOUNT.username) {
+      return res.json({
+        success: true,
+        username: ADMIN_ACCOUNT.username,
+        name:     ADMIN_ACCOUNT.fullname,
+        role:     'admin',
+        dept:     ADMIN_ACCOUNT.dept,
+        avatar:   ADMIN_ACCOUNT.avatar_url,
+        isChief:  true,
+      });
+    }
+
+    if (TE_SHARED_ACCOUNT.username && username === TE_SHARED_ACCOUNT.username) {
+      return res.json({
+        success: true,
+        username: TE_SHARED_ACCOUNT.username,
+        name:     TE_SHARED_ACCOUNT.fullname,
+        role:     TE_SHARED_ACCOUNT.role,
+        dept:     TE_SHARED_ACCOUNT.dept,
+        avatar:   TE_SHARED_ACCOUNT.avatar_url,
+        isChief:  false,
+      });
+    }
+
+    const users = await getAllUsers();
+    const user  = users.find(u => u.username.toLowerCase() === String(username).toLowerCase());
+    if (!user || user.status !== 'active') {
+      return res.status(401).json({ success: false, message: 'ไม่พบผู้ใช้ หรือบัญชีถูกระงับการใช้งานแล้ว' });
+    }
+
+    const effectiveRole = resolveRole(user.role, user.dept, user.username);
+    res.json({
+      success:  true,
+      username: user.username,
+      name:     user.fullname,
+      role:     effectiveRole,
+      dept:     user.dept,
+      avatar:   user.avatar_url,
+      isChief:  user.is_chief === 'TRUE' || user.is_chief === 'true' || user.is_chief === '1',
+      lineLinked: !!user.line_user_id,
+    });
+  } catch (err) {
+    console.error('[users] /me error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // POST /api/users/register
 // (เดิม: ผู้แจ้งซ่อมสมัครเองได้จากหน้า login — ตอนนี้เปลี่ยนนโยบายแล้ว
 //  ปิดการสมัครเอง ให้เฉพาะแอดมินเท่านั้นที่สร้างบัญชีให้พนักงานได้ ผ่านหน้า
