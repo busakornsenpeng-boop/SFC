@@ -14,7 +14,7 @@ cloudinary.config({
 console.log('[repairs.js] loaded — DOWNTIME_DEBUG_BUILD v1');
 
 const LOCKED_STATUSES = ['ปิดงาน', 'ตีกลับ', 'แก้ไข (ตีกลับ)'];
-const DONE_STATUSES   = ['ซ่อมเสร็จ', 'ปิดงาน', 'รอตรวจรับ'];
+const DONE_STATUSES   = ['ซ่อมเสร็จแล้ว', 'ปิดงาน', 'รอตรวจรับ'];
 
 // ── สถานะ "ตีกลับ" ทั้งสองแบบ ──
 // - 'ตีกลับ'            → ช่างตีกลับขอข้อมูลเพิ่ม (route /:id/reject)
@@ -30,7 +30,7 @@ const BOUNCED_STATUSES = ['ตีกลับ', 'แก้ไข (ตีกล�
 
 // ── สถานะที่จะแจ้งเตือน "ผู้แจ้งงาน" เท่านั้น (ตัดสถานะระหว่างทางที่ไม่จำเป็นออก) ──
 // ปรับลิสต์นี้ได้ตามที่คิดว่าสำคัญจริงกับผู้แจ้งงาน
-const NOTIFY_REQUESTER_STATUSES = ['ซ่อมเสร็จ', 'ซ่อมเสร็จแล้ว'];
+const NOTIFY_REQUESTER_STATUSES = ['ซ่อมเสร็จแล้ว'];
 
 // ── สร้าง JobID format: PDF-001-300626 ──
 // เลขรัน (001, 002, 003...) นับรวมทุกแผนกในเดือน+ปีเดียวกัน
@@ -386,7 +386,7 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
-    if (status === 'ซ่อมเสร็จ' || status === 'รอตรวจรับ' || status === 'ซ่อมเสร็จแล้ว')
+    if (status === 'รอตรวจรับ' || status === 'ซ่อมเสร็จแล้ว')
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     if (updatedBy)
       updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
@@ -422,7 +422,6 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
     const statusLabel = {
       'กำลังซ่อม':     '🔧 กำลังดำเนินการซ่อม',
       'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจรับ',
-      'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจรับ',
       'รออะไหล่':      '⏳ รอจัดหาอะไหล่',
       'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อซ่อม',
       'Workaround':    '🛠 แก้ไขชั่วคราว (Workaround)',
@@ -769,13 +768,13 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
 
     // "เวลารับงาน" (V) — เผื่อแอดมิน assign ช่างแล้วเปลี่ยนสถานะเองโดยไม่ผ่านปุ่ม "รับงาน" ของช่าง
     const alreadyAcceptedAt = rows[rowIndex][21] || '';
-    const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'ซ่อมเสร็จ', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
+    const startedStatuses = ['กำลังซ่อม', 'รออะไหล่', 'ขอหยุดเครื่อง', 'Workaround', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว', 'ปิดงาน'];
     if (status && startedStatuses.includes(status) && !alreadyAcceptedAt) {
       updateData.push({ range: `Repairs!V${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
     }
 
     // "เวลาเสร็จซ่อม" (L) — auto-set ตอนสถานะเปลี่ยนเป็นเสร็จ/รอตรวจรับ เหมือนเดิม
-    if (['ซ่อมเสร็จ', 'รอตรวจรับ', 'ซ่อมเสร็จแล้ว'].includes(status)) {
+    if (['รอตรวจรับ', 'ซ่อมเสร็จแล้ว'].includes(status)) {
       const doneDate = new Date();
       const doneStr  = doneDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
       updateData.push({ range: `Repairs!L${sheetRow}`, values: [[doneStr]] });
@@ -833,7 +832,6 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
         'รออะไหล่':      '⏳ ระบบรอจัดหาอะไหล่เข้า',
         'ขอหยุดเครื่อง': '🛑 ขอหยุดเครื่องเพื่อดำเนินการซ่อม',
         'ซ่อมเสร็จแล้ว': '✅ ซ่อมเสร็จแล้ว รอตรวจรับงาน',
-        'ซ่อมเสร็จ':     '✅ ซ่อมเสร็จแล้ว รอตรวจรับงาน',
         'ปิดงาน':       '🎉 ปิดงานซ่อมเรียบร้อย',
         'ตีกลับ':       '⚠️ ใบแจ้งซ่อมถูกตีกลับ',
       }[status] || `📌 สถานะ: ${status}`;
