@@ -75,10 +75,88 @@
   .btn-logout{background:none;border:none;color:var(--red);font-size:17px;cursor:pointer;display:flex;align-items:center;transition:transform 0.15s,opacity .15s}
   .btn-logout:hover{transform:scale(1.08);opacity:.85}
 
+  /* ── Home (Landing) — hero + floating dashboard mockup ── */
+  @keyframes homeFloatCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes homeFloatBadge1{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(-2deg)}}
+  @keyframes homeFloatBadge2{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+
+  #home-page{
+    min-height:100vh;margin:-24px -16px 0;padding:24px 16px 60px;
+    background:radial-gradient(circle at 15% 15%,rgba(46,92,230,0.07) 0%,transparent 45%),
+               radial-gradient(circle at 90% 10%,rgba(46,92,230,0.05) 0%,transparent 40%),
+               var(--bg);
+  }
+  .home-hero{
+    max-width:1100px;margin:0 auto;min-height:calc(100vh - 84px);
+    display:flex;align-items:center;gap:48px;flex-wrap:wrap;padding:24px 8px;
+  }
+  .home-hero-left{flex:1 1 320px;min-width:280px}
+  .home-badge{
+    display:inline-flex;align-items:center;gap:6px;background:rgba(46,92,230,0.09);color:var(--accent);
+    font-size:12px;font-weight:600;padding:6px 14px;border-radius:100px;margin-bottom:18px;
+  }
+  .home-badge i{font-size:13px}
+  .home-hero-title{font-size:34px;font-weight:700;line-height:1.28;letter-spacing:-.6px;margin-bottom:16px;color:var(--text)}
+  .home-hero-title span{color:var(--accent)}
+  .home-hero-desc{font-size:14px;color:var(--text2);line-height:1.75;margin-bottom:28px;max-width:380px}
+  .home-hero-cta-row{display:flex;gap:12px;flex-wrap:wrap}
+  .home-cta-primary{
+    padding:13px 30px;border-radius:100px;background:var(--accent);color:#fff;border:none;
+    font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+    box-shadow:0 6px 18px rgba(46,92,230,0.28);transition:transform .15s ease,opacity .2s ease;
+  }
+  .home-cta-primary:hover{transform:translateY(-2px);opacity:0.95}
+  .home-cta-primary:active{transform:translateY(0) scale(0.97)}
+  .home-cta-secondary{
+    padding:13px 24px;border-radius:100px;background:transparent;color:var(--text);
+    border:1px solid var(--border2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:transform .15s ease,background .2s ease;
+  }
+  .home-cta-secondary:hover{transform:translateY(-2px);background:var(--surface)}
+  .home-cta-secondary:active{transform:translateY(0) scale(0.97)}
+
+  .home-hero-right{flex:1 1 320px;min-width:280px;position:relative;display:flex;align-items:center;justify-content:center;min-height:280px}
+  .home-mock-card{
+    width:100%;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:20px;box-shadow:var(--shadow-lg);animation:homeFloatCard 5s ease-in-out infinite;
+  }
+  .home-mock-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:13px;font-weight:700;color:var(--text)}
+  .home-mock-pill{font-size:11px;font-weight:600;color:var(--accent);background:rgba(46,92,230,0.09);padding:3px 10px;border-radius:100px}
+  .home-mock-row{display:flex;align-items:center;gap:10px;padding:9px 8px;background:var(--bg2);border-radius:10px;margin-bottom:9px}
+  .home-mock-row:last-child{margin-bottom:0}
+  .home-mock-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+  .home-mock-icon-red{background:var(--red-bg);color:var(--red)}
+  .home-mock-icon-green{background:var(--green-bg);color:var(--green)}
+  .home-mock-icon-accent{background:rgba(46,92,230,0.10);color:var(--accent)}
+  .home-mock-row-text{flex:1;min-width:0}
+  .home-mock-row-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .home-mock-row-sub{font-size:11px;color:var(--text3);margin-top:1px}
+  .home-mock-status{font-size:10px;font-weight:600;padding:3px 8px;border-radius:100px;flex-shrink:0}
+  .home-mock-status-warn{color:var(--yellow);background:var(--yellow-bg)}
+
+  .home-float-badge{
+    position:absolute;display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--border);border-radius:12px;padding:10px 14px;box-shadow:var(--shadow-lg);
+  }
+  .home-float-badge i{font-size:17px;color:var(--accent)}
+  .home-float-badge-label{font-size:10.5px;color:var(--text3)}
+  .home-float-badge-val{font-size:13px;font-weight:700;color:var(--text)}
+  .home-float-badge-1{top:6%;right:2%;animation:homeFloatBadge1 4s ease-in-out infinite}
+  .home-float-badge-2{bottom:8%;left:0%;animation:homeFloatBadge2 4.6s ease-in-out infinite .6s}
+  .home-float-badge-2 i{color:var(--green)}
+
+  .home-features{max-width:1100px;margin:0 auto;padding:20px 8px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .home-feature{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 18px;box-shadow:var(--shadow-sm)}
+  .home-feature-icon{width:38px;height:38px;border-radius:10px;background:rgba(46,92,230,0.09);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px}
+  .home-feature-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+  .home-feature-desc{font-size:12.5px;color:var(--text2);line-height:1.6}
+
   /* ── Login ── */
-  #login-page{display:flex;align-items:center;justify-content:center;min-height:80vh}
+  #login-page{display:none;align-items:center;justify-content:center;min-height:80vh}
   .login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:36px 26px;box-shadow:var(--shadow-lg);text-align:center;position:relative;overflow:hidden}
   .login-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(46,92,230,0.05) 0%,transparent 60%);pointer-events:none}
+  .home-back-btn{position:relative;display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--text2);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;padding:0;margin-bottom:18px;transition:color .15s}
+  .home-back-btn:hover{color:var(--accent)}
   .login-title{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-.2px}
   .login-desc{color:var(--text2);font-size:12px;margin-bottom:26px}
   .login-error{background:var(--red-bg);border:1px solid var(--color-border-danger);color:var(--red);padding:10px 12px;border-radius:var(--r-sm);font-size:12px;margin-bottom:16px;display:none;text-align:left}
@@ -351,6 +429,16 @@
 
   /* Login card: ลด padding บนจอแคบมาก */
   .login-card{padding:28px 18px}
+  .home-hero{gap:32px;padding:12px 4px;min-height:auto}
+  .home-hero-title{font-size:26px}
+  .home-hero-cta-row{width:100%}
+  .home-cta-primary,.home-cta-secondary{flex:1;text-align:center}
+  .home-hero-right{min-height:220px;margin-top:12px}
+  .home-mock-card{max-width:100%}
+  .home-float-badge{padding:8px 11px}
+  .home-float-badge-1{top:0;right:0}
+  .home-float-badge-2{bottom:0;left:0}
+  .home-features{grid-template-columns:1fr;gap:12px}
   .role-selector{grid-template-columns:repeat(3,1fr)}
 
   /* ── แก้บั๊กมือถือ iOS: ถ้าตัวอักษรในช่องกรอกเล็กกว่า 16px, Safari จะซูมจอเข้าอัตโนมัติ

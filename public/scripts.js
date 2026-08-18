@@ -227,12 +227,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ud) { ud.value = uname; syncUsername(uname); }
     history.replaceState({}, '', '/');
     showToast('ยินดีต้อนรับ! กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ', 'info');
+    goToLoginPage(); // มาจากลิงก์ LINE ตั้งใจจะ login อยู่แล้ว ข้ามหน้าหลักไปเลย
   }
   // ── ดักจับ line_uid ที่แนบมาจากลิงก์ "แจ้งซ่อม" ใน LINE OA ──
   // เก็บไว้รอผูกบัญชีอัตโนมัติทันทีที่ login สำเร็จ (ดูใน handleLoginSubmit)
   if (_lp.get('line_uid')) {
     localStorage.setItem('pending_line_uid', _lp.get('line_uid'));
     history.replaceState({}, '', location.pathname);
+    goToLoginPage(); // มาจากลิงก์ "แจ้งซ่อม" ใน LINE OA — พาไปหน้า login ตรงๆ
   }
   // ── จบส่วนที่เพิ่ม ──
 
@@ -270,6 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
           // ที่โหลดมาแล้วจาก fetchCoreData ด้านบนยังใช้ได้ตามปกติสำหรับหน้า login)
           sessionStorage.removeItem('sfc_auth_token');
           authToken = null;
+          // ข้ามหน้าหลัก ไปหน้า login ตรงๆ เพราะ user เคย login ค้างไว้แล้ว ตั้งใจจะ login ใหม่
+          goToLoginPage();
         }
       });
     } else {
@@ -501,6 +505,16 @@ function mockCheckLogin(u,p) {
   return {status:'fail'};
 }
 
+// ── นำทางระหว่างหน้าหลัก (landing) กับหน้าล็อกอิน ──
+function goToLoginPage() {
+  document.getElementById('home-page').style.display  = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+function backToHomePage() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('home-page').style.display  = 'block';
+}
+
 function showLoginError() {
   const e=document.getElementById('login-err-msg');e.style.display='block';
   setTimeout(()=>e.style.display='none',5000);
@@ -521,8 +535,9 @@ function handleLogout() {
   sessionStorage.removeItem('sfc_auth_token'); // เคลียร์ token ที่เก็บไว้กันเด้งออกตอน refresh
   if (isLocalMode) sessionStorage.removeItem('mock_session');
   document.getElementById('dashboard-page').style.display  = 'none';
-  document.getElementById('te-panel-page').style.display   = 'none'; // ← เหลือแค่นี้
-  document.getElementById('login-page').style.display      = 'flex';
+  document.getElementById('te-panel-page').style.display   = 'none';
+  document.getElementById('login-page').style.display      = 'none';
+  document.getElementById('home-page').style.display       = 'block'; // กลับไปหน้าหลักหลัง logout
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
   document.getElementById('password').value = '';
   const ud = document.getElementById('username-display');
@@ -548,6 +563,7 @@ function isRepairStaff(role) {
 // ============================================================
 // ใหม่
 function setupDashboard() {
+  document.getElementById('home-page').style.display  = 'none';
   document.getElementById('login-page').style.display = 'none';
 
   // ช่าง (role: technician) → TE Panel
