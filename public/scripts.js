@@ -146,11 +146,7 @@ function escapeHtml(str) {
 const LOGO_BASE64 = "/logo.png";
 const monthsThai = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
-// ============================================================
-// INS DAILY PM — CHECKLIST แยกตามไลน์/แผนก (INS_GROUPS_BY_LINE)
-// ============================================================
-// checklist มาตรฐาน — ใช้เป็นค่า default สำหรับไลน์ที่ยังไม่ได้กำหนด checklist เฉพาะ
-const INS_GROUPS_DEFAULT = [
+const INS_GROUPS = [
   {name:"ระบบลำเลียงสายพาน",color:"#10b981",items:["ไม่ฉีกขาด","ไม่ชำรุด","พร้อมใช้งาน"]},
   {name:"หัวฟิวลิงค์",color:"#f59e0b",items:["ตำแหน่งพร้อมใช้งาน"]},
   {name:"ต้นกำลังเครื่องจักร (มอเตอร์)",color:"#f43f5e",items:["พร้อมใช้งาน","ไม่สั่น","มีการ์ด","น็อตไม่หลุด / ไม่หลวม"]},
@@ -159,137 +155,7 @@ const INS_GROUPS_DEFAULT = [
   {name:"จุดหมุน",color:"#14b8a6",items:["มีการอัดจาระบี / หล่อลื่น"]},
   {name:"เครื่องชั่ง",color:"#3b82f6",items:["พร้อมใช้งาน"]}
 ];
-
-// แผนก ENG — งานตรวจเช็ครถยก แยกตามประเภทรถ (ไฟฟ้า / น้ำมัน)
-// รายการข้อตรวจตรงตามใบตรวจเช็ครถยกฉบับจริงของบริษัท (18 ข้อสำหรับรถไฟฟ้า LINDE, 17 ข้อสำหรับรถน้ำมัน/แก๊ส KOMATSU)
-const INS_GROUPS_ENG_ELECTRIC = [
-  {name:"ตรวจเช็ครถยกไฟฟ้า (Electric Forklift Daily Check)",color:"#3b82f6",items:[
-    "ตรวจระดับน้ำกลั่นในแบตเตอรี่ — อยู่ในระดับปกติ",
-    "ประจุไฟฟ้าแบตเตอรี่ให้เต็มก่อนนำไปใช้งาน — ต้องเต็มทุกครั้ง",
-    "ขั้วต่อสายแบตเตอรี่ — ต้องแน่น",
-    "สวิทช์ควบคุมเดินหน้า-ถอยหลัง — ต้องทำงานปกติ",
-    "การเคลื่อนที่ของรถและการบังคับเลี้ยว — ทำงานคล่อง ไม่ติดขัด",
-    "การหยุดรถ ระบบเบรค — หยุดทุกครั้ง ไม่มีเสียงครูด",
-    "ตัวรถด้านใน ด้านนอก เบรค — สภาพดี ไม่มีฝุ่น",
-    "ระบบไฟสัญญาณต่างๆ ไฟไซเรน สัญญาณถอยหลัง และแตร — ต้องทำงานปกติ",
-    "ความตึงของโซ่ — ต้องตึงหย่อนน้อย ไม่เกิน 5 ซม.",
-    "สภาพยาง กระทะล้อ น็อตล้อ — สภาพดี หมุนไม่มีเสียง",
-    "กระจกมองข้างหรือมองหลัง — สภาพดี ไม่สกปรก ไม่แตกร้าว ปรับองศาได้",
-    "การยกงาขึ้น และตรวจสภาพงา — ยกขึ้นได้ งาไม่ชำรุด",
-    "ระบบไฮโดรลิกและกระบอกไฮโดรลิก — ทำงานปกติ ไม่รั่วซึม",
-    "การปรับสภาพแบตเตอรี่ประจำเดือน — ไฟเต็มทุกครั้ง (1 ครั้ง/เดือน)",
-    "ตรวจสภาพถังดับเพลิง — ตรวจเกจวัดแรงดัน",
-    "ตรวจเช็คกล้องติดรถยนต์ — ต้องทำงานปกติ",
-    "ตรวจเช็คชั่วโมงการทำงานของตัวรถ — ดูที่จอแสดงชั่วโมง",
-    "บันทึกเลขชั่วโมงการใช้รถ"
-  ]}
-];
-const INS_GROUPS_ENG_DIESEL = [
-  {name:"ตรวจเช็ครถยกน้ำมัน/แก๊ส (Diesel/Engine Forklift Daily Check)",color:"#f59e0b",items:[
-    "ระดับน้ำมันเครื่อง (Engine fluid's level)",
-    "ระดับน้ำในหม้อน้ำ (Radiator's water level)",
-    "ความสะอาดของกรองอากาศ (Air filter cleans)",
-    "น้ำกลั่นในแบตเตอรี่ (Distill water checks)",
-    "ระดับน้ำมันเบรค (Brake fluid checks)",
-    "สภาพยาง (Tire condition)",
-    "สภาพกะทะล้อ (The condition of wheel cover)",
-    "ระบบไฮดรอลิค-สายไฮดรอลิค (Hydraulic system condition)",
-    "ระบบแสงสว่าง-สายไฟต่างๆ (ไฟหน้า ไฟเลี้ยว ไฟเบรค ไฟหรี่ ไฟถอยหลัง ไฟหน้าปัทม์ สัญญาณแตร ไฟไซเรน สัญญาณเสียงถอยหลัง)",
-    "สภาพงา-การยกขึ้นลง (Fork's lift up/down's condition)",
-    "ระบบเบรค-คลัตช์ (Brake and clutch system)",
-    "โครงหลังคา น็อตยึดโครงหลังคา กระจกมองหลัง",
-    "สภาพความพร้อมของถังดับเพลิงที่ติดรถ",
-    "ตรวจสอบสภาพเข็มขัดนิรภัยและเบาะคนขับ",
-    "สภาพความสะอาดของตัวรถ (F/L's cleans condition)",
-    "กล้องติดรถยนต์",
-    "บันทึกเลขชั่วโมงการใช้รถ"
-  ]}
-];
-
-// mapping: ไลน์ → (ถ้าต้องเลือกประเภทรถ/งานย่อยก่อน) → checklist
-// เพิ่มแผนกใหม่ในอนาคตได้โดยเพิ่ม key ที่นี่ โดยไม่กระทบไลน์ที่มีอยู่แล้ว
-const INS_GROUPS_BY_LINE = {
-  "ENG": {
-    "ไฟฟ้า": INS_GROUPS_ENG_ELECTRIC,
-    "น้ำมัน": INS_GROUPS_ENG_DIESEL
-  }
-};
-
-// ============================================================
-// รายชื่อรถยกจริงของบริษัท — ใช้ populate dropdown "เลขรถยก" ตามประเภทที่เลือก
-// (อ้างอิงจากใบตรวจเช็ครถยกจริงที่อัปโหลด — รถไฟฟ้าเช่า LINDE 19 คัน + รถน้ำมัน/แก๊ส KOMATSU 7 คัน)
-// เพิ่ม/ลดรถได้ที่นี่ที่เดียว โดยไม่กระทบโค้ดส่วนอื่น
-// ============================================================
-const INS_FORKLIFT_UNITS = {
-  "ไฟฟ้า": [
-    {code:"FE-01", label:"FE-01 — LINDE (C31293M01399 / E360)"},
-    {code:"FE-02", label:"FE-02 — LINDE (C31293L02137 / E253)"},
-    {code:"FE-03", label:"FE-03 — LINDE (C31293L02122 / E252)"},
-    {code:"FE-04", label:"FE-04 — LINDE (C31293M01236 / E418)"},
-    {code:"FE-05", label:"FE-05 — LINDE (C11275H02201 / E200)"},
-    {code:"FE-06", label:"FE-06 — LINDE (C31293L03496 / E297)"},
-    {code:"FE-07", label:"FE-07 — LINDE (C31293L02115 / E214)"},
-    {code:"FE-08", label:"FE-08 — LINDE (C31293L02136 / E220)"},
-    {code:"FE-09", label:"FE-09 — LINDE (C31293M01398 / E358)"},
-    {code:"FE-10", label:"FE-10 — LINDE (C31293L02121 / E250)"},
-    {code:"FE-11", label:"FE-11 — LINDE (C31293L02116 / E215)"},
-    {code:"FE-12", label:"FE-12 — LINDE (C31293L02118 / E217)"},
-    {code:"FE-13", label:"FE-13 — LINDE (C31293M03047 / E373)"},
-    {code:"FE-14", label:"FE-14 — LINDE (C11275X01682 / E218)"},
-    {code:"FE-15", label:"FE-15 — LINDE (C312933M02999 / E376)"},
-    {code:"FE-16", label:"FE-16 — LINDE (C31293L02117 / E216)"},
-    {code:"FE-17", label:"FE-17 — LINDE (C31293L02525 / E254)"},
-    {code:"FE-18", label:"FE-18 — LINDE (C31923L02309 / E497)"},
-    {code:"FE-19", label:"FE-19 — LINDE (C31923L02310 / E498)"}
-  ],
-  "น้ำมัน": [
-    {code:"FDG04-WFG", label:"FDG04-WFG — Komatsu FD20T-14 (S/N 555621)"},
-    {code:"FDB06-PDB", label:"FDB06-PDB — Komatsu FD25C-16 (S/N M228-734265)"},
-    {code:"FDG07-WFG", label:"FDG07-WFG — Komatsu FD20T-16 (S/N 728057)"},
-    {code:"FOG08-WFG", label:"FOG08-WFG — Komatsu FD25T-17 (S/N M228-305476)"},
-    {code:"FDG09-WFG", label:"FDG09-WFG — Komatsu FD20T-17 (S/N M228-305476)"},
-    {code:"FOW10-WRM", label:"FOW10-WRM — Komatsu FD20T-17 (S/N M228-313434)"},
-    {code:"FDF11-PDF", label:"FDF11-PDF — Komatsu FD25T-17 (S/N M228-343910)"}
-  ]
-};
-
-// เติมตัวเลือก "เลขรถยก" ตามประเภทรถที่เลือก (เรียกทุกครั้งที่เปลี่ยนประเภทรถ)
-function insPopulateVehicleNo(){
-  const sel = document.getElementById('ins-pm-vehicle-no');
-  if (!sel) return;
-  const vType = document.getElementById('ins-pm-vehicle-type')?.value || '';
-  const units = INS_FORKLIFT_UNITS[vType] || [];
-  if (!units.length) {
-    sel.innerHTML = '<option value="">— เลือกประเภทรถยกก่อน —</option>';
-    sel.disabled = true;
-    return;
-  }
-  sel.disabled = false;
-  sel.innerHTML = '<option value="">เลือกคันรถ</option>' +
-    units.map(u => `<option value="${escapeHtml(u.code)}">${escapeHtml(u.label)}</option>`).join('');
-}
-
-// alias เพื่อความเข้ากันได้กับโค้ดเดิมที่อาจอ้างอิงชื่อนี้
-const INS_GROUPS = INS_GROUPS_DEFAULT;
 const checkGroups = INS_GROUPS;
-
-// คืน checklist ที่ควรใช้ ณ ตอนนี้ ตามไลน์ที่เลือก (+ ประเภทรถถ้าจำเป็น)
-// return null หมายถึง "ต้องเลือกประเภทรถยกก่อน ยังตรวจไม่ได้"
-function insGetActiveGroups(){
-  const line = document.getElementById('ins-pm-line')?.value || '';
-  const lineConfig = INS_GROUPS_BY_LINE[line];
-  if (!lineConfig) return INS_GROUPS_DEFAULT;
-  const vType = document.getElementById('ins-pm-vehicle-type')?.value || '';
-  return lineConfig[vType] || null;
-}
-
-// โชว์/ซ่อนช่อง "ประเภทรถยก" + "เลขรถยก" เฉพาะไลน์ที่ต้องใช้ (เช่น ENG)
-function insToggleVehicleFields(){
-  const line = document.getElementById('ins-pm-line')?.value || '';
-  const wrap = document.getElementById('ins-vehicle-fields');
-  if (!wrap) return;
-  wrap.style.display = INS_GROUPS_BY_LINE[line] ? '' : 'none';
-}
 
 // ============================================================
 // ENGINEER PANEL STATE
@@ -3497,83 +3363,23 @@ function insInitForm(){
   document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];
   const insp = document.getElementById('ins-pm-inspector');
   if (insp && currentUser) insp.value = currentUser.name;
-  const vt = document.getElementById('ins-pm-vehicle-type'); if (vt) vt.selectedIndex = 0;
-  insPopulateVehicleNo();
-  insToggleVehicleFields();
-  insBuildChecklist();insLoadHistory();
-}
-// โหลดประวัติ Daily PM จากเซิร์ฟเวอร์ (ก่อนหน้านี้ insDailyHistory เป็น local array ล้วนๆ
-// เริ่มต้นเป็น [] ทุกครั้งที่โหลดหน้าเว็บใหม่ ทำให้รายการที่เคยบันทึกไปแล้วก่อนหน้านี้ไม่ขึ้นมา
-// แสดง — ฟังก์ชันนี้ดึงจาก GET /api/daily-pm แล้วแปลงกลับเป็นรูปแบบที่ insRenderHistory ใช้)
-function insLoadHistory(){
-  const body = document.getElementById('ins-hist-body');
-  if (isLocalMode) { insRenderHistory(); return; }
-  if (body) body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">กำลังโหลด...</div>';
-  fetch(`${API_URL}/daily-pm`)
-    .then(r => r.json())
-    .then(data => {
-      insDailyHistory = (data.dailyPMHistory || [])
-        .filter(h => !currentUser || h.inspector === currentUser.name)
-        .map(h => {
-          let chk = { ok: 0, ng: 0, items: [] };
-          try { if (h.checklist) chk = JSON.parse(h.checklist); } catch (e) {}
-          return {
-            id:        h.code,
-            date:      h.date,
-            shift:     '',
-            inspector: h.inspector,
-            line:      h.productionLine,
-            machine:   h.machine || h.productionLine || '-',
-            overall:   h.result,
-            parts:     '-',
-            work:      '-',
-            remark:    h.note || '-',
-            checklist: chk,
-            ts:        h.time,
-          };
-        })
-        .sort((a, b) => String(b.id||'').localeCompare(String(a.id||'')));
-      insRenderHistory();
-    })
-    .catch(() => { insRenderHistory(); });
+  insBuildChecklist();insRenderHistory();
 }
 function insBuildChecklist(){
   const c=document.getElementById('ins-checklist-container');if(!c)return;c.innerHTML='';
-  insToggleVehicleFields();
-  const groups = insGetActiveGroups();
-  if (groups === null) {
-    c.innerHTML = '<div class="pm-check-card" style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px"><i class="ion-ios-car" style="font-size:24px;display:block;margin-bottom:8px"></i>กรุณาเลือก "ประเภทรถยก" (ไฟฟ้า / น้ำมัน) ก่อน เพื่อโหลดรายการตรวจเช็คที่ถูกต้อง</div>';
-    return;
-  }
-  groups.forEach((g,gi)=>{
+  INS_GROUPS.forEach((g,gi)=>{
     const card=document.createElement('div');card.className='pm-check-card';
     let rows='';g.items.forEach((item,ii)=>{const nm=`ins_chk_${gi}_${ii}`;rows+=`<div class="pm-check-row"><span style="font-size:13px">— ${item}</span><div class="pm-radios"><label class="pm-ok-lbl"><input type="radio" name="${nm}" value="ok" checked> OK</label><label class="pm-ng-lbl"><input type="radio" name="${nm}" value="ng"> NG</label></div><input class="pm-note-inp" type="text" id="ins_note_${gi}_${ii}" placeholder="หมายเหตุ..."></div>`;});
     card.innerHTML=`<div class="pm-group-header"><div class="pm-group-dot" style="background:${g.color}"></div><span>${gi+1}. ${g.name}</span></div>${rows}`;
     c.appendChild(card);
   });
 }
-function insGetChecklistData(){
-  let ok=0,ng=0,items=[];
-  const groups = insGetActiveGroups() || [];
-  groups.forEach((g,gi)=>{g.items.forEach((item,ii)=>{const r=document.querySelector(`input[name="ins_chk_${gi}_${ii}"]:checked`);const noteEl=document.getElementById(`ins_note_${gi}_${ii}`);const note=noteEl?noteEl.value:'';const status=r?r.value:'ok';if(status==='ok')ok++;else ng++;items.push({group:g.name,item,status,note});});});
-  return{ok,ng,items};
-}
+function insGetChecklistData(){let ok=0,ng=0,items=[];INS_GROUPS.forEach((g,gi)=>{g.items.forEach((item,ii)=>{const r=document.querySelector(`input[name="ins_chk_${gi}_${ii}"]:checked`);const note=document.getElementById(`ins_note_${gi}_${ii}`).value;const status=r?r.value:'ok';if(status==='ok')ok++;else ng++;items.push({group:g.name,item,status,note});});});return{ok,ng,items};}
 function insSubmitForm(){
  const inspector=document.getElementById('ins-pm-inspector').value.trim();const line=document.getElementById('ins-pm-line').value;const overall=document.getElementById('ins-pm-overall').value;
 if(!inspector){showToast('กรุณาระบุชื่อผู้ตรวจ','warning');return;}if(!line){showToast('กรุณาเลือกสถานที่ปฏิบัติงาน','warning');return;}if(!overall){showToast('กรุณาเลือกสภาพโดยรวม','warning');return;}
-  // ไลน์ที่ต้องเลือกประเภทรถยกก่อน (เช่น ENG) — บังคับเลือกก่อนบันทึก
-  const vehicleType = document.getElementById('ins-pm-vehicle-type')?.value || '';
-  const vehicleNo = document.getElementById('ins-pm-vehicle-no')?.value.trim() || '';
-  if (INS_GROUPS_BY_LINE[line] && !vehicleType) { showToast('กรุณาเลือกประเภทรถยก (ไฟฟ้า/น้ำมัน)','warning'); return; }
-  if (INS_GROUPS_BY_LINE[line] && vehicleType && !vehicleNo) { showToast('กรุณาเลือกคันรถที่ตรวจ','warning'); return; }
   const chk=insGetChecklistData();const now=new Date();
-  // ผนวกข้อมูลรถยก (ประเภท/เลขรถ) เข้าไปในหมายเหตุ เพื่อไม่ต้องแก้โครงสร้าง Google Sheet เพิ่ม
-  let remarkVal = document.getElementById('ins-pm-remark').value.trim();
-  if (vehicleType || vehicleNo) {
-    const vehicleTag = `[รถยก${vehicleType ? ' '+vehicleType : ''}${vehicleNo ? ' เลขรถ '+vehicleNo : ''}]`;
-    remarkVal = remarkVal ? `${vehicleTag} ${remarkVal}` : vehicleTag;
-  }
- const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:remarkVal||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
+ const entry={id:document.getElementById('ins-pm-code').value,date:document.getElementById('ins-pm-date').value,shift:document.getElementById('ins-pm-shift').value,inspector,line,overall,parts:document.getElementById('ins-pm-parts').value||'-',work:document.getElementById('ins-pm-work').value||'-',remark:document.getElementById('ins-pm-remark').value||'-',checklist:chk,ts:now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})};
   if (!isLocalMode) {
   showLoading('กำลังบันทึก...');
   authFetch(`${API_URL}/daily-pm`, {
@@ -3583,7 +3389,6 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
   code:           entry.id,
   date:           entry.date,
   time:           entry.ts,
-  machine:        entry.line,
   productionLine: entry.line,
   inspector:      entry.inspector,
   result:         entry.overall,
@@ -3595,8 +3400,9 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
   .then(res => {
     hideLoading();
     if (res.success) {
+      insDailyHistory.unshift(entry);
+      insRenderHistory();
       insResetForm();
-      insLoadHistory();
       showToast('บันทึกผล PM รายวันสำเร็จ!', 'success');
     } else {
       showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
@@ -3607,7 +3413,7 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
 }
   insDailyHistory.unshift(entry);insRenderHistory();insResetForm();showToast('บันทึกผล PM รายวันสำเร็จ!','success');
 }
-function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall','ins-pm-vehicle-type'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});insPopulateVehicleNo();const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insToggleVehicleFields();insBuildChecklist();}
+function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insBuildChecklist();}
 function insRenderHistory(){
   const body=document.getElementById('ins-hist-body');const cnt=document.getElementById('ins-hist-count');if(cnt)cnt.textContent=insDailyHistory.length+' รายการ';
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="ion-ios-archive" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}
