@@ -991,6 +991,143 @@
 .adm-leader-table tr:last-child td { border-bottom: none; }
 .adm-leader-table tr:hover td { background: var(--bg2); }
 
+/* ══════════════════════════════════════════════════════════
+   Dashboard — control-room hero strip + signature polish
+   ══════════════════════════════════════════════════════════ */
+#panel-admin-dashboard { position: relative; }
+
+.adm-dash-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 26px 28px;
+  margin-bottom: 18px;
+  background:
+    radial-gradient(120% 160% at 100% 0%, rgba(46,92,230,.55), transparent 55%),
+    linear-gradient(115deg, #0B1220 0%, #12213F 46%, #17305E 100%);
+  box-shadow: 0 18px 40px -18px rgba(11,18,32,.55);
+  animation: dashHeroIn .5s cubic-bezier(.2,.8,.2,1);
+}
+.adm-dash-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(120% 140% at 20% 0%, #000 40%, transparent 90%);
+  mask-image: radial-gradient(120% 140% at 20% 0%, #000 40%, transparent 90%);
+  pointer-events: none;
+}
+.adm-dash-hero-glow {
+  position: absolute;
+  top: -70px; right: -40px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94,234,212,.35), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+.adm-dash-hero-row {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+}
+.adm-dash-live-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+  color: #7DF3C4;
+  background: rgba(94,234,212,.12);
+  border: 1px solid rgba(94,234,212,.28);
+  padding: 4px 11px 4px 9px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.adm-dash-live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #34d399;
+  box-shadow: 0 0 0 rgba(52,211,153,.6);
+  animation: dashPulse 1.8s ease-out infinite;
+}
+.adm-dash-hero-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -.3px; color: #fff; line-height: 1.25; margin-bottom: 6px;
+}
+.adm-dash-hero-sub { font-size: 12.5px; color: rgba(226,232,255,.68); max-width: 460px; }
+.adm-dash-hero-mark {
+  flex-shrink: 0;
+  width: 54px; height: 54px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: #fff;
+  background: linear-gradient(155deg, rgba(255,255,255,.18), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+@keyframes dashHeroIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dashPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(52,211,153,.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+  100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+}
+
+/* KPI cards — entrance + richer hover glow */
+.adm-kpi-v2 {
+  border-radius: 18px;
+  animation: kpiRise .45s cubic-bezier(.2,.8,.2,1) backwards;
+}
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(1) { animation-delay: .02s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(2) { animation-delay: .06s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(3) { animation-delay: .10s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(4) { animation-delay: .14s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(5) { animation-delay: .18s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(6) { animation-delay: .22s; }
+.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(7) { animation-delay: .26s; }
+@keyframes kpiRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.adm-kpi-v2:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 30px -12px var(--kv-glow, rgba(16,24,40,.18)), 0 4px 10px rgba(16,24,40,.06);
+}
+.kv-clickable:hover { transform: translateY(-4px); }
+
+/* Chart cards — colored top accent + icon chip, keyed to the KPI palette */
+.adm-chart-card-v2 { border-radius: 16px; position: relative; overflow: hidden; }
+.adm-chart-card-v2::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; opacity: .9;
+  background: var(--chart-accent, var(--accent));
+}
+.chart-accent-purple { --chart-accent: linear-gradient(90deg, var(--purple), #a78bfa); }
+.chart-accent-blue   { --chart-accent: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.chart-accent-orange { --chart-accent: linear-gradient(90deg, var(--orange), #f4894f); }
+.chart-accent-teal   { --chart-accent: linear-gradient(90deg, var(--teal), #5eead4); }
+
+.adm-chart-ico {
+  width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg2);
+}
+.chart-accent-purple .adm-chart-ico { background: var(--purple-bg); }
+.chart-accent-purple .adm-chart-ico i { color: var(--purple); }
+.chart-accent-blue   .adm-chart-ico { background: rgba(46,92,230,.10); }
+.chart-accent-blue   .adm-chart-ico i { color: var(--accent); }
+.chart-accent-orange .adm-chart-ico { background: var(--orange-bg); }
+.chart-accent-orange .adm-chart-ico i { color: var(--orange); }
+.chart-accent-teal   .adm-chart-ico { background: var(--teal-bg); }
+.chart-accent-teal   .adm-chart-ico i { color: var(--teal); }
+.adm-chart-title-v2 i { color: inherit; font-size: 12px; }
+
+/* Leaderboard — gradient header + polished rank badges */
+.adm-leader-v2 { border-radius: 16px; }
+.adm-leader-hdr-v2 {
+  background: linear-gradient(115deg, #0B1220, #17305E);
+  color: #fff; border-bottom: none;
+}
+.adm-leader-ico {
+  width: 24px; height: 24px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(245,185,61,.16); color: #F5B93D; font-size: 12px;
+}
+.rank-badge { width: 28px; height: 28px; font-size: 11.5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+.rank-1 { box-shadow: 0 0 0 3px rgba(245,185,61,.18), inset 0 0 0 1px rgba(255,255,255,.5); }
+.perf-bar-fill { background: linear-gradient(90deg, var(--teal), #5eead4); }
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .adm-kpi-bar-v2   { grid-template-columns: repeat(3, 1fr); }
