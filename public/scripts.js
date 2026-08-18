@@ -3445,7 +3445,42 @@ function insInitForm(){
   const vt = document.getElementById('ins-pm-vehicle-type'); if (vt) vt.selectedIndex = 0;
   const vn = document.getElementById('ins-pm-vehicle-no'); if (vn) vn.value = '';
   insToggleVehicleFields();
-  insBuildChecklist();insRenderHistory();
+  insBuildChecklist();insLoadHistory();
+}
+// โหลดประวัติ Daily PM จากเซิร์ฟเวอร์ (ก่อนหน้านี้ insDailyHistory เป็น local array ล้วนๆ
+// เริ่มต้นเป็น [] ทุกครั้งที่โหลดหน้าเว็บใหม่ ทำให้รายการที่เคยบันทึกไปแล้วก่อนหน้านี้ไม่ขึ้นมา
+// แสดง — ฟังก์ชันนี้ดึงจาก GET /api/daily-pm แล้วแปลงกลับเป็นรูปแบบที่ insRenderHistory ใช้)
+function insLoadHistory(){
+  const body = document.getElementById('ins-hist-body');
+  if (isLocalMode) { insRenderHistory(); return; }
+  if (body) body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">กำลังโหลด...</div>';
+  fetch(`${API_URL}/daily-pm`)
+    .then(r => r.json())
+    .then(data => {
+      insDailyHistory = (data.dailyPMHistory || [])
+        .filter(h => !currentUser || h.inspector === currentUser.name)
+        .map(h => {
+          let chk = { ok: 0, ng: 0, items: [] };
+          try { if (h.checklist) chk = JSON.parse(h.checklist); } catch (e) {}
+          return {
+            id:        h.code,
+            date:      h.date,
+            shift:     '',
+            inspector: h.inspector,
+            line:      h.productionLine,
+            machine:   h.machine || h.productionLine || '-',
+            overall:   h.result,
+            parts:     '-',
+            work:      '-',
+            remark:    h.note || '-',
+            checklist: chk,
+            ts:        h.time,
+          };
+        })
+        .sort((a, b) => String(b.id||'').localeCompare(String(a.id||'')));
+      insRenderHistory();
+    })
+    .catch(() => { insRenderHistory(); });
 }
 function insBuildChecklist(){
   const c=document.getElementById('ins-checklist-container');if(!c)return;c.innerHTML='';
@@ -3492,6 +3527,7 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
   code:           entry.id,
   date:           entry.date,
   time:           entry.ts,
+  machine:        entry.line,
   productionLine: entry.line,
   inspector:      entry.inspector,
   result:         entry.overall,
@@ -3503,9 +3539,8 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
   .then(res => {
     hideLoading();
     if (res.success) {
-      insDailyHistory.unshift(entry);
-      insRenderHistory();
       insResetForm();
+      insLoadHistory();
       showToast('บันทึกผล PM รายวันสำเร็จ!', 'success');
     } else {
       showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
