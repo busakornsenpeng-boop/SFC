@@ -160,46 +160,47 @@ const INS_GROUPS_DEFAULT = [
   {name:"เครื่องชั่ง",color:"#3b82f6",items:["พร้อมใช้งาน"]}
 ];
 
-// แผนก ENG — งานตรวจเช็ครถยก แยกตามประเภทรถ (ไฟฟ้า / น้ำมัน) อ้างอิงจากใบตรวจเช็ครถยกจริง
+// แผนก ENG — งานตรวจเช็ครถยก แยกตามประเภทรถ (ไฟฟ้า / น้ำมัน)
+// รายการข้อตรวจตรงตามใบตรวจเช็ครถยกฉบับจริงของบริษัท (18 ข้อสำหรับรถไฟฟ้า LINDE, 17 ข้อสำหรับรถน้ำมัน/แก๊ส KOMATSU)
 const INS_GROUPS_ENG_ELECTRIC = [
-  {name:"ตรวจเช็ครถยกไฟฟ้า (Electric Forklift)",color:"#3b82f6",items:[
-    "ตรวจระดับน้ำกลั่นในแบตเตอรี่ อยู่ในระดับปกติ",
-    "ประจุไฟฟ้าแบตเตอรี่ให้เต็มก่อนนำไปใช้งาน",
-    "ขั้วต่อสายแบตเตอรี่ แน่น",
-    "สวิทช์ควบคุมเดินหน้า-ถอยหลัง ทำงานปกติ",
-    "การเคลื่อนที่ของรถและการบังคับเลี้ยว คล่องตัวไม่ติดขัด",
-    "การหยุดรถ ระบบเบรค หยุดทุกครั้ง ไม่มีเสียงครูด",
-    "ตัวรถด้านใน ด้านนอก เบรค สภาพดี ไม่มีฝุ่น",
-    "ระบบไฟสัญญาณต่างๆ ไฟไซเรน สัญญาณถอยหลัง และแตร ทำงานปกติ",
-    "ความตึงของโซ่ ตึงหย่อนไม่เกินมาตรฐาน",
-    "สภาพยาง กระทะล้อ น็อตล้อ สภาพดี หมุนไม่มีเสียง",
-    "กระจกมองข้างหรือมองหลัง สภาพดี ไม่สกปรก",
-    "การยกงาขึ้น และตรวจสภาพงา งาไม่ชำรุด",
-    "ระบบไฮโดรลิกและกระบอกไฮโดรลิก ทำงานปกติ ไม่รั่วซึม",
-    "การปรับสภาพแบตเตอรี่ประจำเดือน ไฟเต็มทุกครั้ง",
-    "ตรวจสภาพถังดับเพลิง",
-    "ตรวจเช็คกล้องติดรถยนต์",
-    "ตรวจเช็คชั่วโมงการทำงานของตัวรถ",
+  {name:"ตรวจเช็ครถยกไฟฟ้า (Electric Forklift Daily Check)",color:"#3b82f6",items:[
+    "ตรวจระดับน้ำกลั่นในแบตเตอรี่ — อยู่ในระดับปกติ",
+    "ประจุไฟฟ้าแบตเตอรี่ให้เต็มก่อนนำไปใช้งาน — ต้องเต็มทุกครั้ง",
+    "ขั้วต่อสายแบตเตอรี่ — ต้องแน่น",
+    "สวิทช์ควบคุมเดินหน้า-ถอยหลัง — ต้องทำงานปกติ",
+    "การเคลื่อนที่ของรถและการบังคับเลี้ยว — ทำงานคล่อง ไม่ติดขัด",
+    "การหยุดรถ ระบบเบรค — หยุดทุกครั้ง ไม่มีเสียงครูด",
+    "ตัวรถด้านใน ด้านนอก เบรค — สภาพดี ไม่มีฝุ่น",
+    "ระบบไฟสัญญาณต่างๆ ไฟไซเรน สัญญาณถอยหลัง และแตร — ต้องทำงานปกติ",
+    "ความตึงของโซ่ — ต้องตึงหย่อนน้อย ไม่เกิน 5 ซม.",
+    "สภาพยาง กระทะล้อ น็อตล้อ — สภาพดี หมุนไม่มีเสียง",
+    "กระจกมองข้างหรือมองหลัง — สภาพดี ไม่สกปรก ไม่แตกร้าว ปรับองศาได้",
+    "การยกงาขึ้น และตรวจสภาพงา — ยกขึ้นได้ งาไม่ชำรุด",
+    "ระบบไฮโดรลิกและกระบอกไฮโดรลิก — ทำงานปกติ ไม่รั่วซึม",
+    "การปรับสภาพแบตเตอรี่ประจำเดือน — ไฟเต็มทุกครั้ง (1 ครั้ง/เดือน)",
+    "ตรวจสภาพถังดับเพลิง — ตรวจเกจวัดแรงดัน",
+    "ตรวจเช็คกล้องติดรถยนต์ — ต้องทำงานปกติ",
+    "ตรวจเช็คชั่วโมงการทำงานของตัวรถ — ดูที่จอแสดงชั่วโมง",
     "บันทึกเลขชั่วโมงการใช้รถ"
   ]}
 ];
 const INS_GROUPS_ENG_DIESEL = [
-  {name:"ตรวจเช็ครถยกน้ำมัน (Diesel/Engine Forklift)",color:"#f59e0b",items:[
-    "ระดับน้ำมันเครื่อง",
-    "ระดับน้ำในหม้อน้ำ",
-    "ความสะอาดของกรองอากาศ",
-    "น้ำกลั่นในแบตเตอรี่",
-    "ระดับน้ำมันเบรค",
-    "สภาพยาง",
-    "สภาพกะทะล้อ",
-    "ระบบไฮดรอลิค-สายไฮดรอลิค",
-    "ระบบแสงสว่าง-สายไฟต่างๆ (ไฟหน้า ไฟเลี้ยว ไฟเบรค ไฟหรี่ ไฟถอยหลัง ไฟหน้าปัทม์ แตร)",
-    "สภาพงา-การยกขึ้นลง",
-    "ระบบเบรค-คลัตช์",
+  {name:"ตรวจเช็ครถยกน้ำมัน/แก๊ส (Diesel/Engine Forklift Daily Check)",color:"#f59e0b",items:[
+    "ระดับน้ำมันเครื่อง (Engine fluid's level)",
+    "ระดับน้ำในหม้อน้ำ (Radiator's water level)",
+    "ความสะอาดของกรองอากาศ (Air filter cleans)",
+    "น้ำกลั่นในแบตเตอรี่ (Distill water checks)",
+    "ระดับน้ำมันเบรค (Brake fluid checks)",
+    "สภาพยาง (Tire condition)",
+    "สภาพกะทะล้อ (The condition of wheel cover)",
+    "ระบบไฮดรอลิค-สายไฮดรอลิค (Hydraulic system condition)",
+    "ระบบแสงสว่าง-สายไฟต่างๆ (ไฟหน้า ไฟเลี้ยว ไฟเบรค ไฟหรี่ ไฟถอยหลัง ไฟหน้าปัทม์ สัญญาณแตร ไฟไซเรน สัญญาณเสียงถอยหลัง)",
+    "สภาพงา-การยกขึ้นลง (Fork's lift up/down's condition)",
+    "ระบบเบรค-คลัตช์ (Brake and clutch system)",
     "โครงหลังคา น็อตยึดโครงหลังคา กระจกมองหลัง",
     "สภาพความพร้อมของถังดับเพลิงที่ติดรถ",
     "ตรวจสอบสภาพเข็มขัดนิรภัยและเบาะคนขับ",
-    "สภาพความสะอาดของตัวรถ",
+    "สภาพความสะอาดของตัวรถ (F/L's cleans condition)",
     "กล้องติดรถยนต์",
     "บันทึกเลขชั่วโมงการใช้รถ"
   ]}
@@ -213,6 +214,60 @@ const INS_GROUPS_BY_LINE = {
     "น้ำมัน": INS_GROUPS_ENG_DIESEL
   }
 };
+
+// ============================================================
+// รายชื่อรถยกจริงของบริษัท — ใช้ populate dropdown "เลขรถยก" ตามประเภทที่เลือก
+// (อ้างอิงจากใบตรวจเช็ครถยกจริงที่อัปโหลด — รถไฟฟ้าเช่า LINDE 19 คัน + รถน้ำมัน/แก๊ส KOMATSU 7 คัน)
+// เพิ่ม/ลดรถได้ที่นี่ที่เดียว โดยไม่กระทบโค้ดส่วนอื่น
+// ============================================================
+const INS_FORKLIFT_UNITS = {
+  "ไฟฟ้า": [
+    {code:"FE-01", label:"FE-01 — LINDE (C31293M01399 / E360)"},
+    {code:"FE-02", label:"FE-02 — LINDE (C31293L02137 / E253)"},
+    {code:"FE-03", label:"FE-03 — LINDE (C31293L02122 / E252)"},
+    {code:"FE-04", label:"FE-04 — LINDE (C31293M01236 / E418)"},
+    {code:"FE-05", label:"FE-05 — LINDE (C11275H02201 / E200)"},
+    {code:"FE-06", label:"FE-06 — LINDE (C31293L03496 / E297)"},
+    {code:"FE-07", label:"FE-07 — LINDE (C31293L02115 / E214)"},
+    {code:"FE-08", label:"FE-08 — LINDE (C31293L02136 / E220)"},
+    {code:"FE-09", label:"FE-09 — LINDE (C31293M01398 / E358)"},
+    {code:"FE-10", label:"FE-10 — LINDE (C31293L02121 / E250)"},
+    {code:"FE-11", label:"FE-11 — LINDE (C31293L02116 / E215)"},
+    {code:"FE-12", label:"FE-12 — LINDE (C31293L02118 / E217)"},
+    {code:"FE-13", label:"FE-13 — LINDE (C31293M03047 / E373)"},
+    {code:"FE-14", label:"FE-14 — LINDE (C11275X01682 / E218)"},
+    {code:"FE-15", label:"FE-15 — LINDE (C312933M02999 / E376)"},
+    {code:"FE-16", label:"FE-16 — LINDE (C31293L02117 / E216)"},
+    {code:"FE-17", label:"FE-17 — LINDE (C31293L02525 / E254)"},
+    {code:"FE-18", label:"FE-18 — LINDE (C31923L02309 / E497)"},
+    {code:"FE-19", label:"FE-19 — LINDE (C31923L02310 / E498)"}
+  ],
+  "น้ำมัน": [
+    {code:"FDG04-WFG", label:"FDG04-WFG — Komatsu FD20T-14 (S/N 555621)"},
+    {code:"FDB06-PDB", label:"FDB06-PDB — Komatsu FD25C-16 (S/N M228-734265)"},
+    {code:"FDG07-WFG", label:"FDG07-WFG — Komatsu FD20T-16 (S/N 728057)"},
+    {code:"FOG08-WFG", label:"FOG08-WFG — Komatsu FD25T-17 (S/N M228-305476)"},
+    {code:"FDG09-WFG", label:"FDG09-WFG — Komatsu FD20T-17 (S/N M228-305476)"},
+    {code:"FOW10-WRM", label:"FOW10-WRM — Komatsu FD20T-17 (S/N M228-313434)"},
+    {code:"FDF11-PDF", label:"FDF11-PDF — Komatsu FD25T-17 (S/N M228-343910)"}
+  ]
+};
+
+// เติมตัวเลือก "เลขรถยก" ตามประเภทรถที่เลือก (เรียกทุกครั้งที่เปลี่ยนประเภทรถ)
+function insPopulateVehicleNo(){
+  const sel = document.getElementById('ins-pm-vehicle-no');
+  if (!sel) return;
+  const vType = document.getElementById('ins-pm-vehicle-type')?.value || '';
+  const units = INS_FORKLIFT_UNITS[vType] || [];
+  if (!units.length) {
+    sel.innerHTML = '<option value="">— เลือกประเภทรถยกก่อน —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">เลือกคันรถ</option>' +
+    units.map(u => `<option value="${escapeHtml(u.code)}">${escapeHtml(u.label)}</option>`).join('');
+}
 
 // alias เพื่อความเข้ากันได้กับโค้ดเดิมที่อาจอ้างอิงชื่อนี้
 const INS_GROUPS = INS_GROUPS_DEFAULT;
@@ -3443,7 +3498,7 @@ function insInitForm(){
   const insp = document.getElementById('ins-pm-inspector');
   if (insp && currentUser) insp.value = currentUser.name;
   const vt = document.getElementById('ins-pm-vehicle-type'); if (vt) vt.selectedIndex = 0;
-  const vn = document.getElementById('ins-pm-vehicle-no'); if (vn) vn.value = '';
+  insPopulateVehicleNo();
   insToggleVehicleFields();
   insBuildChecklist();insLoadHistory();
 }
@@ -3510,6 +3565,7 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
   const vehicleType = document.getElementById('ins-pm-vehicle-type')?.value || '';
   const vehicleNo = document.getElementById('ins-pm-vehicle-no')?.value.trim() || '';
   if (INS_GROUPS_BY_LINE[line] && !vehicleType) { showToast('กรุณาเลือกประเภทรถยก (ไฟฟ้า/น้ำมัน)','warning'); return; }
+  if (INS_GROUPS_BY_LINE[line] && vehicleType && !vehicleNo) { showToast('กรุณาเลือกคันรถที่ตรวจ','warning'); return; }
   const chk=insGetChecklistData();const now=new Date();
   // ผนวกข้อมูลรถยก (ประเภท/เลขรถ) เข้าไปในหมายเหตุ เพื่อไม่ต้องแก้โครงสร้าง Google Sheet เพิ่ม
   let remarkVal = document.getElementById('ins-pm-remark').value.trim();
@@ -3551,7 +3607,7 @@ if(!inspector){showToast('กรุณาระบุชื่อผู้ตร
 }
   insDailyHistory.unshift(entry);insRenderHistory();insResetForm();showToast('บันทึกผล PM รายวันสำเร็จ!','success');
 }
-function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall','ins-pm-vehicle-type'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-parts','ins-pm-work','ins-pm-remark','ins-pm-vehicle-no'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insToggleVehicleFields();insBuildChecklist();}
+function insResetForm(){document.getElementById('ins-pm-code').value=insGenCode();document.getElementById('ins-pm-date').value=new Date().toISOString().split('T')[0];['ins-pm-shift','ins-pm-line','ins-pm-overall','ins-pm-vehicle-type'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['ins-pm-parts','ins-pm-work','ins-pm-remark'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});insPopulateVehicleNo();const insp=document.getElementById('ins-pm-inspector');if(insp&&currentUser)insp.value=currentUser.name;insToggleVehicleFields();insBuildChecklist();}
 function insRenderHistory(){
   const body=document.getElementById('ins-hist-body');const cnt=document.getElementById('ins-hist-count');if(cnt)cnt.textContent=insDailyHistory.length+' รายการ';
   if(!insDailyHistory.length){if(body)body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px"><i class="ion-ios-archive" style="font-size:28px;display:block;margin-bottom:8px"></i>ยังไม่มีประวัติการตรวจ</div>';return;}

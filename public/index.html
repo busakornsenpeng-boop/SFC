@@ -669,13 +669,17 @@
           <div id="ins-vehicle-fields" class="pm-meta-grid" style="display:none;margin-top:8px">
             <div class="form-field">
               <label>ประเภทรถยก <span class="pm-req">*</span></label>
-              <select id="ins-pm-vehicle-type" class="select-ctrl" onchange="insBuildChecklist()">
+              <select id="ins-pm-vehicle-type" class="select-ctrl" onchange="insPopulateVehicleNo();insBuildChecklist()">
                 <option value="">เลือกประเภทรถยก</option>
                 <option value="ไฟฟ้า">ไฟฟ้า (Electric)</option>
                 <option value="น้ำมัน">น้ำมัน (Diesel/Engine)</option>
               </select>
             </div>
-            <div class="form-field"><label>เลขรถยก</label><input type="text" id="ins-pm-vehicle-no" class="input-ctrl" placeholder="เช่น FE-01, FDG04-WFG"></div>
+            <div class="form-field"><label>เลขรถยก <span class="pm-req">*</span></label>
+              <select id="ins-pm-vehicle-no" class="select-ctrl" disabled>
+                <option value="">— เลือกประเภทรถยกก่อน —</option>
+              </select>
+            </div>
           </div>
         </div>
         <div id="ins-checklist-container"></div>
