@@ -98,8 +98,11 @@
     border:1px solid rgba(46,92,230,0.16);letter-spacing:.1px;
   }
   .home-badge i{font-size:13px}
-  .home-hero-title{font-size:38px;font-weight:800;line-height:1.22;letter-spacing:-1px;margin-bottom:18px;color:var(--text)}
-  .home-hero-title span{background:linear-gradient(90deg,var(--accent),#7C8FF5);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .home-hero-title{font-size:38px;font-weight:800;line-height:1.15;letter-spacing:-1px;margin-bottom:18px;color:var(--text)}
+  .home-hero-logo{font-size:44px;font-weight:800;letter-spacing:-.5px}
+  .home-hero-logo .t-red{color:var(--red)}
+  .home-hero-logo .t-blue{color:var(--accent)}
+  .home-hero-title-sub{display:inline-block;margin-top:8px;font-size:14px;font-weight:600;letter-spacing:3px;color:var(--text2)}
   .home-hero-desc{font-size:14.5px;color:var(--text2);line-height:1.75;margin-bottom:26px;max-width:400px}
   .home-hero-stats{display:flex;gap:26px;margin-bottom:30px}
   .home-hero-stat{display:flex;flex-direction:column;padding-right:26px;border-right:1px solid var(--border)}
@@ -447,6 +450,8 @@
   .login-card{padding:28px 18px}
   .home-hero{gap:32px;padding:12px 4px;min-height:auto}
   .home-hero-title{font-size:26px}
+  .home-hero-logo{font-size:32px}
+  .home-hero-title-sub{font-size:11px;letter-spacing:2px}
   .home-hero-stats{gap:16px;margin-bottom:24px}
   .home-hero-stat{padding-right:16px}
   .home-hero-stat-num{font-size:19px}
