@@ -4803,14 +4803,17 @@ function exportJobDetailPDF(id) {
   }
 
   // ปรับขนาดรูปตามจำนวนที่แนบมา — เดิม fix 3 คอลัมน์เสมอ ทำให้แนบรูปเดียวก็โดนบีบเหลือ 1/3 หน้า
-  // ดูเล็กเกินไป ตอนนี้ 1 รูป = เต็มแถว, 2 รูป = ครึ่งแถว, 3 รูปขึ้นไปค่อยเรียง 3 คอลัมน์เหมือนเดิม
+  // ดูเล็กเกินไป ตอนนี้ 1 รูป = เต็มแถวและใหญ่พอให้ช่างอ่านรายละเอียดออก (เช่นตัวเลขบนหน้าปัด),
+  // 2 รูป = ครึ่งแถวคนละครึ่ง, 3 รูปขึ้นไปค่อยเรียง 3 คอลัมน์เหมือนเดิม
+  // รูปเดี่ยว/คู่ใช้ contain แทน cover ด้วย กันไม่ให้ขอบรูปถูกครอบตัดจนรายละเอียดสำคัญหลุดเฟรม
   const imgBlock = (title, arr) => {
     if (!arr.length) return '';
     const cols   = arr.length === 1 ? 1 : arr.length === 2 ? 2 : 3;
-    const height = arr.length === 1 ? 260 : arr.length === 2 ? 200 : 150;
+    const height = arr.length === 1 ? 380 : arr.length === 2 ? 280 : 170;
+    const fit    = arr.length <= 2 ? 'contain' : 'cover';
     return `
       <div class="pf-imgtitle">${title}</div>
-      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:${height}px" onerror="this.style.display='none'">`).join('')}</div>
+      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:${height}px;object-fit:${fit}" onerror="this.style.display='none'">`).join('')}</div>
     `;
   };
 
@@ -4821,38 +4824,58 @@ function exportJobDetailPDF(id) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
+<style id="pf-page-style">
   @page{ size:A4; margin:12mm; }
+</style>
+<style>
   *{ box-sizing:border-box; }
   body{ font-family:'IBM Plex Sans Thai','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; font-size:12px; }
-  .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:8px; margin-bottom:12px; }
+  .pf-toolbar{ display:flex; align-items:center; gap:10px; justify-content:flex-end; background:#f4f4f5; padding:10px 14px; border-bottom:1px solid #e4e4e7; position:sticky; top:0; z-index:10; }
+  .pf-toolbar label{ font-size:12px; color:#3f3f46; display:flex; align-items:center; gap:6px; }
+  .pf-toolbar select{ font:inherit; font-size:12px; padding:5px 8px; border-radius:6px; border:1px solid #d4d4d8; background:#fff; }
+  .pf-toolbar button{ border:0; border-radius:7px; padding:8px 14px; background:#0d9488; color:#fff; font:600 12px inherit; cursor:pointer; }
+  .pf-page{ padding:12mm; max-width:210mm; margin:0 auto; }
+  .pf-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #0d9488; padding-bottom:6px; margin-bottom:9px; }
   .pf-brand{ display:flex; align-items:center; gap:10px; }
-  .pf-brand img{ height:36px; object-fit:contain; }
-  .pf-brand-name{ font-size:15px; font-weight:700; color:#0d9488; margin:0; }
-  .pf-brand-sub{ font-size:10px; color:#6b7280; margin:2px 0 0; }
+  .pf-brand img{ height:32px; object-fit:contain; }
+  .pf-brand-name{ font-size:14px; font-weight:700; color:#0d9488; margin:0; }
+  .pf-brand-sub{ font-size:9.5px; color:#6b7280; margin:1px 0 0; }
   .pf-doctitle{ text-align:right; }
-  .pf-doctitle h1{ font-size:17px; margin:0; letter-spacing:.5px; }
-  .pf-doctitle .pf-docno{ font-family:'Courier New',monospace; font-size:12px; color:#0d9488; font-weight:700; margin-top:2px; }
-  .pf-doctitle .pf-printed{ font-size:10px; color:#9ca3af; margin-top:2px; }
-  .pf-section-title{ font-size:12px; font-weight:700; color:#0d9488; text-transform:uppercase; letter-spacing:.5px; margin:0 0 6px; padding-bottom:3px; border-bottom:1px solid #d4d4d8; }
-  table.pf-grid{ width:100%; border-collapse:collapse; margin-bottom:12px; border:1px solid #d4d4d8; }
-  table.pf-grid td{ border:1px solid #e4e4e7; font-size:11.5px; padding:4px 9px; vertical-align:top; }
+  .pf-doctitle h1{ font-size:16px; margin:0; letter-spacing:.5px; }
+  .pf-doctitle .pf-docno{ font-family:'Courier New',monospace; font-size:11.5px; color:#0d9488; font-weight:700; margin-top:1px; }
+  .pf-doctitle .pf-printed{ font-size:9.5px; color:#9ca3af; margin-top:1px; }
+  .pf-section-title{ font-size:11.5px; font-weight:700; color:#0d9488; text-transform:uppercase; letter-spacing:.5px; margin:0 0 4px; padding-bottom:2px; border-bottom:1px solid #d4d4d8; }
+  table.pf-grid{ width:100%; border-collapse:collapse; margin-bottom:8px; border:1px solid #d4d4d8; }
+  table.pf-grid td{ border:1px solid #e4e4e7; font-size:11px; padding:3px 9px; vertical-align:top; }
   table.pf-grid td.pf-lbl{ width:22%; background:#f4f4f5; font-weight:600; color:#3f3f46; }
   table.pf-grid td.pf-val{ width:28%; }
-  .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:8px 12px; margin-bottom:10px; font-size:11.5px; line-height:1.5; }
-  .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:11px; margin-bottom:2px; }
-  .pf-imgtitle{ font-weight:700; font-size:11.5px; margin:4px 0 6px; color:#3f3f46; }
-  .pf-imggrid{ display:grid; gap:8px; margin-bottom:12px; }
-  .pf-imggrid img{ width:100%; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
-  .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:20px; }
+  .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:6px 10px; margin-bottom:8px; font-size:11px; line-height:1.4; }
+  .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:10.5px; margin-bottom:2px; }
+  .pf-imgtitle{ font-weight:700; font-size:11px; margin:4px 0 4px; color:#3f3f46; }
+  .pf-imggrid{ display:grid; gap:8px; margin-bottom:8px; }
+  .pf-imggrid img{ width:100%; object-fit:cover; background:#f4f4f5; border-radius:6px; border:1px solid #d4d4d8; }
+  .pf-signblock{ margin-top:14px; }
+  .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
   .pf-signbox{ text-align:center; font-size:11px; }
-  .pf-signline{ border-bottom:1px dotted #71717a; height:36px; margin-bottom:6px; }
+  .pf-signline{ border-bottom:1px dotted #71717a; height:26px; margin-bottom:5px; }
   .pf-signlbl{ font-weight:600; color:#3f3f46; }
-  .pf-signdate{ color:#9ca3af; font-size:10px; margin-top:3px; }
-  .pf-footer{ margin-top:16px; padding-top:8px; border-top:1px solid #e4e4e7; font-size:10px; color:#a1a1aa; text-align:center; }
-  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-signrow{ break-inside:avoid; } }
+  .pf-signdate{ color:#9ca3af; font-size:9.5px; margin-top:2px; }
+  .pf-footer{ margin-top:10px; padding-top:6px; border-top:1px solid #e4e4e7; font-size:9.5px; color:#a1a1aa; text-align:center; }
+  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } }
 </style></head>
 <body>
+  <div class="pf-toolbar">
+    <label>ขนาดกระดาษ:
+      <select id="pf-paper-size" onchange="pfSetPaperSize(this.value)">
+        <option value="A4">A4</option>
+        <option value="A5">A5</option>
+        <option value="Letter">Letter</option>
+        <option value="Legal">Legal</option>
+      </select>
+    </label>
+    <button type="button" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+  <div class="pf-page">
   <div class="pf-header">
     <div class="pf-brand">
       <img src="${LOGO_BASE64}" onerror="this.style.display='none'">
@@ -4880,25 +4903,33 @@ function exportJobDetailPDF(id) {
   ${imgBlock('รูปภาพที่แจ้ง (ก่อนซ่อม)', imgsBefore)}
   ${imgBlock('รูปหลังซ่อม', imgsAfter)}
 
-  <div class="pf-signrow">
-    <div class="pf-signbox">
-      <div class="pf-signline"></div>
-      <div class="pf-signlbl">ผู้แจ้งซ่อม</div>
-      <div class="pf-signdate">วันที่ ......../......../........</div>
+  <div class="pf-signblock">
+    <div class="pf-signrow">
+      <div class="pf-signbox">
+        <div class="pf-signline"></div>
+        <div class="pf-signlbl">ผู้แจ้งซ่อม</div>
+        <div class="pf-signdate">วันที่ ......../......../........</div>
+      </div>
+      <div class="pf-signbox">
+        <div class="pf-signline"></div>
+        <div class="pf-signlbl">ช่างผู้ปฏิบัติงาน</div>
+        <div class="pf-signdate">วันที่ ......../......../........</div>
+      </div>
+      <div class="pf-signbox">
+        <div class="pf-signline"></div>
+        <div class="pf-signlbl">ผู้ตรวจรับงาน</div>
+        <div class="pf-signdate">วันที่ ......../......../........</div>
+      </div>
     </div>
-    <div class="pf-signbox">
-      <div class="pf-signline"></div>
-      <div class="pf-signlbl">ช่างผู้ปฏิบัติงาน</div>
-      <div class="pf-signdate">วันที่ ......../......../........</div>
-    </div>
-    <div class="pf-signbox">
-      <div class="pf-signline"></div>
-      <div class="pf-signlbl">ผู้ตรวจรับงาน</div>
-      <div class="pf-signdate">วันที่ ......../......../........</div>
-    </div>
-  </div>
 
-  <div class="pf-footer">เอกสารฉบับนี้ออกโดยระบบบริหารจัดการงานซ่อมบำรุง SFC Excellence — ${j.id}</div>
+    <div class="pf-footer">เอกสารฉบับนี้ออกโดยระบบบริหารจัดการงานซ่อมบำรุง SFC Excellence — ${j.id}</div>
+  </div>
+  </div>
+  <script>
+    function pfSetPaperSize(size) {
+      document.getElementById('pf-page-style').textContent = '@page{ size:' + size + '; margin:12mm; }';
+    }
+  </script>
 </body></html>`;
 
   const win = window.open('', '_blank');
@@ -4907,8 +4938,9 @@ function exportJobDetailPDF(id) {
   win.document.write(html);
   win.document.close();
 
-  // รอให้ฟอนต์ + รูปภาพโหลดครบ (หรือ error) ก่อนเปิดหน้าต่างพิมพ์ กันปัญหาฟอนต์/รูปยังไม่ขึ้นตอนสั่งพิมพ์
-  const triggerPrint = () => { win.focus(); win.print(); };
+  // รอให้ฟอนต์ + รูปภาพโหลดครบ (หรือ error) ก่อน — เดิม auto สั่งพิมพ์ทันที แต่ตอนนี้เปลี่ยน
+  // ให้ผู้ใช้เลือกขนาดกระดาษจากแถบเครื่องมือด้านบนก่อน แล้วค่อยกด "พิมพ์" เอง (auto print
+  // จะเปิด dialog ทันทีโดยไม่ทันได้เลือกขนาดกระดาษ)
   const waitImages = () => new Promise(resolve => {
     const allImgs = win.document.images;
     if (allImgs.length === 0) return resolve();
@@ -4920,7 +4952,7 @@ function exportJobDetailPDF(id) {
     });
   });
   const waitFonts = () => (win.document.fonts && win.document.fonts.ready) ? win.document.fonts.ready.catch(() => {}) : Promise.resolve();
-  Promise.all([waitFonts(), waitImages()]).then(() => setTimeout(triggerPrint, 150));
+  Promise.all([waitFonts(), waitImages()]).then(() => win.focus());
 }
 
 // ============================================================
