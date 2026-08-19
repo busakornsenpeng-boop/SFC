@@ -581,6 +581,52 @@ function switchDemoStep(stepIndex) {
   document.querySelectorAll('.demo-step').forEach((el, index) => el.classList.toggle('is-active', index === stepIndex));
 }
 
+let activeDemoRole = 'user';
+const demoRoleSteps = {
+  user: [
+    { title:'แจ้งซ่อมเครื่องจักร', desc:'กรอกเครื่องจักร สถานที่ อาการเสีย และแนบรูปก่อนส่งใบแจ้งซ่อม', nav:['แจ้งซ่อมบำรุง','ติดตามงานซ่อม','เช็คก่อนผลิตทุกวัน','ตรวจรับงาน'], body:'<div class="demo-form-grid"><div><label>ชื่อผู้แจ้งและแผนก</label><div class="demo-input">สมหมาย ใจดี · ฝ่ายผลิต</div></div><div><label>เครื่องจักร / สถานที่</label><div class="demo-input">ปั๊มลม · Line A</div></div></div><label>รายละเอียดอาการชำรุด</label><div class="demo-textarea">ไม่มีแรงดัน ปั๊มไม่ทำงาน และมีเสียงผิดปกติ</div><div class="demo-upload"><i class="ion-ios-cloud-upload"></i><span>แนบรูปภาพประกอบ</span><small>ช่วยให้ช่างวิเคราะห์ปัญหาได้เร็วขึ้น</small></div><div class="demo-action"><span><i class="ion-ios-information-circle"></i> ระบบจะออก Job ID หลังส่งสำเร็จ</span><button type="button" disabled>ส่งใบแจ้งซ่อม</button></div></div>' },
+    { title:'ติดตามงานซ่อม', desc:'ค้นหาด้วย Job ID ดูผู้รับผิดชอบ สถานะ และประวัติความคืบหน้า', nav:['แจ้งซ่อมบำรุง','ติดตามงานซ่อม','เช็คก่อนผลิตทุกวัน','ตรวจรับงาน'], body:'<div class="demo-job-card"><div><small>JOB ID</small><strong>REP-20260818-041</strong></div><span class="demo-status status-wait">กำลังซ่อม</span></div><div class="demo-timeline"><div class="demo-timeline-item done"><b>รับแจ้งงาน</b><small>18 ส.ค. 2569 · 08:42 น.</small></div><div class="demo-timeline-item done"><b>ช่างรับงาน</b><small>สมชาย มั่นคง · 09:10 น.</small></div><div class="demo-timeline-item current"><b>กำลังดำเนินการ</b><small>กำลังตรวจสอบระบบไฟฟ้า</small></div><div class="demo-timeline-item"><b>รอตรวจรับงาน</b><small>จะแจ้งเตือนเมื่อช่างดำเนินการเสร็จ</small></div></div>' },
+    { title:'ตรวจรับงานซ่อม', desc:'เมื่อช่างซ่อมเสร็จ ผู้แจ้งเปิดรายละเอียด ตรวจสอบผล และยืนยันปิดงาน', nav:['แจ้งซ่อมบำรุง','ติดตามงานซ่อม','เช็คก่อนผลิตทุกวัน','ตรวจรับงาน'], body:'<div class="demo-job-card"><div><small>งานรอตรวจรับ</small><strong>FLF (05)</strong></div><span class="demo-status status-pending">รอตรวจรับ</span></div><div class="demo-info-strip"><i class="ion-ios-ribbon"></i><span>ตรวจรูปหลังซ่อมและรายละเอียดให้ครบ ก่อนกด “ผ่านตรวจรับ” หรือส่งกลับให้ช่างแก้ไข</span></div>' }
+  ],
+  tech: [
+    { title:'รับงานจากคิวซ่อม', desc:'เลือกงานในคิว อ่านรายละเอียด ระบุตัวตน และกดรับงาน', nav:['งานรอรับ','งานที่รับไว้','แผน PM','ประวัติ','Daily PM'], body:'<div class="demo-job-card"><div><small>คิวงานซ่อมฉุกเฉิน</small><strong>REP-20260818-041</strong></div><span class="demo-status status-over">รอช่างรับงาน</span></div><div class="demo-info-strip"><i class="ion-ios-hand"></i><span>ช่างตรวจสอบอาการเสียและตำแหน่งก่อนกดรับงาน หรือกดตีกลับหากข้อมูลไม่ครบ</span></div>' },
+    { title:'อัปเดตความคืบหน้า', desc:'เปลี่ยนสถานะเป็นกำลังซ่อม รออะไหล่ ขอหยุดเครื่อง หรือซ่อมเสร็จ', nav:['งานรอรับ','งานที่รับไว้','แผน PM','ประวัติ','Daily PM'], body:'<div class="demo-form-grid"><div><label>สถานะการดำเนินงาน</label><div class="demo-input">กำลังดำเนินการซ่อม</div></div><div><label>ผู้รับผิดชอบ</label><div class="demo-input">สมชาย มั่นคง</div></div></div><label>หมายเหตุ / รายงานการซ่อม</label><div class="demo-textarea">ตรวจสอบแบริ่งและเตรียมเปลี่ยนอะไหล่</div><div class="demo-upload"><i class="ion-ios-camera"></i><span>แนบรูปภาพหลังซ่อม</span><small>หลักฐานประกอบก่อนส่งตรวจรับ</small></div>' },
+    { title:'ทำ PM และ Daily PM', desc:'เปิดแผนตามกำหนด ทำ Checklist บันทึกผล และส่งให้ผู้เกี่ยวข้องรับทราบ', nav:['งานรอรับ','งานที่รับไว้','แผน PM','ประวัติ','Daily PM'], body:'<div class="demo-pm-list"><div class="demo-pm-row"><span class="demo-date">PM<br><small>วันนี้</small></span><span><b>ตรวจเช็กรายวัน · FLF (03)</b><small>Checklist 7 กลุ่ม · กะเช้า</small></span><span class="demo-status status-pending">รอตรวจ</span></div><div class="demo-info-strip"><i class="ion-ios-clipboard"></i><span>บันทึก OK/NG, ชั่วโมงเดินเครื่อง, อะไหล่ และข้อสังเกต</span></div></div>' }
+  ],
+  admin: [
+    { title:'Dashboard ภาพรวม', desc:'ดู KPI งานซ่อม PM กราฟแยกแผนก และประสิทธิภาพช่าง', nav:['Dashboard ภาพรวม','จัดการใบแจ้งซ่อม','จัดการ PM','จัดการผู้ใช้งาน'], body:'<div class="demo-kpi-grid"><div><b>24</b><small>แจ้งซ่อมทั้งหมด</small></div><div><b>7</b><small>กำลังซ่อม</small></div><div><b>18</b><small>ปิดงานแล้ว</small></div><div><b>12</b><small>PM ทั้งหมด</small></div></div><div class="demo-chart-placeholder"><span>แนวโน้มการแจ้งซ่อม</span><i class="ion-ios-trending-up"></i><strong>ข้อมูลแยกตามช่วงเวลาและประเภทงาน</strong></div>' },
+    { title:'จัดการใบแจ้งซ่อม', desc:'ค้นหา กรอง แก้ไขสถานะ มอบหมายช่าง ส่งออก Excel และดูรายละเอียดงาน', nav:['Dashboard ภาพรวม','จัดการใบแจ้งซ่อม','จัดการ PM','จัดการผู้ใช้งาน'], body:'<div class="demo-job-card"><div><small>รายการที่ต้องจัดการ</small><strong>REP-20260818-041</strong></div><span class="demo-status status-wait">รอซ่อม</span></div><div class="demo-info-strip"><i class="ion-ios-options"></i><span>แอดมินมอบหมายช่าง แก้สถานะ และติดตามงานตีกลับได้จากหน้ารายการเดียว</span></div>' },
+    { title:'จัดการผู้ใช้งานและแผน PM', desc:'สร้างบัญชีผู้แจ้ง จัดการโปรไฟล์ช่าง เพิ่มแผน PM หรืออัปโหลดไฟล์ Excel', nav:['Dashboard ภาพรวม','จัดการใบแจ้งซ่อม','จัดการ PM','จัดการผู้ใช้งาน'], body:'<div class="demo-pm-toolbar"><span>เครื่องมือสำหรับแอดมิน</span><div><button type="button" class="demo-filter active">เพิ่มแผน PM</button><button type="button" class="demo-filter">อัปโหลด Excel</button></div></div><div class="demo-info-strip"><i class="ion-ios-people"></i><span>กำหนดสิทธิ์บัญชี ผู้แจ้ง ช่าง หัวหน้าช่าง และแอดมิน ให้เหมาะกับหน้าที่</span></div>' }
+  ],
+  extra: [
+    { title:'LINE OA และการแจ้งเตือน', desc:'ผูกบัญชีด้วย username รับแจ้งเตือนรับงาน อัปเดตสถานะ และตรวจรับ', nav:['แจ้งซ่อม','ติดตามสถานะ','LINE OA','ช่วยเหลือ'], body:'<div class="demo-line-card"><i class="ion-ios-chatbubbles"></i><b>SFC Maintenance Service</b><span>ผูกไอดี somchai01</span><small>รับแจ้งเตือนสถานะงานผ่าน LINE OA อัตโนมัติ</small></div>' },
+    { title:'ประวัติ เอกสาร และการส่งออก', desc:'เปิดดูประวัติอัปเดตงาน ส่งออกใบงาน PDF และดาวน์โหลดรายงาน Excel', nav:['รายละเอียดงาน','ประวัติอัปเดต','ส่งออก PDF','ส่งออก Excel'], body:'<div class="demo-export-list"><div><i class="ion-ios-document"></i><span>รายงาน Dashboard ภาพรวม</span><b>Excel</b></div><div><i class="ion-ios-download"></i><span>ใบงานซ่อม REP-20260818-041</span><b>PDF</b></div><div><i class="ion-ios-time"></i><span>ประวัติการเปลี่ยนสถานะ</span><b>ดูย้อนหลัง</b></div></div>' },
+    { title:'ความปลอดภัยและความช่วยเหลือ', desc:'ลืมรหัสผ่านผ่าน LINE เปลี่ยนรหัสชั่วคราว และส่งแบบประเมินการใช้งาน', nav:['เข้าสู่ระบบ','ลืมรหัสผ่าน','เปลี่ยนรหัสผ่าน','ประเมินการใช้งาน'], body:'<div class="demo-info-strip"><i class="ion-ios-lock"></i><span>ข้อมูลผู้ใช้และสิทธิ์การเข้าถึงแยกตามบทบาท พร้อมช่องทางช่วยเหลือผ่าน LINE OA</span></div><div class="demo-safety-note"><i class="ion-ios-star"></i><span>ผู้ใช้ทุกบทบาทสามารถส่ง Feedback เพื่อช่วยพัฒนาระบบ</span></div>' }
+  ]
+};
+
+function switchDemoRole(role, button) {
+  activeDemoRole = demoRoleSteps[role] ? role : 'user';
+  document.querySelectorAll('.demo-role-btn').forEach(el => el.classList.remove('is-active'));
+  if (button) button.classList.add('is-active');
+  renderDemoStepList();
+  switchDemoStep(0);
+}
+
+function renderDemoStepList() {
+  const list = document.getElementById('demo-step-list');
+  if (!list) return;
+  list.innerHTML = demoRoleSteps[activeDemoRole].map((step, index) => `<button type="button" class="demo-step${index === 0 ? ' is-active' : ''}" onclick="switchDemoStep(${index})"><span class="demo-step-number">${String(index + 1).padStart(2, '0')}</span><span><b>${step.title}</b><small>${step.desc}</small></span></button>`).join('');
+}
+
+function switchDemoStep(stepIndex) {
+  const step = (demoRoleSteps[activeDemoRole] || demoRoleSteps.user)[stepIndex] || demoRoleSteps[activeDemoRole][0];
+  const screen = document.getElementById('demo-app-screen');
+  if (!screen || !step) return;
+  screen.innerHTML = `<div class="demo-screen-header"><div class="demo-mini-brand"><span class="demo-logo-red">SFC</span> <span class="demo-logo-blue">MS</span><small>SFC Maintenance Service</small></div><div class="demo-mini-user"><span>${activeDemoRole === 'admin' ? 'ผู้ดูแลระบบ' : activeDemoRole === 'tech' ? 'สมชาย มั่นคง' : 'สมหมาย ใจดี'}</span><i class="ion-ios-person"></i></div></div><div class="demo-screen-nav">${step.nav.map((item, index) => `<span class="${index === stepIndex ? 'active' : ''}">${item}</span>`).join('')}</div><div class="demo-screen-content"><div class="demo-screen-title"><span>${step.title}</span><i class="ion-ios-more"></i></div>${step.body}</div>`;
+  document.querySelectorAll('.demo-step').forEach((el, index) => el.classList.toggle('is-active', index === stepIndex));
+}
+
 // ── นำทางไปหน้า "วิธีใช้" (guide) จากการ์ดฟีเจอร์บนหน้าหลัก ──
 function goToGuidePage(tab) {
   document.getElementById('home-page').style.display  = 'none';

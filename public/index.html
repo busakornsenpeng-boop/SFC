@@ -373,18 +373,14 @@
             <div class="demo-app-screen" id="demo-app-screen"></div>
           </div>
           <aside class="demo-explainer">
-            <div class="demo-explainer-kicker">ขั้นตอนการใช้งาน</div>
-            <div id="demo-step-list" class="demo-step-list">
-              <button type="button" class="demo-step is-active" onclick="switchDemoStep(0)">
-                <span class="demo-step-number">01</span><span><b>แจ้งซ่อม</b><small>กรอกข้อมูลปัญหาและส่งใบแจ้งซ่อม</small></span>
-              </button>
-              <button type="button" class="demo-step" onclick="switchDemoStep(1)">
-                <span class="demo-step-number">02</span><span><b>ติดตามงาน</b><small>ดูสถานะงานซ่อมและความคืบหน้า</small></span>
-              </button>
-              <button type="button" class="demo-step" onclick="switchDemoStep(2)">
-                <span class="demo-step-number">03</span><span><b>วางแผน PM</b><small>จัดตารางบำรุงรักษาเชิงป้องกัน</small></span>
-              </button>
+            <div class="demo-role-switcher" id="demo-role-switcher">
+              <button type="button" class="demo-role-btn is-active" onclick="switchDemoRole('user', this)"><i class="ion-ios-person"></i> ผู้แจ้ง</button>
+              <button type="button" class="demo-role-btn" onclick="switchDemoRole('tech', this)"><i class="ion-ios-construct"></i> ช่าง</button>
+              <button type="button" class="demo-role-btn" onclick="switchDemoRole('admin', this)"><i class="ion-ios-settings"></i> แอดมิน</button>
+              <button type="button" class="demo-role-btn" onclick="switchDemoRole('extra', this)"><i class="ion-ios-apps"></i> ฟังก์ชันเสริม</button>
             </div>
+            <div class="demo-explainer-kicker">ขั้นตอนการใช้งาน</div>
+            <div id="demo-step-list" class="demo-step-list"></div>
             <div class="demo-safety-note"><i class="ion-ios-lock"></i><span>ข้อมูลบนหน้านี้เป็นข้อมูลตัวอย่าง ระบบไม่ได้บันทึกหรือแก้ไขฐานข้อมูลจริง</span></div>
           </aside>
         </div>
