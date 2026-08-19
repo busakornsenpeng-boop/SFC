@@ -84,21 +84,195 @@
       </div>
 
       <div class="home-features" id="home-features">
-        <div class="home-feature">
+        <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('repair')">
           <div class="home-feature-icon"><i class="ion-ios-construct"></i></div>
           <div class="home-feature-title">แจ้งซ่อมง่าย</div>
           <div class="home-feature-desc">กรอกฟอร์มแจ้งซ่อม พร้อมแนบรูป ได้รหัสงานทันที</div>
-        </div>
-        <div class="home-feature">
+          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+        </button>
+        <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('pm')">
           <div class="home-feature-icon"><i class="ion-ios-calendar"></i></div>
           <div class="home-feature-title">จัดตาราง PM</div>
           <div class="home-feature-desc">วางแผนบำรุงรักษาเชิงป้องกัน ติดตามสถานะได้ตลอด</div>
-        </div>
-        <div class="home-feature">
+          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+        </button>
+        <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('line')">
           <div class="home-feature-icon"><i class="ion-ios-chatbubbles"></i></div>
           <div class="home-feature-title">แจ้งเตือนผ่าน LINE</div>
           <div class="home-feature-desc">รับอัปเดตสถานะงานซ่อมและ PM ทันทีผ่าน LINE OA</div>
+          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+        </button>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════ GUIDE (HOW-TO) PAGE ════════════════════════════ -->
+    <section id="guide-page" style="display:none">
+      <div class="guide-wrap">
+        <button type="button" class="home-back-btn" onclick="backToHomePage()" title="กลับหน้าหลัก">
+          <i class="ion-ios-arrow-back"></i> หน้าหลัก
+        </button>
+
+        <div class="guide-tabs" id="guide-tabs">
+          <button type="button" class="guide-tab" id="guide-tab-repair" onclick="switchGuideTab('repair')">
+            <i class="ion-ios-construct"></i> แจ้งซ่อมง่าย
+          </button>
+          <button type="button" class="guide-tab" id="guide-tab-pm" onclick="switchGuideTab('pm')">
+            <i class="ion-ios-calendar"></i> จัดตาราง PM
+          </button>
+          <button type="button" class="guide-tab" id="guide-tab-line" onclick="switchGuideTab('line')">
+            <i class="ion-ios-chatbubbles"></i> แจ้งเตือนผ่าน LINE
+          </button>
         </div>
+
+        <!-- วิธีใช้ — แจ้งซ่อมง่าย -->
+        <div class="guide-panel" id="guide-panel-repair" style="display:none">
+          <div class="guide-panel-head">
+            <div class="guide-panel-icon"><i class="ion-ios-construct"></i></div>
+            <div>
+              <h2 class="guide-panel-title">วิธีแจ้งซ่อมเครื่องจักร</h2>
+              <p class="guide-panel-sub">กรอกฟอร์มแจ้งซ่อม พร้อมแนบรูป ได้รหัสงานทันที</p>
+            </div>
+          </div>
+          <div class="guide-steps">
+            <div class="guide-step">
+              <div class="guide-step-num">1</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">เข้าสู่ระบบ</div>
+                <div class="guide-step-desc">ล็อกอินด้วยบัญชีพนักงาน แล้วไปที่แท็บ <b>"แจ้งซ่อม"</b> บนแดชบอร์ด</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">2</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">กรอกข้อมูลเครื่องจักรและสถานที่</div>
+                <div class="guide-step-desc">เลือก <b>เครื่องจักร/อุปกรณ์</b>, <b>สถานที่ปฏิบัติงาน</b> และกรอก <b>เบอร์โทรผู้แจ้ง</b> (ชื่อผู้แจ้งและแผนกจะถูกกรอกให้อัตโนมัติจากบัญชีที่ล็อกอิน)</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">3</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ระบุลักษณะปัญหา</div>
+                <div class="guide-step-desc">เลือก <b>ด้านปัญหา</b> (ไฟฟ้า/เครื่องกล/ลม/ไฮดรอลิก/สาธารณูปโภค/SCADA) และ <b>ประเภทงานซ่อม</b> (ฉุกเฉิน/ตามอาการ/ปรับปรุงประสิทธิภาพ) แล้วอธิบาย <b>รายละเอียดอาการชำรุด</b></div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">4</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">แนบรูปภาพ (ถ้ามี)</div>
+                <div class="guide-step-desc">คลิกกล่องแนบไฟล์เพื่อถ่ายหรือเลือกรูปประกอบความเสียหาย ช่วยให้ช่างเตรียมอุปกรณ์ได้ตรงจุดมากขึ้น</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">5</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ส่งใบแจ้งซ่อม</div>
+                <div class="guide-step-desc">กดปุ่ม <b>"ส่งใบแจ้งซ่อม"</b> ระบบจะออก <b>รหัสงาน (Job ID)</b> ให้ทันที ใช้ตรวจสอบสถานะได้ทั้งในเว็บและผ่าน LINE OA</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">6</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ติดตามสถานะ</div>
+                <div class="guide-step-desc">ไปที่แท็บ <b>"ติดตามงานซ่อม"</b> เพื่อดูความคืบหน้า และตรวจรับงานเมื่อช่างซ่อมเสร็จแล้ว</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- วิธีใช้ — จัดตาราง PM -->
+        <div class="guide-panel" id="guide-panel-pm" style="display:none">
+          <div class="guide-panel-head">
+            <div class="guide-panel-icon"><i class="ion-ios-calendar"></i></div>
+            <div>
+              <h2 class="guide-panel-title">วิธีจัดตารางบำรุงรักษาเชิงป้องกัน (PM)</h2>
+              <p class="guide-panel-sub">วางแผน ติดตามสถานะ และบันทึกผลการทำ PM</p>
+            </div>
+          </div>
+          <div class="guide-steps">
+            <div class="guide-step">
+              <div class="guide-step-num">1</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">สร้างหรืออัปโหลดแผน PM (แอดมิน)</div>
+                <div class="guide-step-desc">ในแท็บ <b>"ตาราง PM"</b> แอดมินสามารถเพิ่มแผนทีละรายการ หรือกด <b>อัปโหลดไฟล์มาสเตอร์ (Excel)</b> เพื่อนำเข้าแผนทั้งชุดในครั้งเดียว ระบบจะข้ามรายการที่ซ้ำกับแผนเดิมให้อัตโนมัติ</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">2</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ดูตารางแบบรายการหรือปฏิทิน</div>
+                <div class="guide-step-desc">สลับมุมมองได้ระหว่าง <b>"รายการ"</b> และ <b>"ปฏิทิน"</b> พร้อมค้นหา/กรองตามสถานะและความถี่ เพื่อดูภาพรวมงานที่ต้องทำ รอดำเนินการ เสร็จแล้ว หรือเกินกำหนด</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">3</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ช่าง/วิศวกรทำ PM ตามแผน</div>
+                <div class="guide-step-desc">ไปที่แท็บ <b>"เช็คลิสต์ PM"</b> เลือกงานที่ถึงกำหนด กรอกรายละเอียดการตรวจเช็ค อะไหล่ที่ใช้ และผลการทำงาน</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">4</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">บันทึกผลการทำ PM</div>
+                <div class="guide-step-desc">เมื่อกรอกครบแล้วกดบันทึก ระบบจะเปลี่ยนสถานะแผนนั้นเป็น <b>"เสร็จแล้ว"</b> โดยอัตโนมัติ และเก็บประวัติไว้ในแท็บ <b>"ประวัติ PM"</b></div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">5</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ตรวจสอบย้อนหลัง</div>
+                <div class="guide-step-desc">ดูประวัติการทำ PM ทั้งหมดของแต่ละเครื่องจักรได้ในแท็บ <b>"ประวัติ PM"</b> เพื่อใช้วางแผนบำรุงรักษาครั้งถัดไป</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- วิธีใช้ — แจ้งเตือนผ่าน LINE -->
+        <div class="guide-panel" id="guide-panel-line" style="display:none">
+          <div class="guide-panel-head">
+            <div class="guide-panel-icon"><i class="ion-ios-chatbubbles"></i></div>
+            <div>
+              <h2 class="guide-panel-title">วิธีผูกบัญชีเพื่อรับแจ้งเตือนผ่าน LINE</h2>
+              <p class="guide-panel-sub">รับอัปเดตสถานะงานซ่อมและ PM ทันทีผ่าน LINE OA</p>
+            </div>
+          </div>
+          <div class="guide-steps">
+            <div class="guide-step">
+              <div class="guide-step-num">1</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">เปิดแชท LINE OA ของโรงงาน</div>
+                <div class="guide-step-desc">เพิ่มเพื่อนและเปิดหน้าแชทกับ <b>LINE OA ของ SFC Maintenance Service</b></div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">2</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">ผูกบัญชีด้วยคำสั่งแชท</div>
+                <div class="guide-step-desc">พิมพ์ <b>"ผูกไอดี [username ที่ตั้งไว้]"</b> เช่น <span class="guide-code">ผูกไอดี somchai01</span> ระบบจะยืนยันกลับทันทีว่าผูกบัญชีสำเร็จ</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">3</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">รับการแจ้งเตือนอัตโนมัติ</div>
+                <div class="guide-step-desc">หลังผูกบัญชีแล้ว จะได้รับข้อความแจ้งเตือนผ่าน LINE ทุกครั้งที่ช่างรับงาน อัปเดตสถานะ หรืองานผ่านการตรวจรับ</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step-num">4</div>
+              <div class="guide-step-body">
+                <div class="guide-step-title">คำสั่งแชทอื่นๆ ที่ใช้ได้</div>
+                <div class="guide-step-desc">
+                  <span class="guide-code">แจ้งซ่อม</span> เปิดลิงก์แบบฟอร์มแจ้งซ่อม ·
+                  <span class="guide-code">REP-XXXXXXXX-XXX</span> เช็คสถานะงานจากรหัสงาน ·
+                  <span class="guide-code">ติดต่อ</span> ดูเบอร์ติดต่อเจ้าหน้าที่ ENG ·
+                  <span class="guide-code">ลืมรหัสผ่าน</span> ขอรหัสผ่านชั่วคราวใหม่ (ใช้ได้เฉพาะบัญชีที่ผูก LINE ไว้แล้ว)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 

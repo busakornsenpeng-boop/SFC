@@ -177,6 +177,29 @@
   .home-feature-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(46,92,230,0.16),rgba(91,124,240,0.08));color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:16px}
   .home-feature-title{font-size:14.5px;font-weight:700;color:var(--text);margin-bottom:6px}
   .home-feature-desc{font-size:12.5px;color:var(--text2);line-height:1.65}
+  .home-feature-clickable{width:100%;text-align:left;font-family:inherit;cursor:pointer;display:flex;flex-direction:column}
+  .home-feature-clickable:active{transform:translateY(-1px) scale(0.99)}
+  .home-feature-more{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--accent);margin-top:14px;opacity:0;transform:translateX(-4px);transition:opacity .2s ease,transform .2s ease}
+  .home-feature-more i{font-size:11px}
+  .home-feature-clickable:hover .home-feature-more{opacity:1;transform:translateX(0)}
+
+  /* ── Guide (How-to) page ── */
+  #guide-page{min-height:80vh;padding:24px 0 60px}
+  .guide-wrap{max-width:840px;margin:0 auto}
+  .guide-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px;border-bottom:1px solid var(--border);padding-bottom:0}
+  .guide-tab{display:inline-flex;align-items:center;gap:7px;background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--text2);padding:10px 16px;cursor:pointer;border-radius:10px 10px 0 0;border-bottom:2.5px solid transparent;transition:color .15s ease,background .15s ease,border-color .15s ease}
+  .guide-tab:hover{color:var(--accent);background:rgba(46,92,230,0.06)}
+  .guide-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(46,92,230,0.07)}
+  .guide-panel-head{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+  .guide-panel-icon{width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(135deg,rgba(46,92,230,0.16),rgba(91,124,240,0.08));color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px}
+  .guide-panel-title{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+  .guide-panel-sub{font-size:13px;color:var(--text2);margin-top:3px}
+  .guide-steps{display:flex;flex-direction:column;gap:14px}
+  .guide-step{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+  .guide-step-num{width:28px;height:28px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .guide-step-title{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .guide-step-desc{font-size:12.5px;color:var(--text2);line-height:1.75}
+  .guide-code{display:inline-block;font-family:var(--font-mono);font-size:11.5px;background:var(--bg2);color:var(--accent);padding:2px 7px;border-radius:5px;border:1px solid var(--border)}
 
   /* ── Login ── */
   #login-page{display:none;align-items:center;justify-content:center;min-height:80vh}
@@ -474,6 +497,11 @@
   .home-float-badge-2{bottom:0;left:0}
   .home-features{grid-template-columns:1fr;gap:12px}
   .role-selector{grid-template-columns:repeat(3,1fr)}
+  .guide-tabs{gap:4px}
+  .guide-tab{font-size:12px;padding:9px 12px}
+  .guide-panel-head{gap:12px;margin-bottom:20px}
+  .guide-panel-icon{width:42px;height:42px;font-size:18px}
+  .guide-panel-title{font-size:16px}
 
   /* ── แก้บั๊กมือถือ iOS: ถ้าตัวอักษรในช่องกรอกเล็กกว่า 16px, Safari จะซูมจอเข้าอัตโนมัติ
      ทุกครั้งที่แตะกรอกข้อมูล แล้วไม่ซูมออกให้เอง ต้อง pinch-zoom เองทุกรอบ — ตั้ง 16px ให้ครบ

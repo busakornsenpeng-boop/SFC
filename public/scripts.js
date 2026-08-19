@@ -512,7 +512,25 @@ function goToLoginPage() {
 }
 function backToHomePage() {
   document.getElementById('login-page').style.display = 'none';
+  document.getElementById('guide-page').style.display = 'none';
   document.getElementById('home-page').style.display  = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── นำทางไปหน้า "วิธีใช้" (guide) จากการ์ดฟีเจอร์บนหน้าหลัก ──
+function goToGuidePage(tab) {
+  document.getElementById('home-page').style.display  = 'none';
+  document.getElementById('guide-page').style.display = 'block';
+  switchGuideTab(tab || 'repair');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function switchGuideTab(tab) {
+  ['repair', 'pm', 'line'].forEach(t => {
+    const panel = document.getElementById('guide-panel-' + t);
+    const tabEl = document.getElementById('guide-tab-' + t);
+    if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    if (tabEl) tabEl.classList.toggle('active', t === tab);
+  });
 }
 
 function showLoginError() {
@@ -537,6 +555,7 @@ function handleLogout() {
   document.getElementById('dashboard-page').style.display  = 'none';
   document.getElementById('te-panel-page').style.display   = 'none';
   document.getElementById('login-page').style.display      = 'none';
+  document.getElementById('guide-page').style.display      = 'none';
   document.getElementById('home-page').style.display       = 'block'; // กลับไปหน้าหลักหลัง logout
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
   document.getElementById('password').value = '';
@@ -565,6 +584,7 @@ function isRepairStaff(role) {
 function setupDashboard() {
   document.getElementById('home-page').style.display  = 'none';
   document.getElementById('login-page').style.display = 'none';
+  document.getElementById('guide-page').style.display = 'none';
 
   // ช่าง (role: technician) → TE Panel
   if (isRepairStaff(currentUser.role)) {
