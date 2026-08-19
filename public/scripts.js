@@ -850,10 +850,90 @@ function renderTrainingStep() {
     if (tab) switchViewPanel(lesson.panel, tab);
   }
   const target = document.querySelector(lesson.target);
-  if (target) { target.classList.add('training-target'); target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (target) {
+    target.classList.add('training-target');
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // รอให้ scroll/สลับแท็บ render เสร็จก่อน ค่อยวัดตำแหน่งจริงแล้ววางกล่องคำอธิบาย
+    clearTimeout(window.__trainingPosTimer);
+    window.__trainingPosTimer = setTimeout(() => positionTrainingCard(target), 280);
+  }
 }
+
+// วางกล่องคำอธิบาย (.training-panel) ให้ลอยติดกับ element ที่ไฮไลต์อยู่ พร้อมลูกศรชี้
+// เลือกวางด้านล่างก่อน ถ้าที่ไม่พอค่อยสลับไปด้านบน แล้ว clamp ให้อยู่ในจอเสมอ
+function positionTrainingCard(target) {
+  const panel = document.querySelector('#training-overlay .training-panel');
+  const arrow = document.getElementById('training-card-arrow');
+  if (!panel || !target) return;
+
+  // มือถือใช้ bottom sheet คงที่ (กำหนดใน CSS) ไม่ต้องคำนวณตำแหน่ง
+  if (window.innerWidth <= 640) return;
+
+  const r = target.getBoundingClientRect();
+  const panelW = panel.offsetWidth || 340;
+  const panelH = panel.offsetHeight || 320;
+  const gap = 16;
+  const viewportW = window.innerWidth;
+  const viewportH = window.innerHeight;
+
+  let top = r.bottom + gap;
+  let placement = 'bottom';
+  if (top + panelH > viewportH - 16) {
+    const topAbove = r.top - panelH - gap;
+    if (topAbove >= 16) {
+      top = topAbove;
+      placement = 'top';
+    } else {
+      // ทั้งบนและล่างไม่พอ (เช่น target สูงเกือบเต็มจอ) — คลี่กล่องให้อยู่ในขอบเขตจอแทน
+      top = Math.max(16, Math.min(r.top, viewportH - panelH - 16));
+      placement = 'inside';
+    }
+  }
+
+  let left = r.left + r.width / 2 - panelW / 2;
+  left = Math.max(16, Math.min(left, viewportW - panelW - 16));
+
+  panel.style.top = top + 'px';
+  panel.style.left = left + 'px';
+
+  if (arrow) {
+    if (placement === 'inside') {
+      arrow.style.display = 'none';
+    } else {
+      arrow.style.display = 'block';
+      const arrowX = Math.max(14, Math.min((r.left + r.width / 2) - left - 7, panelW - 28));
+      arrow.style.left = arrowX + 'px';
+      if (placement === 'bottom') {
+        arrow.style.top = '-7px';
+        arrow.style.bottom = 'auto';
+      } else {
+        arrow.style.top = 'auto';
+        arrow.style.bottom = '-7px';
+      }
+    }
+  }
+}
+
 function trainingPrev() { if (trainingIndex > 0) { trainingIndex--; renderTrainingStep(); } }
 function trainingNext() { if (trainingIndex < trainingLessons[trainingRole].length - 1) { trainingIndex++; renderTrainingStep(); } else closeTrainingMode(); }
+
+// รีตำแหน่งกล่องคำอธิบายเมื่อปรับขนาดหน้าต่าง หรือเลื่อนหน้าจอ ระหว่างเปิด Training Mode อยู่
+window.addEventListener('resize', () => {
+  const overlay = document.getElementById('training-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  const lesson = trainingLessons[trainingRole]?.[trainingIndex];
+  if (!lesson) return;
+  const target = document.querySelector(lesson.target);
+  if (target) positionTrainingCard(target);
+});
+window.addEventListener('scroll', () => {
+  const overlay = document.getElementById('training-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  const lesson = trainingLessons[trainingRole]?.[trainingIndex];
+  if (!lesson) return;
+  const target = document.querySelector(lesson.target);
+  if (target) positionTrainingCard(target);
+}, { passive: true });
 
 function downloadUserGuide() {
   const roleNames = { user:'ผู้แจ้ง', technician:'ช่าง', admin:'แอดมิน', extra:'ฟังก์ชันเสริม' };
