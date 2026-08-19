@@ -1233,6 +1233,31 @@
     onclick="openAppFeedbackModal()" title="ให้คะแนนความพึงพอใจการใช้งานเว็บแอพ">
     <i class="ion-ios-star"></i>
   </button>
+  <button id="training-fab" class="training-fab" style="display:none"
+    onclick="openTrainingMode()" title="เปิดโหมดสอนการใช้งาน">
+    <i class="ion-ios-school"></i>
+  </button>
+
+  <div id="training-overlay" class="training-overlay" aria-hidden="true">
+    <div class="training-backdrop" onclick="closeTrainingMode()"></div>
+    <aside class="training-panel" role="dialog" aria-label="คู่มือสอนใช้งาน">
+      <div class="training-panel-head">
+        <div><span class="training-kicker">TRAINING MODE</span><h2 id="training-title">คู่มือสอนใช้งาน</h2></div>
+        <button type="button" class="training-close" onclick="closeTrainingMode()" title="ปิด"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="training-role" id="training-role"></div>
+      <div class="training-progress"><span id="training-progress-bar"></span></div>
+      <div class="training-step-count" id="training-step-count"></div>
+      <h3 id="training-step-title"></h3>
+      <p id="training-step-what"></p>
+      <div class="training-detail-block"><b>วิธีทำ</b><div id="training-step-how"></div></div>
+      <div class="training-detail-block training-result"><b>ผลลัพธ์</b><div id="training-step-result"></div></div>
+      <div class="training-panel-actions">
+        <button type="button" class="btn btn-sec" id="training-prev-btn" onclick="trainingPrev()">ย้อนกลับ</button>
+        <button type="button" class="btn btn-accent" id="training-next-btn" onclick="trainingNext()">ขั้นตอนถัดไป <i class="ion-ios-arrow-forward"></i></button>
+      </div>
+    </aside>
+  </div>
 
   <!-- Modal ใช้ร่วมกับ Tech Panel และแบบประเมินความพึงพอใจ (ย้ายออกมานอก section
        te-panel-page เพราะ section นั้น display:none ตอนอยู่หน้า dashboard ปกติ

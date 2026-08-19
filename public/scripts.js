@@ -670,6 +670,7 @@ function handleLogout() {
   document.getElementById('demo-page').style.display       = 'none';
   document.getElementById('home-page').style.display       = 'block'; // กลับไปหน้าหลักหลัง logout
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
+  const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'none';
   document.getElementById('password').value = '';
   const ud = document.getElementById('username-display');
   if(ud) { ud.value = ''; ud.placeholder = 'กรอก username'; }
@@ -703,6 +704,7 @@ function setupDashboard() {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
     const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
+    const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'flex';
     initTEPanel();
     startAutoRefresh();
     return;
@@ -712,6 +714,7 @@ function setupDashboard() {
   document.getElementById('te-panel-page').style.display   = 'none';
   document.getElementById('dashboard-page').style.display  = 'block';
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
+  const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'flex';
   document.getElementById('user-display-name').textContent = currentUser.name;
   document.getElementById('user-display-role').textContent = currentUser.role;
 
@@ -780,6 +783,77 @@ if(panelId==='admin-people')    initAdminPeoplePanel();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
 };
+
+const trainingLessons = {
+  user: [
+    { title:'เริ่มจากแท็บ “แจ้งซ่อมบำรุง”', what:'ผู้แจ้งใช้ฟอร์มนี้เมื่อพบเครื่องจักรหรืออุปกรณ์ผิดปกติ', how:'ตรวจชื่อผู้แจ้งและแผนกที่ระบบเติมให้อัตโนมัติ จากนั้นเลือกเครื่องจักร สถานที่ เบอร์โทร ด้านปัญหา และประเภทงานซ่อม', result:'เมื่อส่งสำเร็จ ระบบสร้าง Job ID สำหรับติดตามงานและแจ้งทีมช่าง', panel:'report-repair', target:'#panel-report-repair' },
+    { title:'กรอกรายละเอียดให้ช่างทำงานต่อได้', what:'ข้อมูลที่ชัดเจนช่วยลดการถามกลับและลดเวลารอรับงาน', how:'เขียนอาการที่พบให้เป็นข้อเท็จจริง เช่น เครื่องหยุด เสียงดัง ไฟไม่เข้า ระบุจุดที่พบ และแนบรูปก่อนซ่อมถ้ามี', result:'ช่างเห็นอาการเสีย ตำแหน่ง และรูปประกอบในรายละเอียดงานเดียวกัน', panel:'report-repair', target:'#repair-request-form' },
+    { title:'ติดตามงานด้วย Job ID', what:'ใช้แท็บ “ติดตามงานซ่อม” ดูความคืบหน้าโดยไม่ต้องโทรถาม', how:'ค้นหาด้วย Job ID หรือชื่อเครื่องจักร แล้วเปิด “ดูรายละเอียด” เพื่อดูผู้รับผิดชอบ สถานะ และหมายเหตุ', result:'เห็นลำดับตั้งแต่รับแจ้ง ช่างรับงาน กำลังซ่อม จนถึงรอตรวจรับ', panel:'track-repairs', target:'#panel-track-repairs' },
+    { title:'ตรวจรับงานหลังช่างซ่อมเสร็จ', what:'ผู้แจ้งเป็นคนยืนยันว่าผลการซ่อมใช้งานได้จริง', how:'เปิดแท็บ “ตรวจรับงาน” ตรวจรายละเอียดและรูปหลังซ่อม ถ้าถูกต้องกดผ่านตรวจรับ ถ้ายังไม่เรียบร้อยให้ส่งกลับพร้อมเหตุผล', result:'ผ่านตรวจรับจะปิดงาน ส่วนงานที่ไม่ผ่านจะกลับไปให้ช่างแก้ไข', panel:'qc-panel', target:'#panel-qc-panel' }
+  ],
+  technician: [
+    { title:'ดูงานในคิวและยืนยันตัวตน', what:'ช่างเริ่มจากงานที่อยู่ในคิว “รอช่างรับงาน”', how:'เปิดรายละเอียด ตรวจเครื่องจักร อาการเสีย และตำแหน่ง จากนั้นระบุตัวตนด้วยชื่อและรหัสพนักงานก่อนกดรับงาน', result:'งานถูกผูกกับช่างผู้รับผิดชอบและย้ายไปอยู่ในงานที่รับไว้', target:'#te-v-jobs' },
+    { title:'อัปเดตสถานะระหว่างซ่อม', what:'สถานะช่วยให้ผู้แจ้งและแอดมินรู้ว่างานติดอยู่ที่ขั้นตอนไหน', how:'กดอัปเดต เลือกกำลังซ่อม รออะไหล่ ขอหยุดเครื่อง Workaround หรือส่งซ่อมภายนอก แล้วเขียนหมายเหตุทุกครั้ง', result:'ผู้เกี่ยวข้องเห็นสถานะล่าสุดและเวลาที่ใช้ติดตามได้', target:'#te-v-mine' },
+    { title:'ส่งงานซ่อมเสร็จเข้าตรวจรับ', what:'เมื่อซ่อมเสร็จต้องบันทึกหลักฐานก่อนส่งให้ผู้แจ้งตรวจรับ', how:'เลือก “ซ่อมเสร็จแล้ว” ใส่รายละเอียดวิธีแก้ไข แนบรูปหลังซ่อม และบันทึก', result:'งานเปลี่ยนเป็นรอตรวจรับ ผู้แจ้งจึงสามารถตรวจสอบต่อได้', target:'#te-v-mine' },
+    { title:'ทำ PM และ Daily PM', what:'ช่างใช้แผน PM เพื่อตรวจเชิงป้องกันก่อนเกิดความเสียหาย', how:'เลือกงานตามวันหรือปฏิทิน ทำ Checklist รายการ OK/NG บันทึกชั่วโมงเดินเครื่อง อะไหล่ งานที่ทำ และข้อสังเกต', result:'แผนถูกบันทึกเป็นประวัติ PM และสถานะเปลี่ยนเป็นเสร็จแล้ว', target:'#te-v-pm' }
+  ],
+  admin: [
+    { title:'อ่านภาพรวมจาก Dashboard', what:'แอดมินใช้ KPI เพื่อเห็นภาระงานและคอขวดของทีม', how:'ดูแจ้งซ่อมทั้งหมด รอช่าง กำลังซ่อม รอตรวจรับ ปิดงาน ตีกลับ และจำนวน PM กดการ์ดเพื่อเจาะตามแผนกได้', result:'เห็นปัญหาที่ต้องเร่งจัดการโดยไม่ต้องเปิดทีละงาน', panel:'admin-dashboard', target:'#panel-admin-dashboard' },
+    { title:'จัดคิวและมอบหมายงาน', what:'หน้าจัดการใบแจ้งซ่อมคือจุดควบคุมงานของแอดมิน', how:'ค้นหาหรือกรองตามสถานะ แผนก ประเภทงาน สถานที่ และวันที่ เปิดรายละเอียดเพื่อเลือกช่าง แก้สถานะ หรือเพิ่มหมายเหตุ', result:'คิวงานเป็นปัจจุบันและมีผู้รับผิดชอบชัดเจน', panel:'admin-repairs', target:'#panel-admin-repairs' },
+    { title:'จัดการแผน PM', what:'แอดมินเป็นผู้สร้างและดูแลแผนบำรุงรักษา', how:'เพิ่มแผนทีละรายการ หรือดาวน์โหลด template แล้วอัปโหลด Excel ตรวจรายการซ้ำและวันที่ให้ครบก่อนนำเข้า', result:'ช่างเห็นแผนเดียวกันในรายการและปฏิทิน PM', panel:'pm-table', target:'#panel-pm-table' },
+    { title:'จัดการบัญชีและโปรไฟล์ช่าง', what:'สิทธิ์การใช้งานและข้อมูลผู้รับผิดชอบต้องถูกต้อง', how:'เปิด “จัดการผู้ใช้งาน” สร้างบัญชีผู้แจ้ง แก้ไขหรือรีเซ็ตรหัสผ่าน และดูโปรไฟล์ช่างในบัญชีกลาง', result:'แต่ละคนเห็นเฉพาะเมนูตาม role และงานถูกระบุคนได้ถูกต้อง', panel:'admin-people', target:'#panel-admin-people' }
+  ],
+  extra: [
+    { title:'ผูกบัญชีกับ LINE OA', what:'LINE ใช้รับการแจ้งเตือนโดยไม่ต้องเปิดเว็บรอ', how:'เพิ่มเพื่อน LINE OA แล้วพิมพ์ “ผูกไอดี username” หลัง login สำเร็จ ตรวจว่าบัญชีเชื่อมแล้ว', result:'รับแจ้งเตือนเมื่อช่างรับงาน อัปเดตสถานะ งานผ่านตรวจรับ และใช้เช็กสถานะด้วย Job ID', target:'#login-page' },
+    { title:'ใช้ประวัติและเอกสารเป็นหลักฐาน', what:'ระบบเก็บร่องรอยงานเพื่อค้นย้อนหลังและใช้ประกอบการรายงาน', how:'เปิดรายละเอียดงานเพื่อดูประวัติอัปเดต ส่งออกใบงาน PDF หรือใช้ Dashboard ส่งออก Excel', result:'ได้เอกสารอ้างอิงตาม Job ID และรายงานสรุปสำหรับวิเคราะห์', target:'#dashboard-page' },
+    { title:'ขอความช่วยเหลือและส่ง Feedback', what:'ผู้ใช้แจ้งปัญหาการใช้งานหรือข้อเสนอแนะได้จากปุ่มดาว', how:'กดปุ่มดาวมุมขวาล่าง ตอบข้อมูลการใช้งาน ให้คะแนน เลือกปัญหา และเขียนสิ่งที่อยากปรับปรุง', result:'ทีมพัฒนานำข้อมูลไปแก้ UX และติดตามปัญหาการใช้งานจริง', target:'#app-feedback-fab' }
+  ]
+};
+let trainingRole = 'user';
+let trainingIndex = 0;
+
+function getTrainingRole() {
+  if (currentUser?.role === 'admin') return 'admin';
+  if (isRepairStaff(currentUser?.role)) return 'technician';
+  return 'user';
+}
+function openTrainingMode(role = getTrainingRole()) {
+  trainingRole = trainingLessons[role] ? role : 'user';
+  trainingIndex = 0;
+  document.getElementById('training-overlay')?.classList.add('open');
+  document.getElementById('training-overlay')?.setAttribute('aria-hidden', 'false');
+  renderTrainingStep();
+}
+function closeTrainingMode() {
+  document.getElementById('training-overlay')?.classList.remove('open');
+  document.getElementById('training-overlay')?.setAttribute('aria-hidden', 'true');
+  document.querySelectorAll('.training-target').forEach(el => el.classList.remove('training-target'));
+}
+function renderTrainingStep() {
+  const lesson = trainingLessons[trainingRole][trainingIndex];
+  if (!lesson) return;
+  const total = trainingLessons[trainingRole].length;
+  document.getElementById('training-role').textContent = trainingRole === 'admin' ? 'บทเรียนสำหรับแอดมิน' : trainingRole === 'technician' ? 'บทเรียนสำหรับช่าง' : trainingRole === 'extra' ? 'ฟังก์ชันเสริม' : 'บทเรียนสำหรับผู้แจ้ง';
+  document.getElementById('training-step-count').textContent = `ขั้นตอน ${trainingIndex + 1} จาก ${total}`;
+  document.getElementById('training-progress-bar').style.width = `${((trainingIndex + 1) / total) * 100}%`;
+  document.getElementById('training-step-title').textContent = lesson.title;
+  document.getElementById('training-step-what').textContent = lesson.what;
+  document.getElementById('training-step-how').textContent = lesson.how;
+  document.getElementById('training-step-result').textContent = lesson.result;
+  const prev = document.getElementById('training-prev-btn');
+  const next = document.getElementById('training-next-btn');
+  prev.disabled = trainingIndex === 0;
+  next.innerHTML = trainingIndex === total - 1 ? 'จบบทเรียน <i class="ion-ios-checkmark"></i>' : 'ขั้นตอนถัดไป <i class="ion-ios-arrow-forward"></i>';
+  document.querySelectorAll('.training-target').forEach(el => el.classList.remove('training-target'));
+  if (lesson.panel) {
+    const tab = document.querySelector(`.tab-btn[onclick*="${lesson.panel}"]`);
+    if (tab) switchViewPanel(lesson.panel, tab);
+  }
+  const target = document.querySelector(lesson.target);
+  if (target) { target.classList.add('training-target'); target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+function trainingPrev() { if (trainingIndex > 0) { trainingIndex--; renderTrainingStep(); } }
+function trainingNext() { if (trainingIndex < trainingLessons[trainingRole].length - 1) { trainingIndex++; renderTrainingStep(); } else closeTrainingMode(); }
 
 // ============================================================
 // AUTO REFRESH — ทำให้หน้าจอ "เกือบเรียลไทม์" ด้วยการ poll ข้อมูลใหม่เป็นระยะ
