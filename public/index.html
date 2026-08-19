@@ -37,7 +37,7 @@
           </div>
           <div class="home-hero-cta-row">
             <button type="button" class="home-cta-primary" onclick="goToLoginPage()">Sign in</button>
-            <button type="button" class="home-cta-secondary" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})">See features</button>
+            <button type="button" class="home-cta-secondary" onclick="showHomeFeatures()">See features</button>
           </div>
         </div>
         <div class="home-hero-right">
@@ -118,12 +118,12 @@
             <div><div class="home-float-badge-label">Technicians available</div><div class="home-float-badge-val">4</div></div>
           </div>
         </div>
-        <button type="button" class="home-hero-scroll" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})" title="Scroll down">
+        <button type="button" class="home-hero-scroll" onclick="showHomeFeatures()" title="Scroll down">
           <i class="ion-ios-arrow-down"></i>
         </button>
       </div>
 
-      <div class="home-features" id="home-features">
+      <div class="home-features" id="home-features" style="display:none">
         <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('repair')">
           <div class="home-feature-icon"><i class="ion-ios-construct"></i></div>
           <div class="home-feature-title">Easy repair reporting</div>

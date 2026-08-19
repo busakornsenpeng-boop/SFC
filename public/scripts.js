@@ -525,6 +525,14 @@ function initHomeMockCycle() {
   }, 2600);
 }
 
+// ── หน้าหลัก: โชว์การ์ดฟีเจอร์ 3 ใบ (ซ่อนไว้ตั้งแต่แรก — เพิ่งแสดงเมื่อกด "See features" หรือลูกศรเลื่อนลง) ──
+function showHomeFeatures() {
+  const el = document.getElementById('home-features');
+  if (!el) return;
+  el.style.display = 'grid';
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
 // ── นำทางระหว่างหน้าหลัก (landing) กับหน้าล็อกอิน ──
 function goToLoginPage() {
   document.getElementById('home-page').style.display  = 'none';
