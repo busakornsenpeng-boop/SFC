@@ -670,7 +670,6 @@ function handleLogout() {
   document.getElementById('demo-page').style.display       = 'none';
   document.getElementById('home-page').style.display       = 'block'; // กลับไปหน้าหลักหลัง logout
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
-  const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'none';
   document.getElementById('password').value = '';
   const ud = document.getElementById('username-display');
   if(ud) { ud.value = ''; ud.placeholder = 'กรอก username'; }
@@ -704,7 +703,6 @@ function setupDashboard() {
     document.getElementById('dashboard-page').style.display  = 'none';
     document.getElementById('te-panel-page').style.display   = 'block';
     const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
-    const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'flex';
     initTEPanel();
     startAutoRefresh();
     return;
@@ -714,7 +712,6 @@ function setupDashboard() {
   document.getElementById('te-panel-page').style.display   = 'none';
   document.getElementById('dashboard-page').style.display  = 'block';
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'flex';
-  const trainingFab = document.getElementById('training-fab'); if (trainingFab) trainingFab.style.display = 'flex';
   document.getElementById('user-display-name').textContent = currentUser.name;
   document.getElementById('user-display-role').textContent = currentUser.role;
 
@@ -783,229 +780,6 @@ if(panelId==='admin-people')    initAdminPeoplePanel();
   if(panelId==='ins-daily-pm')    insInitForm();
   if(panelId==='qc-panel')        renderUserQCPanel(); 
 };
-
-const trainingLessons = {
-  user: [
-    { title:'เริ่มจากแท็บ “แจ้งซ่อมบำรุง”', what:'ผู้แจ้งใช้ฟอร์มนี้เมื่อพบเครื่องจักรหรืออุปกรณ์ผิดปกติ', how:'ตรวจชื่อผู้แจ้งและแผนกที่ระบบเติมให้อัตโนมัติ จากนั้นเลือกเครื่องจักร สถานที่ เบอร์โทร ด้านปัญหา และประเภทงานซ่อม', result:'เมื่อส่งสำเร็จ ระบบสร้าง Job ID สำหรับติดตามงานและแจ้งทีมช่าง', panel:'report-repair', target:'#main-nav-tabs .tab-btn:nth-child(1)' },
-    { title:'กรอกรายละเอียดให้ช่างทำงานต่อได้', what:'ข้อมูลที่ชัดเจนช่วยลดการถามกลับและลดเวลารอรับงาน', how:'เขียนอาการที่พบให้เป็นข้อเท็จจริง เช่น เครื่องหยุด เสียงดัง ไฟไม่เข้า ระบุจุดที่พบ และแนบรูปก่อนซ่อมถ้ามี', result:'ช่างเห็นอาการเสีย ตำแหน่ง และรูปประกอบในรายละเอียดงานเดียวกัน', panel:'report-repair', target:'#rep-detail' },
-    { title:'ติดตามงานด้วย Job ID', what:'ใช้แท็บ “ติดตามงานซ่อม” ดูความคืบหน้าโดยไม่ต้องโทรถาม', how:'ค้นหาด้วย Job ID หรือชื่อเครื่องจักร แล้วเปิด “ดูรายละเอียด” เพื่อดูผู้รับผิดชอบ สถานะ และหมายเหตุ', result:'เห็นลำดับตั้งแต่รับแจ้ง ช่างรับงาน กำลังซ่อม จนถึงรอตรวจรับ', panel:'track-repairs', target:'#track-search' },
-    { title:'ตรวจรับงานหลังช่างซ่อมเสร็จ', what:'ผู้แจ้งเป็นคนยืนยันว่าผลการซ่อมใช้งานได้จริง', how:'เปิดแท็บ “ตรวจรับงาน” ตรวจรายละเอียดและรูปหลังซ่อม ถ้าถูกต้องกดผ่านตรวจรับ ถ้ายังไม่เรียบร้อยให้ส่งกลับพร้อมเหตุผล', result:'ผ่านตรวจรับจะปิดงาน ส่วนงานที่ไม่ผ่านจะกลับไปให้ช่างแก้ไข', panel:'qc-panel', target:'#main-nav-tabs .tab-btn:nth-child(4)' }
-  ],
-  technician: [
-    { title:'ดูงานในคิวและยืนยันตัวตน', what:'ช่างเริ่มจากงานที่อยู่ในคิว “รอช่างรับงาน”', how:'เปิดรายละเอียด ตรวจเครื่องจักร อาการเสีย และตำแหน่ง จากนั้นระบุตัวตนด้วยชื่อและรหัสพนักงานก่อนกดรับงาน', result:'งานถูกผูกกับช่างผู้รับผิดชอบและย้ายไปอยู่ในงานที่รับไว้', target:'.tp-sbox[data-stat="waiting"]' },
-    { title:'อัปเดตสถานะระหว่างซ่อม', what:'สถานะช่วยให้ผู้แจ้งและแอดมินรู้ว่างานติดอยู่ที่ขั้นตอนไหน', how:'กดอัปเดต เลือกกำลังซ่อม รออะไหล่ ขอหยุดเครื่อง Workaround หรือส่งซ่อมภายนอก แล้วเขียนหมายเหตุทุกครั้ง', result:'ผู้เกี่ยวข้องเห็นสถานะล่าสุดและเวลาที่ใช้ติดตามได้', target:'.tp-sbox[data-stat="progress"]' },
-    { title:'ส่งงานซ่อมเสร็จเข้าตรวจรับ', what:'เมื่อซ่อมเสร็จต้องบันทึกหลักฐานก่อนส่งให้ผู้แจ้งตรวจรับ', how:'เลือก “ซ่อมเสร็จแล้ว” ใส่รายละเอียดวิธีแก้ไข แนบรูปหลังซ่อม และบันทึก', result:'งานเปลี่ยนเป็นรอตรวจรับ ผู้แจ้งจึงสามารถตรวจสอบต่อได้', target:'.tp-sbox[data-stat="pendqc"]' },
-    { title:'ทำ PM และ Daily PM', what:'ช่างใช้แผน PM เพื่อตรวจเชิงป้องกันก่อนเกิดความเสียหาย', how:'เลือกงานตามวันหรือปฏิทิน ทำ Checklist รายการ OK/NG บันทึกชั่วโมงเดินเครื่อง อะไหล่ งานที่ทำ และข้อสังเกต', result:'แผนถูกบันทึกเป็นประวัติ PM และสถานะเปลี่ยนเป็นเสร็จแล้ว', target:'#te-t-pm' }
-  ],
-  admin: [
-    { title:'อ่านภาพรวมจาก Dashboard', what:'แอดมินใช้ KPI เพื่อเห็นภาระงานและคอขวดของทีม', how:'ดูแจ้งซ่อมทั้งหมด รอช่าง กำลังซ่อม รอตรวจรับ ปิดงาน ตีกลับ และจำนวน PM กดการ์ดเพื่อเจาะตามแผนกได้', result:'เห็นปัญหาที่ต้องเร่งจัดการโดยไม่ต้องเปิดทีละงาน', panel:'admin-dashboard', target:'.adm-kpi-bar-v2 .adm-kpi-v2:nth-child(1)' },
-    { title:'จัดคิวและมอบหมายงาน', what:'หน้าจัดการใบแจ้งซ่อมคือจุดควบคุมงานของแอดมิน', how:'ค้นหาหรือกรองตามสถานะ แผนก ประเภทงาน สถานที่ และวันที่ เปิดรายละเอียดเพื่อเลือกช่าง แก้สถานะ หรือเพิ่มหมายเหตุ', result:'คิวงานเป็นปัจจุบันและมีผู้รับผิดชอบชัดเจน', panel:'admin-repairs', target:'#admin-search-rep' },
-    { title:'จัดการแผน PM', what:'แอดมินเป็นผู้สร้างและดูแลแผนบำรุงรักษา', how:'เพิ่มแผนทีละรายการ หรือดาวน์โหลด template แล้วอัปโหลด Excel ตรวจรายการซ้ำและวันที่ให้ครบก่อนนำเข้า', result:'ช่างเห็นแผนเดียวกันในรายการและปฏิทิน PM', panel:'pm-table', target:'#btn-add-pm-item' },
-    { title:'จัดการบัญชีและโปรไฟล์ช่าง', what:'สิทธิ์การใช้งานและข้อมูลผู้รับผิดชอบต้องถูกต้อง', how:'เปิด “จัดการผู้ใช้งาน” สร้างบัญชีผู้แจ้ง แก้ไขหรือรีเซ็ตรหัสผ่าน และดูโปรไฟล์ช่างในบัญชีกลาง', result:'แต่ละคนเห็นเฉพาะเมนูตาม role และงานถูกระบุคนได้ถูกต้อง', panel:'admin-people', target:'#pst-users' }
-  ],
-  extra: [
-    { title:'ผูกบัญชีกับ LINE OA', what:'LINE ใช้รับการแจ้งเตือนโดยไม่ต้องเปิดเว็บรอ', how:'เพิ่มเพื่อน LINE OA แล้วพิมพ์ “ผูกไอดี username” หลัง login สำเร็จ ตรวจว่าบัญชีเชื่อมแล้ว', result:'รับแจ้งเตือนเมื่อช่างรับงาน อัปเดตสถานะ งานผ่านตรวจรับ และใช้เช็กสถานะด้วย Job ID', target:'#login-page' },
-    { title:'ใช้ประวัติและเอกสารเป็นหลักฐาน', what:'ระบบเก็บร่องรอยงานเพื่อค้นย้อนหลังและใช้ประกอบการรายงาน', how:'เปิดรายละเอียดงานเพื่อดูประวัติอัปเดต ส่งออกใบงาน PDF หรือใช้ Dashboard ส่งออก Excel', result:'ได้เอกสารอ้างอิงตาม Job ID และรายงานสรุปสำหรับวิเคราะห์', panel:'admin-dashboard', target:'#adm-dash-export-btn' },
-    { title:'ขอความช่วยเหลือและส่ง Feedback', what:'ผู้ใช้แจ้งปัญหาการใช้งานหรือข้อเสนอแนะได้จากปุ่มดาว', how:'กดปุ่มดาวมุมขวาล่าง ตอบข้อมูลการใช้งาน ให้คะแนน เลือกปัญหา และเขียนสิ่งที่อยากปรับปรุง', result:'ทีมพัฒนานำข้อมูลไปแก้ UX และติดตามปัญหาการใช้งานจริง', target:'#app-feedback-fab' }
-  ]
-};
-let trainingRole = 'user';
-let trainingIndex = 0;
-
-function getTrainingRole() {
-  if (currentUser?.role === 'admin') return 'admin';
-  if (isRepairStaff(currentUser?.role)) return 'technician';
-  return 'user';
-}
-function openTrainingMode(role = getTrainingRole()) {
-  trainingRole = trainingLessons[role] ? role : 'user';
-  trainingIndex = 0;
-  document.getElementById('training-overlay')?.classList.add('open');
-  document.getElementById('training-overlay')?.setAttribute('aria-hidden', 'false');
-  renderTrainingStep();
-}
-function closeTrainingMode() {
-  document.getElementById('training-overlay')?.classList.remove('open');
-  document.getElementById('training-overlay')?.setAttribute('aria-hidden', 'true');
-  document.querySelectorAll('.training-target').forEach(el => el.classList.remove('training-target'));
-}
-function renderTrainingStep() {
-  const lesson = trainingLessons[trainingRole][trainingIndex];
-  if (!lesson) return;
-  const total = trainingLessons[trainingRole].length;
-  document.getElementById('training-role').textContent = trainingRole === 'admin' ? 'บทเรียนสำหรับแอดมิน' : trainingRole === 'technician' ? 'บทเรียนสำหรับช่าง' : trainingRole === 'extra' ? 'ฟังก์ชันเสริม' : 'บทเรียนสำหรับผู้แจ้ง';
-  document.getElementById('training-step-count').textContent = `ขั้นตอน ${trainingIndex + 1} / ${total}`;
-  document.getElementById('training-step-title').textContent = lesson.title;
-  document.getElementById('training-step-what').textContent = lesson.what;
-  document.getElementById('training-step-how').textContent = lesson.how;
-  document.getElementById('training-step-result').textContent = lesson.result;
-  const dotsWrap = document.getElementById('training-dots');
-  if (dotsWrap) {
-    dotsWrap.innerHTML = '';
-    for (let i = 0; i < total; i++) {
-      const dot = document.createElement('span');
-      dot.className = 'training-dot' + (i === trainingIndex ? ' active' : i < trainingIndex ? ' done' : '');
-      dotsWrap.appendChild(dot);
-    }
-  }
-  const prev = document.getElementById('training-prev-btn');
-  const next = document.getElementById('training-next-btn');
-  prev.disabled = trainingIndex === 0;
-  next.innerHTML = trainingIndex === total - 1 ? 'จบบทเรียน <i class="ion-ios-checkmark"></i>' : 'ถัดไป <i class="ion-ios-arrow-forward"></i>';
-  document.querySelectorAll('.training-target').forEach(el => el.classList.remove('training-target'));
-  if (lesson.panel) {
-    const tab = document.querySelector(`.tab-btn[onclick*="${lesson.panel}"]`);
-    if (tab) switchViewPanel(lesson.panel, tab);
-  }
-  // รอให้ scroll/สลับแท็บ render เสร็จก่อน ค่อยเริ่มหา target จริง
-  clearTimeout(window.__trainingPosTimer);
-  window.__trainingPosTimer = setTimeout(() => locateTrainingTarget(lesson, 0), 260);
-}
-
-// พยายามหา element ที่จะไฮไลต์ — ถ้ายังไม่เจอ/ยังไม่โชว์บนจอ (เช่น เนื้อหาในแท็บที่เพิ่งสลับ
-// ยังเรนเดอร์ไม่เสร็จ หรือโหลดข้อมูล async อยู่) ให้ลองใหม่อีกสักพักก่อนค่อยยอมแพ้
-// กันปัญหากล่องคำอธิบายไปโผล่มุมจอ หรือไฮไลต์ผิดจุดแบบเงียบๆ ไม่รู้ตัว
-function locateTrainingTarget(lesson, attempt) {
-  // เช็คว่ายังอยู่ที่ step เดิมไหม (เผื่อผู้ใช้กดถัดไป/ย้อนกลับเร็วระหว่างที่กำลังลองหาอยู่)
-  if (trainingLessons[trainingRole]?.[trainingIndex] !== lesson) return;
-
-  const target = document.querySelector(lesson.target);
-  const visible = target && target.offsetParent !== null && target.getBoundingClientRect().width > 0;
-
-  if (visible) {
-    target.classList.add('training-target');
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => positionTrainingCard(target), 220);
-    return;
-  }
-
-  if (attempt < 4) {
-    setTimeout(() => locateTrainingTarget(lesson, attempt + 1), 220);
-    return;
-  }
-
-  // หาไม่เจอจริงๆ หลังลองซ้ำแล้ว — ไม่ไฮไลต์อะไรทั้งนั้น (กันชี้ผิดจุด)
-  // แล้ววางกล่องคำอธิบายไว้กลางจอแทน ผู้ใช้ยังอ่านเนื้อหาต่อได้ปกติ ไม่ค้างมุมจอ
-  centerTrainingCard();
-}
-
-// ใช้ตอนหา target ไม่เจอ — วางกล่องคำอธิบายไว้กลางจอ ไม่มีลูกศรชี้
-function centerTrainingCard() {
-  const panel = document.querySelector('#training-overlay .training-panel');
-  const arrow = document.getElementById('training-card-arrow');
-  if (!panel) return;
-  if (arrow) arrow.style.display = 'none';
-  if (window.innerWidth <= 640) return; // มือถือใช้ bottom sheet คงที่อยู่แล้ว ไม่ต้องจัดตำแหน่งเอง
-  const panelW = panel.offsetWidth || 340;
-  const panelH = panel.offsetHeight || 320;
-  panel.style.top  = Math.max(16, (window.innerHeight - panelH) / 2) + 'px';
-  panel.style.left = Math.max(16, (window.innerWidth  - panelW) / 2) + 'px';
-}
-
-// วางกล่องคำอธิบาย (.training-panel) ให้ลอยติดกับ element ที่ไฮไลต์อยู่ พร้อมลูกศรชี้
-// เลือกวางด้านล่างก่อน ถ้าที่ไม่พอค่อยสลับไปด้านบน แล้ว clamp ให้อยู่ในจอเสมอ
-function positionTrainingCard(target) {
-  const panel = document.querySelector('#training-overlay .training-panel');
-  const arrow = document.getElementById('training-card-arrow');
-  if (!panel || !target) return;
-
-  // มือถือใช้ bottom sheet คงที่ (กำหนดใน CSS) ไม่ต้องคำนวณตำแหน่ง
-  if (window.innerWidth <= 640) return;
-
-  const r = target.getBoundingClientRect();
-  const panelW = panel.offsetWidth || 340;
-  const panelH = panel.offsetHeight || 320;
-  const gap = 16;
-  const viewportW = window.innerWidth;
-  const viewportH = window.innerHeight;
-
-  let top = r.bottom + gap;
-  let placement = 'bottom';
-  if (top + panelH > viewportH - 16) {
-    const topAbove = r.top - panelH - gap;
-    if (topAbove >= 16) {
-      top = topAbove;
-      placement = 'top';
-    } else {
-      // ทั้งบนและล่างไม่พอ (เช่น target สูงเกือบเต็มจอ) — คลี่กล่องให้อยู่ในขอบเขตจอแทน
-      top = Math.max(16, Math.min(r.top, viewportH - panelH - 16));
-      placement = 'inside';
-    }
-  }
-
-  let left = r.left + r.width / 2 - panelW / 2;
-  left = Math.max(16, Math.min(left, viewportW - panelW - 16));
-
-  panel.style.top = top + 'px';
-  panel.style.left = left + 'px';
-
-  if (arrow) {
-    if (placement === 'inside') {
-      arrow.style.display = 'none';
-    } else {
-      arrow.style.display = 'block';
-      const arrowX = Math.max(14, Math.min((r.left + r.width / 2) - left - 7, panelW - 28));
-      arrow.style.left = arrowX + 'px';
-      if (placement === 'bottom') {
-        arrow.style.top = '-7px';
-        arrow.style.bottom = 'auto';
-      } else {
-        arrow.style.top = 'auto';
-        arrow.style.bottom = '-7px';
-      }
-    }
-  }
-}
-
-function trainingPrev() { if (trainingIndex > 0) { trainingIndex--; renderTrainingStep(); } }
-function trainingNext() { if (trainingIndex < trainingLessons[trainingRole].length - 1) { trainingIndex++; renderTrainingStep(); } else closeTrainingMode(); }
-
-// รีตำแหน่งกล่องคำอธิบายเมื่อปรับขนาดหน้าต่าง หรือเลื่อนหน้าจอ ระหว่างเปิด Training Mode อยู่
-window.addEventListener('resize', () => {
-  const overlay = document.getElementById('training-overlay');
-  if (!overlay || !overlay.classList.contains('open')) return;
-  const lesson = trainingLessons[trainingRole]?.[trainingIndex];
-  if (!lesson) return;
-  const target = document.querySelector(lesson.target);
-  if (target && target.offsetParent !== null && target.getBoundingClientRect().width > 0) {
-    positionTrainingCard(target);
-  } else {
-    centerTrainingCard();
-  }
-});
-window.addEventListener('scroll', () => {
-  const overlay = document.getElementById('training-overlay');
-  if (!overlay || !overlay.classList.contains('open')) return;
-  const lesson = trainingLessons[trainingRole]?.[trainingIndex];
-  if (!lesson) return;
-  const target = document.querySelector(lesson.target);
-  if (target && target.offsetParent !== null && target.getBoundingClientRect().width > 0) {
-    positionTrainingCard(target);
-  } else {
-    centerTrainingCard();
-  }
-}, { passive: true });
-
-function downloadUserGuide() {
-  const roleNames = { user:'ผู้แจ้ง', technician:'ช่าง', admin:'แอดมิน', extra:'ฟังก์ชันเสริม' };
-  const roles = currentUser ? [currentUser.role === 'admin' ? 'admin' : isRepairStaff(currentUser.role) ? 'technician' : 'user'] : ['user', 'technician', 'admin', 'extra'];
-  const guideSections = roles.map(role => {
-    const lessons = trainingLessons[role];
-    const lessonHtml = lessons.map((lesson, index) => `<article class="guide-step"><div class="guide-num">${String(index + 1).padStart(2, '0')}</div><div class="guide-step-main"><h3>${lesson.title}</h3><div class="guide-visual"><div class="visual-top"><span></span><span></span><span></span><b>หน้าจอระบบ · ${roleNames[role]}</b></div><div class="visual-tabs"><i></i><i></i><i class="selected"></i><i></i></div><div class="visual-body"><strong>${lesson.title}</strong><div class="visual-fields"><i></i><i></i><i></i><i></i></div><div class="visual-callout"><em>${index + 1}</em> จุดที่ต้องดู: ${lesson.what}</div></div></div><p><b>ทำอะไร:</b> ${lesson.what}</p><p><b>วิธีทำ:</b> ${lesson.how}</p><p class="guide-result"><b>ผลลัพธ์:</b> ${lesson.result}</p></div></article>`).join('');
-    return `<section class="guide-section"><h2>ส่วนที่ ${roles.indexOf(role) + 1}: ${roleNames[role]}</h2><p class="section-intro">คู่มือนี้อธิบายหน้าที่ เมนู และผลลัพธ์ของ${roleNames[role]}ในระบบ</p>${lessonHtml}</section>`;
-  }).join('');
-  const visibleScreen = document.querySelector('#dashboard-page[style*="block"]') || document.querySelector('#te-panel-page[style*="block"]');
-  const screenHtml = visibleScreen ? visibleScreen.cloneNode(true).outerHTML : `<div class="overview-screen"><div class="overview-head"><b>SFC Maintenance Service</b><span>คู่มือพร้อมภาพประกอบ</span></div><div class="overview-tabs"><span>ผู้แจ้ง</span><span>ช่าง</span><span>แอดมิน</span><span>LINE / PM</span></div><div class="overview-cards"><i>แจ้งซ่อม</i><i>ติดตามงาน</i><i>ตรวจรับ</i><i>Dashboard</i></div><div class="overview-note">ภาพประกอบด้านล่างแสดงตำแหน่งเมนูและลำดับการทำงาน ไม่ต้อง Login เพื่ออ่านคู่มือ</div></div>`;
-  const roleName = currentUser ? roleNames[roles[0]] : 'ทุกบทบาท';
-  const stamp = new Date().toLocaleString('th-TH', { dateStyle:'long', timeStyle:'short' });
-  const win = window.open('', '_blank');
-  if (!win) { showToast('เบราว์เซอร์บล็อกหน้าต่างคู่มือ กรุณาอนุญาต pop-up แล้วลองใหม่', 'warning'); return; }
-  win.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>คู่มือ SFC Maintenance Service - ${roleName}</title><link rel="stylesheet" href="/styles-base.css"><link rel="stylesheet" href="/styles-panels.css"><style>
-    body{background:#fff!important;color:#101828!important;font-family:'IBM Plex Sans Thai',sans-serif;padding:28px;max-width:1100px;margin:auto} .guide-toolbar{display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;background:#fff;padding-bottom:12px;border-bottom:1px solid #e5e7eb;margin-bottom:24px} .guide-toolbar button{border:0;border-radius:7px;padding:9px 14px;background:#2e5ce6;color:#fff;font:600 12px inherit;cursor:pointer}.guide-toolbar button.secondary{background:#eef1f6;color:#5d6b84}.guide-cover{border-bottom:3px solid #0d9488;padding:10px 0 24px;margin-bottom:24px}.guide-cover h1{font-size:28px;margin:8px 0}.guide-cover p{color:#5d6b84;font-size:13px}.guide-meta{display:flex;gap:8px;flex-wrap:wrap}.guide-meta span{background:#e8f7f5;color:#0d9488;border-radius:100px;padding:5px 10px;font-size:11px;font-weight:700}.guide-section{margin:28px 0}.guide-section h2{font-size:20px;border-left:4px solid #2e5ce6;padding-left:10px}.section-intro{color:#5d6b84;font-size:12px}.guide-step{display:flex;gap:14px;border:1px solid #e5e7eb;border-radius:8px;padding:15px;margin:10px 0;break-inside:avoid}.guide-num{color:#2e5ce6;font:bold 14px 'IBM Plex Mono',monospace}.guide-step-main{flex:1;min-width:0}.guide-step h3{font-size:14px;margin:0 0 8px}.guide-step p{font-size:12px;line-height:1.7;color:#5d6b84;margin:4px 0}.guide-result{color:#059669!important;background:#effaf6;padding:7px 9px;border-radius:5px}.guide-visual{border:1px solid #dbe1ea;border-radius:7px;overflow:hidden;background:#f6f7fa;margin:8px 0 12px;box-shadow:0 2px 8px rgba(16,24,40,.06)}.visual-top{height:27px;display:flex;align-items:center;gap:4px;padding:0 9px;background:#152238;color:#b7c3d5;font-size:9px}.visual-top span{width:6px;height:6px;border-radius:50%;background:#ef6b65}.visual-top span:nth-child(2){background:#edbd4b}.visual-top span:nth-child(3){background:#5ac78b}.visual-top b{margin-left:7px;font-weight:500}.visual-tabs{display:flex;gap:5px;padding:8px;background:#fff;border-bottom:1px solid #e5e7eb}.visual-tabs i{height:15px;flex:1;max-width:100px;border-radius:4px;background:#eef1f6}.visual-tabs i.selected{background:#cdd9ff}.visual-body{padding:15px;background:#f6f7fa;min-height:92px}.visual-body strong{display:block;font-size:11px;margin-bottom:11px}.visual-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px}.visual-fields i{height:18px;background:#fff;border:1px solid #e5e7eb;border-radius:4px}.visual-callout{display:flex;align-items:center;gap:7px;margin-top:10px;padding:6px 8px;background:#e8f7f5;color:#0d9488;border-radius:4px;font-size:9px}.visual-callout em{display:flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#0d9488;color:#fff;font-style:normal;font-weight:700}.screen-wrap{border:1px solid #dbe1ea;border-radius:8px;overflow:hidden;background:#f6f7fa;padding:12px}.screen-wrap>section{display:block!important;max-width:none!important}.screen-wrap .main-header,.screen-wrap .tp-topbar{position:static!important}.screen-wrap .modal,.screen-wrap #app-feedback-fab,.screen-wrap #training-fab{display:none!important}.overview-screen{border:1px solid #dbe1ea;border-radius:7px;overflow:hidden;background:#f6f7fa}.overview-head{display:flex;justify-content:space-between;padding:15px;background:#fff;color:#101828;font-size:13px}.overview-head span{color:#0d9488;font-size:10px}.overview-tabs{display:flex;gap:7px;padding:10px;background:#fff;border-top:1px solid #e5e7eb}.overview-tabs span{padding:7px 11px;border-radius:5px;background:#eef1f6;color:#5d6b84;font-size:10px}.overview-tabs span:first-child{background:#dce5ff;color:#2e5ce6;font-weight:700}.overview-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:16px}.overview-cards i{padding:18px 8px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;text-align:center;font-size:10px;color:#5d6b84;font-style:normal}.overview-note{margin:0 16px 16px;padding:10px;background:#e8f7f5;color:#0d9488;border-radius:5px;font-size:10px}.guide-foot{color:#98a2b8;font-size:11px;border-top:1px solid #e5e7eb;padding-top:15px;margin-top:30px}@media print{.guide-toolbar{display:none}body{padding:0}.screen-wrap{break-inside:avoid}.guide-cover{margin-top:0}.guide-step{break-inside:avoid}}
-  </style></head><body><div class="guide-toolbar"><button class="secondary" onclick="window.close()">ปิดเอกสาร</button><button onclick="window.print()"><i class="ion-ios-download"></i> พิมพ์ / บันทึกเป็น PDF</button></div><header class="guide-cover"><div class="guide-meta"><span>SFC Maintenance Service</span><span>คู่มือสำหรับ${roleName}</span><span>พร้อมภาพประกอบ</span></div><h1>คู่มือการใช้งานเว็บแอพ</h1><p>เอกสารสำเร็จรูปสำหรับอบรมผู้ใช้งาน ไม่ต้อง Login เพื่อเปิดอ่าน: ${stamp}</p></header><section class="guide-section"><h2>ภาพรวมหน้าจอระบบ</h2><p style="font-size:12px;color:#5d6b84">ภาพนี้แสดงโครงสร้างเมนูหลักของระบบ ส่วนภาพประกอบในแต่ละขั้นจะแสดงตำแหน่งที่ต้องกดและข้อมูลที่ต้องกรอก</p><div class="screen-wrap">${screenHtml}</div></section>${guideSections}<p class="guide-foot">หมายเหตุ: คู่มือนี้เป็นข้อมูลสำหรับการอบรมและภาพประกอบแบบอ่านอย่างเดียว ไม่เปลี่ยนแปลงข้อมูลในระบบ หากดาวน์โหลดหลัง Login จะเพิ่ม snapshot จากหน้าจอจริงของ role นั้นให้ด้วย</p></body></html>`);
-  win.document.close();
-  showToast('เปิดเอกสารคู่มือแล้ว กด “พิมพ์ / บันทึกเป็น PDF” ได้เลย', 'success');
-}
 
 // ============================================================
 // AUTO REFRESH — ทำให้หน้าจอ "เกือบเรียลไทม์" ด้วยการ poll ข้อมูลใหม่เป็นระยะ
