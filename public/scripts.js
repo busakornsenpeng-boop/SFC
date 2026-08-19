@@ -4802,10 +4802,17 @@ function exportJobDetailPDF(id) {
     </tr>`;
   }
 
-  const imgBlock = (title, arr) => arr.length ? `
-    <div class="pf-imgtitle">${title}</div>
-    <div class="pf-imggrid">${arr.map(src => `<img src="${src}" onerror="this.style.display='none'">`).join('')}</div>
-  ` : '';
+  // ปรับขนาดรูปตามจำนวนที่แนบมา — เดิม fix 3 คอลัมน์เสมอ ทำให้แนบรูปเดียวก็โดนบีบเหลือ 1/3 หน้า
+  // ดูเล็กเกินไป ตอนนี้ 1 รูป = เต็มแถว, 2 รูป = ครึ่งแถว, 3 รูปขึ้นไปค่อยเรียง 3 คอลัมน์เหมือนเดิม
+  const imgBlock = (title, arr) => {
+    if (!arr.length) return '';
+    const cols   = arr.length === 1 ? 1 : arr.length === 2 ? 2 : 3;
+    const height = arr.length === 1 ? 260 : arr.length === 2 ? 200 : 150;
+    return `
+      <div class="pf-imgtitle">${title}</div>
+      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:${height}px" onerror="this.style.display='none'">`).join('')}</div>
+    `;
+  };
 
   const stamp = new Date().toLocaleString('th-TH', { dateStyle:'long', timeStyle:'short' });
 
@@ -4835,8 +4842,8 @@ function exportJobDetailPDF(id) {
   .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:8px 12px; margin-bottom:10px; font-size:11.5px; line-height:1.5; }
   .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:11px; margin-bottom:2px; }
   .pf-imgtitle{ font-weight:700; font-size:11.5px; margin:4px 0 6px; color:#3f3f46; }
-  .pf-imggrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
-  .pf-imggrid img{ width:100%; height:120px; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
+  .pf-imggrid{ display:grid; gap:8px; margin-bottom:12px; }
+  .pf-imggrid img{ width:100%; object-fit:cover; border-radius:6px; border:1px solid #d4d4d8; }
   .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:20px; }
   .pf-signbox{ text-align:center; font-size:11px; }
   .pf-signline{ border-bottom:1px dotted #71717a; height:36px; margin-bottom:6px; }
