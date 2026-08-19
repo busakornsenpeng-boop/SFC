@@ -603,3 +603,72 @@
   }
   .training-panel-arrow{ display:none !important; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Training Mode — dark "spotlight" restyle (navy card + gold accent)
+   ยังใช้ id/class เดิมทั้งหมด บล็อกนี้ override สี/รูปแบบเท่านั้น
+   ════════════════════════════════════════════════════════════ */
+.training-panel{
+  background:#101a30;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 24px 60px rgba(6,10,22,.5);
+  padding:18px 18px 16px;
+}
+.training-panel-arrow{
+  background:#101a30;
+  border-left:1px solid rgba(255,255,255,.08);
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.training-panel-head{ border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:12px; }
+.training-kicker{ color:var(--yellow); }
+.training-panel h2{ color:#fff; }
+.training-close{ background:transparent; color:rgba(255,255,255,.55); }
+.training-close:hover{ color:#fff; background:rgba(255,255,255,.08); }
+.training-step-count{
+  display:flex; align-items:center; gap:8px;
+  font-size:11px; font-weight:700; letter-spacing:.3px;
+  color:var(--yellow); font-family:var(--font-mono);
+  margin:14px 0 6px;
+}
+.training-step-count::before{ content:''; width:14px; height:2px; background:var(--yellow); border-radius:2px; }
+.training-role{
+  background:rgba(217,119,6,.12); color:var(--yellow);
+  margin:0 0 10px;
+}
+.training-panel h3{ color:#fff; }
+.training-panel>p{ color:rgba(255,255,255,.68); }
+.training-detail-block{ background:rgba(255,255,255,.05); color:rgba(255,255,255,.72); }
+.training-detail-block b{ color:#fff; }
+.training-result{ background:rgba(13,148,136,.14); color:#5eead4; }
+.training-result b{ color:#5eead4; }
+
+.training-panel-actions{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-top:14px; padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.training-dots{ display:flex; align-items:center; gap:5px; flex:1; justify-content:center; }
+.training-dot{ width:6px; height:6px; border-radius:100px; background:rgba(255,255,255,.18); transition:all .2s; }
+.training-dot.done{ background:rgba(217,119,6,.5); }
+.training-dot.active{ width:18px; background:var(--yellow); }
+.training-prev{
+  flex:0 0 auto; border:0; background:transparent; color:rgba(255,255,255,.5);
+  font-size:12px; font-weight:600; cursor:pointer; padding:6px 4px;
+}
+.training-prev:hover:not(:disabled){ color:#fff; }
+.training-prev:disabled{ opacity:.35; cursor:not-allowed; }
+.training-next{
+  flex:0 0 auto; border:0; border-radius:100px; background:var(--yellow); color:#1a1204;
+  font-size:12.5px; font-weight:700; cursor:pointer; padding:9px 16px;
+  display:inline-flex; align-items:center; gap:6px;
+  box-shadow:0 8px 18px rgba(217,119,6,.35);
+  transition:transform .15s, box-shadow .15s;
+}
+.training-next:hover{ transform:translateY(-1px); box-shadow:0 10px 22px rgba(217,119,6,.45); }
+
+/* กรอบไฮไลต์ element ที่กำลังพูดถึง — เปลี่ยนจาก teal เป็น gold ให้เข้าธีมใหม่ */
+.training-target{
+  outline:3px solid var(--yellow) !important;
+  box-shadow:0 0 0 8px rgba(217,119,6,.16), 0 10px 28px rgba(217,119,6,.22) !important;
+}
+@keyframes trainingPulse{ 0%,100%{ outline-color:var(--yellow); } 50%{ outline-color:rgba(217,119,6,.4); } }

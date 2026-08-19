@@ -834,16 +834,24 @@ function renderTrainingStep() {
   if (!lesson) return;
   const total = trainingLessons[trainingRole].length;
   document.getElementById('training-role').textContent = trainingRole === 'admin' ? 'บทเรียนสำหรับแอดมิน' : trainingRole === 'technician' ? 'บทเรียนสำหรับช่าง' : trainingRole === 'extra' ? 'ฟังก์ชันเสริม' : 'บทเรียนสำหรับผู้แจ้ง';
-  document.getElementById('training-step-count').textContent = `ขั้นตอน ${trainingIndex + 1} จาก ${total}`;
-  document.getElementById('training-progress-bar').style.width = `${((trainingIndex + 1) / total) * 100}%`;
+  document.getElementById('training-step-count').textContent = `ขั้นตอน ${trainingIndex + 1} / ${total}`;
   document.getElementById('training-step-title').textContent = lesson.title;
   document.getElementById('training-step-what').textContent = lesson.what;
   document.getElementById('training-step-how').textContent = lesson.how;
   document.getElementById('training-step-result').textContent = lesson.result;
+  const dotsWrap = document.getElementById('training-dots');
+  if (dotsWrap) {
+    dotsWrap.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'training-dot' + (i === trainingIndex ? ' active' : i < trainingIndex ? ' done' : '');
+      dotsWrap.appendChild(dot);
+    }
+  }
   const prev = document.getElementById('training-prev-btn');
   const next = document.getElementById('training-next-btn');
   prev.disabled = trainingIndex === 0;
-  next.innerHTML = trainingIndex === total - 1 ? 'จบบทเรียน <i class="ion-ios-checkmark"></i>' : 'ขั้นตอนถัดไป <i class="ion-ios-arrow-forward"></i>';
+  next.innerHTML = trainingIndex === total - 1 ? 'จบบทเรียน <i class="ion-ios-checkmark"></i>' : 'ถัดไป <i class="ion-ios-arrow-forward"></i>';
   document.querySelectorAll('.training-target').forEach(el => el.classList.remove('training-target'));
   if (lesson.panel) {
     const tab = document.querySelector(`.tab-btn[onclick*="${lesson.panel}"]`);
