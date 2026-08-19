@@ -205,6 +205,7 @@ function seedDemoData() {
 }
 document.addEventListener('DOMContentLoaded', function() {
   seedDemoData();
+  initHomeMockCycle();
 
   document.querySelectorAll('img.header-logo-img').forEach(el => {
     el.src = LOGO_BASE64;
@@ -503,6 +504,25 @@ async function autoLinkPendingLineId() {
 
 function mockCheckLogin(u,p) {
   return {status:'fail'};
+}
+
+// ── หน้าหลัก: การ์ดตัวอย่างเลื่อนโชว์ metric อัตโนมัติ (mock data — ไม่ผูกข้อมูลจริง) ──
+function initHomeMockCycle() {
+  const wrap = document.getElementById('home-mock-cycle');
+  if (!wrap) return;
+
+  const items = wrap.querySelectorAll('.home-mock-cycle-item');
+  const dots  = wrap.querySelectorAll('.home-mock-cycle-dots span');
+  if (!items.length) return;
+
+  let idx = 0;
+  setInterval(() => {
+    items[idx].classList.remove('is-active');
+    if (dots[idx]) dots[idx].classList.remove('is-active');
+    idx = (idx + 1) % items.length;
+    items[idx].classList.add('is-active');
+    if (dots[idx]) dots[idx].classList.add('is-active');
+  }, 2600);
 }
 
 // ── นำทางระหว่างหน้าหลัก (landing) กับหน้าล็อกอิน ──

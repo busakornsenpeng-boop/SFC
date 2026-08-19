@@ -43,29 +43,69 @@
         <div class="home-hero-right">
           <div class="home-mock-card">
             <div class="home-mock-card-head">
-              <span>Today's repair jobs</span>
-              <span class="home-mock-pill">12 jobs</span>
+              <span>This week's overview</span>
+              <span class="home-mock-pill">Live</span>
             </div>
-            <div class="home-mock-row">
-              <div class="home-mock-icon home-mock-icon-red"><i class="ion-ios-warning"></i></div>
-              <div class="home-mock-row-text">
-                <div class="home-mock-row-title">FLF (03) electrical fault</div>
-                <div class="home-mock-row-sub">REP-20260818-041</div>
+            <svg class="home-mock-chart" viewBox="0 0 300 90" preserveAspectRatio="none">
+              <polygon points="10,70 55,55 100,65 145,25 190,45 235,30 280,10 280,90 10,90" class="home-mock-chart-fill"></polygon>
+              <polyline points="10,70 55,55 100,65 145,25 190,45 235,30 280,10" class="home-mock-chart-line"></polyline>
+              <circle cx="10" cy="70" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="55" cy="55" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="100" cy="65" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="145" cy="25" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="190" cy="45" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="235" cy="30" r="3" class="home-mock-chart-dot"></circle>
+              <circle cx="280" cy="10" r="4" class="home-mock-chart-dot home-mock-chart-dot-last"></circle>
+            </svg>
+            <div class="home-mock-chart-days">
+              <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="home-mock-chart-day-today">S</span>
+            </div>
+            <div class="home-mock-cycle" id="home-mock-cycle">
+              <div class="home-mock-cycle-item is-active">
+                <div class="home-mock-cycle-icon"><i class="ion-ios-construct"></i></div>
+                <div>
+                  <div class="home-mock-cycle-val">12</div>
+                  <div class="home-mock-cycle-label">Jobs today</div>
+                </div>
               </div>
-              <span class="home-mock-status home-mock-status-warn">Awaiting tech</span>
-            </div>
-            <div class="home-mock-row">
-              <div class="home-mock-icon home-mock-icon-green"><i class="ion-ios-checkmark"></i></div>
-              <div class="home-mock-row-text">
-                <div class="home-mock-row-title">Monthly PM — CNC-02</div>
-                <div class="home-mock-row-sub">Completed 08:40</div>
+              <div class="home-mock-cycle-item">
+                <div class="home-mock-cycle-icon"><i class="ion-ios-calendar"></i></div>
+                <div>
+                  <div class="home-mock-cycle-val">5</div>
+                  <div class="home-mock-cycle-label">PM plans this week</div>
+                </div>
+              </div>
+              <div class="home-mock-cycle-item">
+                <div class="home-mock-cycle-icon"><i class="ion-ios-people"></i></div>
+                <div>
+                  <div class="home-mock-cycle-val">4</div>
+                  <div class="home-mock-cycle-label">Technicians available</div>
+                </div>
+              </div>
+              <div class="home-mock-cycle-dots">
+                <span class="is-active"></span><span></span><span></span>
               </div>
             </div>
-            <div class="home-mock-row">
-              <div class="home-mock-icon home-mock-icon-accent"><i class="ion-ios-time"></i></div>
-              <div class="home-mock-row-text">
-                <div class="home-mock-row-title">Pneumatic system check (Line B)</div>
-                <div class="home-mock-row-sub">In progress</div>
+            <div class="home-mock-stats">
+              <div class="home-mock-stat">
+                <svg width="46" height="46" viewBox="0 0 46 46" class="home-mock-ring home-mock-ring-green">
+                  <circle cx="23" cy="23" r="19" class="home-mock-ring-track"></circle>
+                  <circle cx="23" cy="23" r="19" class="home-mock-ring-value" stroke-dasharray="119.4" stroke-dashoffset="33.4"></circle>
+                </svg>
+                <div>
+                  <div class="home-mock-stat-val">72%</div>
+                  <div class="home-mock-stat-label">PM done</div>
+                </div>
+              </div>
+              <div class="home-mock-stat">
+                <svg width="46" height="46" viewBox="0 0 46 46" class="home-mock-ring home-mock-ring-accent">
+                  <circle cx="23" cy="23" r="19" class="home-mock-ring-track"></circle>
+                  <circle cx="23" cy="23" r="19" class="home-mock-ring-value" stroke-dasharray="119.4" stroke-dashoffset="17.9"></circle>
+                </svg>
+                <div>
+                  <div class="home-mock-stat-val">85%</div>
+                  <div class="home-mock-stat-label">Resolved</div>
+                </div>
               </div>
             </div>
           </div>
