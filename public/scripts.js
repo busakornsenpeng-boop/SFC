@@ -4806,6 +4806,8 @@ function exportJobDetailPDF(id) {
   // ดูเล็กเกินไป ตอนนี้ 1 รูป = เต็มแถวและใหญ่พอให้ช่างอ่านรายละเอียดออก (เช่นตัวเลขบนหน้าปัด),
   // 2 รูป = ครึ่งแถวคนละครึ่ง, 3 รูปขึ้นไปค่อยเรียง 3 คอลัมน์เหมือนเดิม
   // รูปเดี่ยว/คู่ใช้ contain แทน cover ด้วย กันไม่ให้ขอบรูปถูกครอบตัดจนรายละเอียดสำคัญหลุดเฟรม
+  // ความสูงคูณด้วย CSS var(--pf-img-scale) แทนที่จะ hardcode ตรงๆ — ให้ dropdown "ขนาดรูปภาพ"
+  // ใน toolbar ปรับขนาดสดๆ ได้เลยโดยไม่ต้องสร้าง HTML ใหม่ (ดู pfSetImageSize ท้ายไฟล์)
   const imgBlock = (title, arr) => {
     if (!arr.length) return '';
     const cols   = arr.length === 1 ? 1 : arr.length === 2 ? 2 : 3;
@@ -4813,7 +4815,7 @@ function exportJobDetailPDF(id) {
     const fit    = arr.length <= 2 ? 'contain' : 'cover';
     return `
       <div class="pf-imgtitle">${title}</div>
-      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:${height}px;object-fit:${fit}" onerror="this.style.display='none'">`).join('')}</div>
+      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:calc(${height}px * var(--pf-img-scale, 1));object-fit:${fit}" onerror="this.style.display='none'">`).join('')}</div>
     `;
   };
 
@@ -4828,6 +4830,7 @@ function exportJobDetailPDF(id) {
   @page{ size:A4; margin:12mm; }
 </style>
 <style>
+  :root{ --pf-img-scale: 1; }
   *{ box-sizing:border-box; }
   body{ font-family:'IBM Plex Sans Thai','Segoe UI',Tahoma,Arial,sans-serif; color:#111827; margin:0; padding:0; font-size:12px; }
   .pf-toolbar{ display:flex; align-items:center; gap:10px; justify-content:flex-end; background:#f4f4f5; padding:10px 14px; border-bottom:1px solid #e4e4e7; position:sticky; top:0; z-index:10; }
@@ -4871,6 +4874,14 @@ function exportJobDetailPDF(id) {
         <option value="A5">A5</option>
         <option value="Letter">Letter</option>
         <option value="Legal">Legal</option>
+      </select>
+    </label>
+    <label>ขนาดรูปภาพ:
+      <select id="pf-img-size" onchange="pfSetImageSize(this.value)">
+        <option value="0.6">เล็ก</option>
+        <option value="1" selected>ปกติ</option>
+        <option value="1.3">ใหญ่</option>
+        <option value="1.6">ใหญ่มาก</option>
       </select>
     </label>
     <button type="button" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
@@ -4928,6 +4939,9 @@ function exportJobDetailPDF(id) {
   <script>
     function pfSetPaperSize(size) {
       document.getElementById('pf-page-style').textContent = '@page{ size:' + size + '; margin:12mm; }';
+    }
+    function pfSetImageSize(scale) {
+      document.documentElement.style.setProperty('--pf-img-scale', scale);
     }
   </script>
 </body></html>`;
