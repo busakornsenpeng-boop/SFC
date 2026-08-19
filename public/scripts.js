@@ -205,7 +205,7 @@ function seedDemoData() {
 }
 document.addEventListener('DOMContentLoaded', function() {
   seedDemoData();
-  initHomeMockCycle();
+  initHomeMockCarousel();
 
   document.querySelectorAll('img.header-logo-img').forEach(el => {
     el.src = LOGO_BASE64;
@@ -506,23 +506,23 @@ function mockCheckLogin(u,p) {
   return {status:'fail'};
 }
 
-// ── หน้าหลัก: การ์ดตัวอย่างเลื่อนโชว์ metric อัตโนมัติ (mock data — ไม่ผูกข้อมูลจริง) ──
-function initHomeMockCycle() {
-  const wrap = document.getElementById('home-mock-cycle');
+// ── หน้าหลัก: การ์ดตัวอย่างสลับ 3 การ์ดแบบม้าหมุน (mock data — ไม่ผูกข้อมูลจริง) ──
+function initHomeMockCarousel() {
+  const wrap = document.getElementById('home-mock-carousel');
   if (!wrap) return;
 
-  const items = wrap.querySelectorAll('.home-mock-cycle-item');
-  const dots  = wrap.querySelectorAll('.home-mock-cycle-dots span');
-  if (!items.length) return;
+  const slides = wrap.querySelectorAll('.home-mock-slide');
+  const dots   = document.querySelectorAll('#home-mock-carousel-dots span');
+  if (!slides.length) return;
 
   let idx = 0;
   setInterval(() => {
-    items[idx].classList.remove('is-active');
+    slides[idx].classList.remove('is-active');
     if (dots[idx]) dots[idx].classList.remove('is-active');
-    idx = (idx + 1) % items.length;
-    items[idx].classList.add('is-active');
+    idx = (idx + 1) % slides.length;
+    slides[idx].classList.add('is-active');
     if (dots[idx]) dots[idx].classList.add('is-active');
-  }, 2600);
+  }, 3500);
 }
 
 // ── หน้าหลัก: โชว์การ์ดฟีเจอร์ 3 ใบ (ซ่อนไว้ตั้งแต่แรก — เพิ่งแสดงเมื่อกด "See features" หรือลูกศรเลื่อนลง) ──
