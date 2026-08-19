@@ -27,58 +27,58 @@
     <section id="home-page">
       <div class="home-hero">
         <div class="home-hero-left">
-          <div class="home-badge"><i class="ion-ios-construct"></i> ระบบแจ้งซ่อมออนไลน์</div>
+          <div class="home-badge"><i class="ion-ios-construct"></i> Online repair reporting system</div>
           <h1 class="home-hero-title"><span class="home-hero-logo"><span class="t-red">SFC</span> <span class="t-blue">MS</span></span><br><span class="home-hero-title-sub">SFC MAINTENANCE SERVICE</span></h1>
-          <p class="home-hero-desc">ระบบสำหรับทีมผลิตและทีมซ่อมบำรุง ติดตามสถานะงานซ่อมและแผน PM แบบเรียลไทม์ ผ่านเว็บและ LINE</p>
+          <p class="home-hero-desc">Built for production and maintenance teams — track repair jobs and PM plans in real time, on the web and via LINE</p>
           <div class="home-hero-stats">
-            <div class="home-hero-stat"><span class="home-hero-stat-num">12</span><span class="home-hero-stat-label">งานซ่อมวันนี้</span></div>
-            <div class="home-hero-stat"><span class="home-hero-stat-num">5</span><span class="home-hero-stat-label">แผน PM สัปดาห์นี้</span></div>
-            <div class="home-hero-stat"><span class="home-hero-stat-num">4</span><span class="home-hero-stat-label">ช่างพร้อมงาน</span></div>
+            <div class="home-hero-stat"><span class="home-hero-stat-num">12</span><span class="home-hero-stat-label">Jobs today</span></div>
+            <div class="home-hero-stat"><span class="home-hero-stat-num">5</span><span class="home-hero-stat-label">PM plans this week</span></div>
+            <div class="home-hero-stat"><span class="home-hero-stat-num">4</span><span class="home-hero-stat-label">Technicians available</span></div>
           </div>
           <div class="home-hero-cta-row">
-            <button type="button" class="home-cta-primary" onclick="goToLoginPage()">เข้าสู่ระบบ</button>
-            <button type="button" class="home-cta-secondary" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})">ดูฟีเจอร์</button>
+            <button type="button" class="home-cta-primary" onclick="goToLoginPage()">Sign in</button>
+            <button type="button" class="home-cta-secondary" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})">See features</button>
           </div>
         </div>
         <div class="home-hero-right">
           <div class="home-mock-card">
             <div class="home-mock-card-head">
-              <span>งานซ่อมวันนี้</span>
-              <span class="home-mock-pill">12 งาน</span>
+              <span>Today's repair jobs</span>
+              <span class="home-mock-pill">12 jobs</span>
             </div>
             <div class="home-mock-row">
               <div class="home-mock-icon home-mock-icon-red"><i class="ion-ios-warning"></i></div>
               <div class="home-mock-row-text">
-                <div class="home-mock-row-title">FLF (03) ไฟฟ้าขัดข้อง</div>
+                <div class="home-mock-row-title">FLF (03) electrical fault</div>
                 <div class="home-mock-row-sub">REP-20260818-041</div>
               </div>
-              <span class="home-mock-status home-mock-status-warn">รอช่าง</span>
+              <span class="home-mock-status home-mock-status-warn">Awaiting tech</span>
             </div>
             <div class="home-mock-row">
               <div class="home-mock-icon home-mock-icon-green"><i class="ion-ios-checkmark"></i></div>
               <div class="home-mock-row-text">
-                <div class="home-mock-row-title">PM รายเดือน CNC-02</div>
-                <div class="home-mock-row-sub">เสร็จแล้ว 08:40</div>
+                <div class="home-mock-row-title">Monthly PM — CNC-02</div>
+                <div class="home-mock-row-sub">Completed 08:40</div>
               </div>
             </div>
             <div class="home-mock-row">
               <div class="home-mock-icon home-mock-icon-accent"><i class="ion-ios-time"></i></div>
               <div class="home-mock-row-text">
-                <div class="home-mock-row-title">ตรวจสอบระบบลม (Line B)</div>
-                <div class="home-mock-row-sub">กำลังดำเนินการ</div>
+                <div class="home-mock-row-title">Pneumatic system check (Line B)</div>
+                <div class="home-mock-row-sub">In progress</div>
               </div>
             </div>
           </div>
           <div class="home-float-badge home-float-badge-1">
             <i class="ion-ios-calendar"></i>
-            <div><div class="home-float-badge-label">PM สัปดาห์นี้</div><div class="home-float-badge-val">5 แผน</div></div>
+            <div><div class="home-float-badge-label">PM this week</div><div class="home-float-badge-val">5 plans</div></div>
           </div>
           <div class="home-float-badge home-float-badge-2">
             <i class="ion-ios-people"></i>
-            <div><div class="home-float-badge-label">ช่างพร้อมงาน</div><div class="home-float-badge-val">4 คน</div></div>
+            <div><div class="home-float-badge-label">Technicians available</div><div class="home-float-badge-val">4</div></div>
           </div>
         </div>
-        <button type="button" class="home-hero-scroll" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})" title="เลื่อนลง">
+        <button type="button" class="home-hero-scroll" onclick="document.getElementById('home-features').scrollIntoView({behavior:'smooth'})" title="Scroll down">
           <i class="ion-ios-arrow-down"></i>
         </button>
       </div>
@@ -86,21 +86,21 @@
       <div class="home-features" id="home-features">
         <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('repair')">
           <div class="home-feature-icon"><i class="ion-ios-construct"></i></div>
-          <div class="home-feature-title">แจ้งซ่อมง่าย</div>
-          <div class="home-feature-desc">กรอกฟอร์มแจ้งซ่อม พร้อมแนบรูป ได้รหัสงานทันที</div>
-          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+          <div class="home-feature-title">Easy repair reporting</div>
+          <div class="home-feature-desc">Fill in a repair form, attach a photo, and get a job ID instantly</div>
+          <div class="home-feature-more">How it works <i class="ion-ios-arrow-forward"></i></div>
         </button>
         <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('pm')">
           <div class="home-feature-icon"><i class="ion-ios-calendar"></i></div>
-          <div class="home-feature-title">จัดตาราง PM</div>
-          <div class="home-feature-desc">วางแผนบำรุงรักษาเชิงป้องกัน ติดตามสถานะได้ตลอด</div>
-          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+          <div class="home-feature-title">PM scheduling</div>
+          <div class="home-feature-desc">Plan preventive maintenance and track status anytime</div>
+          <div class="home-feature-more">How it works <i class="ion-ios-arrow-forward"></i></div>
         </button>
         <button type="button" class="home-feature home-feature-clickable" onclick="goToGuidePage('line')">
           <div class="home-feature-icon"><i class="ion-ios-chatbubbles"></i></div>
-          <div class="home-feature-title">แจ้งเตือนผ่าน LINE</div>
-          <div class="home-feature-desc">รับอัปเดตสถานะงานซ่อมและ PM ทันทีผ่าน LINE OA</div>
-          <div class="home-feature-more">ดูวิธีใช้ <i class="ion-ios-arrow-forward"></i></div>
+          <div class="home-feature-title">LINE notifications</div>
+          <div class="home-feature-desc">Get instant repair and PM status updates via LINE OA</div>
+          <div class="home-feature-more">How it works <i class="ion-ios-arrow-forward"></i></div>
         </button>
       </div>
     </section>
