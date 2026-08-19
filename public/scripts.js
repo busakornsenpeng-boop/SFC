@@ -536,18 +536,55 @@ function showHomeFeatures() {
 // ── นำทางระหว่างหน้าหลัก (landing) กับหน้าล็อกอิน ──
 function goToLoginPage() {
   document.getElementById('home-page').style.display  = 'none';
+  document.getElementById('demo-page').style.display  = 'none';
   document.getElementById('login-page').style.display = 'flex';
 }
 function backToHomePage() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('guide-page').style.display = 'none';
+  document.getElementById('demo-page').style.display  = 'none';
   document.getElementById('home-page').style.display  = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToDemoPage() {
+  document.getElementById('home-page').style.display  = 'none';
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('guide-page').style.display = 'none';
+  document.getElementById('demo-page').style.display  = 'block';
+  switchDemoStep(0);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchDemoStep(stepIndex) {
+  const steps = [
+    {
+      nav: ['แจ้งซ่อมบำรุง', 'ติดตามงานซ่อม', 'เช็คก่อนผลิตทุกวัน', 'ตรวจรับงาน'],
+      title: 'แบบฟอร์มแจ้งซ่อมเครื่องจักร',
+      body: '<div class="demo-form-grid"><div><label>ชื่อผู้แจ้งซ่อม</label><div class="demo-input">สมหมาย ใจดี</div></div><div><label>แผนก</label><div class="demo-input">ฝ่ายผลิต</div></div><div><label>เครื่องจักร/อุปกรณ์</label><div class="demo-input">ปั๊มลม <i class="ion-ios-arrow-down"></i></div></div><div><label>สถานที่ปฏิบัติงาน</label><div class="demo-input">Line A <i class="ion-ios-arrow-down"></i></div></div></div><label>รายละเอียดอาการชำรุด</label><div class="demo-textarea">ไม่มีแรงดัน ปั๊มไม่ทำงาน และมีเสียงผิดปกติ</div><div class="demo-upload"><i class="ion-ios-cloud-upload"></i><span>แนบรูปภาพประกอบ</span><small>ช่วยให้ช่างเตรียมอุปกรณ์ได้ตรงจุด</small></div><div class="demo-action"><span><i class="ion-ios-information-circle"></i> ตรวจสอบข้อมูลก่อนส่ง</span><button type="button" disabled>ส่งใบแจ้งซ่อม</button></div></div>'
+    },
+    {
+      nav: ['แจ้งซ่อมบำรุง', 'ติดตามงานซ่อม', 'เช็คก่อนผลิตทุกวัน', 'ตรวจรับงาน'],
+      title: 'ติดตามสถานะงานซ่อม',
+      body: '<div class="demo-job-card"><div><small>JOB ID</small><strong>REP-20260818-041</strong></div><span class="demo-status status-wait">กำลังซ่อม</span></div><div class="demo-timeline"><div class="demo-timeline-item done"><b>รับแจ้งงาน</b><small>18 ส.ค. 2569 · 08:42 น.</small></div><div class="demo-timeline-item done"><b>ช่างรับงาน</b><small>สมชาย มั่นคง · 09:10 น.</small></div><div class="demo-timeline-item current"><b>กำลังดำเนินการ</b><small>กำลังตรวจสอบระบบไฟฟ้า</small></div><div class="demo-timeline-item"><b>รอตรวจรับงาน</b><small>จะแจ้งเตือนเมื่อช่างดำเนินการเสร็จ</small></div></div><div class="demo-info-strip"><i class="ion-ios-notifications"></i><span>ระบบแจ้งเตือนการเปลี่ยนสถานะผ่าน LINE OA อัตโนมัติ</span></div></div>'
+    },
+    {
+      nav: ['Dashboard ภาพรวม', 'จัดการใบแจ้งซ่อม', 'จัดการ PM', 'ประวัติ PM'],
+      title: 'ตารางบำรุงรักษาเชิงป้องกัน (PM)',
+      body: '<div class="demo-pm-toolbar"><span>ตาราง PM ประจำเดือน</span><div><button type="button" class="demo-filter active">รายการ</button><button type="button" class="demo-filter">ปฏิทิน</button></div></div><div class="demo-pm-list"><div class="demo-pm-row"><span class="demo-date">20<br><small>ส.ค.</small></span><span><b>ตรวจเช็กรายเดือน · FLF (07)</b><small>ระบบเครื่องกล · รายเดือน</small></span><span class="demo-status status-over">เกินกำหนด</span></div><div class="demo-pm-row"><span class="demo-date">วันนี้<br><small>19 ส.ค.</small></span><span><b>ตรวจเช็กประจำวัน · FLF (03)</b><small>ระบบลำเลียง · รายวัน</small></span><span class="demo-status status-pending">รอดำเนินการ</span></div><div class="demo-pm-row"><span class="demo-date">25<br><small>ส.ค.</small></span><span><b>ตรวจเช็กรายเดือน · FLF (01)</b><small>ระบบไฟฟ้า · รายเดือน</small></span><span class="demo-status status-done">เสร็จแล้ว</span></div></div></div>'
+    }
+  ];
+  const currentStep = steps[stepIndex] || steps[0];
+  const screen = document.getElementById('demo-app-screen');
+  if (!screen) return;
+  screen.innerHTML = `<div class="demo-screen-header"><div class="demo-mini-brand"><span class="demo-logo-red">SFC</span> <span class="demo-logo-blue">MS</span><small>SFC Maintenance Service</small></div><div class="demo-mini-user"><span>สมหมาย ใจดี</span><i class="ion-ios-person"></i></div></div><div class="demo-screen-nav">${currentStep.nav.map((item, index) => `<span class="${index === stepIndex ? 'active' : ''}">${item}</span>`).join('')}</div><div class="demo-screen-content"><div class="demo-screen-title"><span>${currentStep.title}</span><i class="ion-ios-more"></i></div>${currentStep.body}</div>`;
+  document.querySelectorAll('.demo-step').forEach((el, index) => el.classList.toggle('is-active', index === stepIndex));
 }
 
 // ── นำทางไปหน้า "วิธีใช้" (guide) จากการ์ดฟีเจอร์บนหน้าหลัก ──
 function goToGuidePage(tab) {
   document.getElementById('home-page').style.display  = 'none';
+  document.getElementById('demo-page').style.display  = 'none';
   document.getElementById('guide-page').style.display = 'block';
   switchGuideTab(tab || 'repair');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -584,6 +621,7 @@ function handleLogout() {
   document.getElementById('te-panel-page').style.display   = 'none';
   document.getElementById('login-page').style.display      = 'none';
   document.getElementById('guide-page').style.display      = 'none';
+  document.getElementById('demo-page').style.display       = 'none';
   document.getElementById('home-page').style.display       = 'block'; // กลับไปหน้าหลักหลัง logout
   const fab = document.getElementById('app-feedback-fab'); if (fab) fab.style.display = 'none';
   document.getElementById('password').value = '';
