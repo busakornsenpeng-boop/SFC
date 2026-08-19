@@ -857,14 +857,49 @@ function renderTrainingStep() {
     const tab = document.querySelector(`.tab-btn[onclick*="${lesson.panel}"]`);
     if (tab) switchViewPanel(lesson.panel, tab);
   }
+  // รอให้ scroll/สลับแท็บ render เสร็จก่อน ค่อยเริ่มหา target จริง
+  clearTimeout(window.__trainingPosTimer);
+  window.__trainingPosTimer = setTimeout(() => locateTrainingTarget(lesson, 0), 260);
+}
+
+// พยายามหา element ที่จะไฮไลต์ — ถ้ายังไม่เจอ/ยังไม่โชว์บนจอ (เช่น เนื้อหาในแท็บที่เพิ่งสลับ
+// ยังเรนเดอร์ไม่เสร็จ หรือโหลดข้อมูล async อยู่) ให้ลองใหม่อีกสักพักก่อนค่อยยอมแพ้
+// กันปัญหากล่องคำอธิบายไปโผล่มุมจอ หรือไฮไลต์ผิดจุดแบบเงียบๆ ไม่รู้ตัว
+function locateTrainingTarget(lesson, attempt) {
+  // เช็คว่ายังอยู่ที่ step เดิมไหม (เผื่อผู้ใช้กดถัดไป/ย้อนกลับเร็วระหว่างที่กำลังลองหาอยู่)
+  if (trainingLessons[trainingRole]?.[trainingIndex] !== lesson) return;
+
   const target = document.querySelector(lesson.target);
-  if (target) {
+  const visible = target && target.offsetParent !== null && target.getBoundingClientRect().width > 0;
+
+  if (visible) {
     target.classList.add('training-target');
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // รอให้ scroll/สลับแท็บ render เสร็จก่อน ค่อยวัดตำแหน่งจริงแล้ววางกล่องคำอธิบาย
-    clearTimeout(window.__trainingPosTimer);
-    window.__trainingPosTimer = setTimeout(() => positionTrainingCard(target), 280);
+    setTimeout(() => positionTrainingCard(target), 220);
+    return;
   }
+
+  if (attempt < 4) {
+    setTimeout(() => locateTrainingTarget(lesson, attempt + 1), 220);
+    return;
+  }
+
+  // หาไม่เจอจริงๆ หลังลองซ้ำแล้ว — ไม่ไฮไลต์อะไรทั้งนั้น (กันชี้ผิดจุด)
+  // แล้ววางกล่องคำอธิบายไว้กลางจอแทน ผู้ใช้ยังอ่านเนื้อหาต่อได้ปกติ ไม่ค้างมุมจอ
+  centerTrainingCard();
+}
+
+// ใช้ตอนหา target ไม่เจอ — วางกล่องคำอธิบายไว้กลางจอ ไม่มีลูกศรชี้
+function centerTrainingCard() {
+  const panel = document.querySelector('#training-overlay .training-panel');
+  const arrow = document.getElementById('training-card-arrow');
+  if (!panel) return;
+  if (arrow) arrow.style.display = 'none';
+  if (window.innerWidth <= 640) return; // มือถือใช้ bottom sheet คงที่อยู่แล้ว ไม่ต้องจัดตำแหน่งเอง
+  const panelW = panel.offsetWidth || 340;
+  const panelH = panel.offsetHeight || 320;
+  panel.style.top  = Math.max(16, (window.innerHeight - panelH) / 2) + 'px';
+  panel.style.left = Math.max(16, (window.innerWidth  - panelW) / 2) + 'px';
 }
 
 // วางกล่องคำอธิบาย (.training-panel) ให้ลอยติดกับ element ที่ไฮไลต์อยู่ พร้อมลูกศรชี้
@@ -932,7 +967,11 @@ window.addEventListener('resize', () => {
   const lesson = trainingLessons[trainingRole]?.[trainingIndex];
   if (!lesson) return;
   const target = document.querySelector(lesson.target);
-  if (target) positionTrainingCard(target);
+  if (target && target.offsetParent !== null && target.getBoundingClientRect().width > 0) {
+    positionTrainingCard(target);
+  } else {
+    centerTrainingCard();
+  }
 });
 window.addEventListener('scroll', () => {
   const overlay = document.getElementById('training-overlay');
@@ -940,7 +979,11 @@ window.addEventListener('scroll', () => {
   const lesson = trainingLessons[trainingRole]?.[trainingIndex];
   if (!lesson) return;
   const target = document.querySelector(lesson.target);
-  if (target) positionTrainingCard(target);
+  if (target && target.offsetParent !== null && target.getBoundingClientRect().width > 0) {
+    positionTrainingCard(target);
+  } else {
+    centerTrainingCard();
+  }
 }, { passive: true });
 
 function downloadUserGuide() {
