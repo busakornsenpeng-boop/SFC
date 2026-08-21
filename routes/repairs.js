@@ -378,7 +378,15 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
       try { imgAfterArr = JSON.parse(imgAfter); } catch { imgAfterArr = [imgAfter]; }
     }
     const imgAfterUrls = await processImages(imgAfterArr, `${id}_after`);
-    const imgAfterStr  = JSON.stringify(imgAfterUrls);
+
+    // ── รวมรูปใหม่เข้ากับรูปเดิมที่เคยแนบไว้จากรอบก่อนหน้า (ไม่เขียนทับ) ──
+    // เดิม: เขียนทับคอลัมน์ I ด้วยรูปของรอบนี้เท่านั้น ทำให้รูปที่เคยอัปโหลดไว้ก่อนหน้าหายไป
+    // ทุกครั้งที่ช่างอัปเดตสถานะซ้ำ (ไม่ว่าจะแนบรูปใหม่หรือไม่ก็ตาม)
+    let existingImgAfter = [];
+    try { existingImgAfter = JSON.parse(rows[rowIndex][8] || '[]'); } catch { existingImgAfter = []; }
+    if (!Array.isArray(existingImgAfter)) existingImgAfter = existingImgAfter ? [existingImgAfter] : [];
+    const mergedImgAfter = [...existingImgAfter, ...imgAfterUrls];
+    const imgAfterStr    = JSON.stringify(mergedImgAfter);
 
   const sheetRow   = rowIndex + 2;
     const updateData = [
@@ -750,7 +758,13 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
       try { imgAfterArr = JSON.parse(imgAfter); } catch { imgAfterArr = [imgAfter]; }
     }
     const imgAfterUrls = await processImages(imgAfterArr, `${id}_after`);
-    const imgAfterStr  = JSON.stringify(imgAfterUrls);
+
+    // ── รวมรูปใหม่เข้ากับรูปเดิมที่เคยแนบไว้จากรอบก่อนหน้า (ไม่เขียนทับ) — เหมือนกับ route /:id/update ──
+    let existingImgAfter = [];
+    try { existingImgAfter = JSON.parse(rows[rowIndex][8] || '[]'); } catch { existingImgAfter = []; }
+    if (!Array.isArray(existingImgAfter)) existingImgAfter = existingImgAfter ? [existingImgAfter] : [];
+    const mergedImgAfter = [...existingImgAfter, ...imgAfterUrls];
+    const imgAfterStr    = JSON.stringify(mergedImgAfter);
 
     const requesterName = rows[rowIndex][1] || '';
     const machine       = rows[rowIndex][3] || '';

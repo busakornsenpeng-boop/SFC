@@ -4764,11 +4764,29 @@ function submitAppFeedback() {
     .catch(err => showToast('ส่งแบบประเมินไม่สำเร็จ: ' + err.message, 'error'));
 }
 
+// ปุ่ม "ส่งออก PDF" — ดึงประวัติการอัปเดตทุกรอบ (RepairUpdateLog ผ่าน /history เอนด์พอยต์เดียว
+// กับที่ openUpdateHistoryModal ใช้) มาแนบท้ายเอกสารด้วย โดยผู้ใช้เลือกได้เองจาก checkbox
+// ในหน้าต่างพิมพ์ว่าจะรวมส่วนประวัตินี้หรือไม่ (ค่าเริ่มต้น = รวม)
 function exportJobDetailPDF(id) {
   id = id || selectedJobForAction;
   const j  = getRepairJobsData().find(x => x.id === id);
   if (!j) { showToast('ไม่พบข้อมูลใบแจ้งซ่อม', 'error'); return; }
 
+  showLoading('กำลังเตรียมเอกสาร...');
+  const historyPromise = isLocalMode
+    ? Promise.resolve([])
+    : authFetch(`${API_URL}/repairs/${encodeURIComponent(id)}/history`)
+        .then(r => r.json())
+        .then(res => (res && res.success && Array.isArray(res.history)) ? res.history : [])
+        .catch(() => []);
+
+  historyPromise.then(history => {
+    hideLoading();
+    renderJobDetailPDF(j, history);
+  });
+}
+
+function renderJobDetailPDF(j, history) {
   // ── ฟิลด์หลัก แสดงเป็นตารางกรอบ 2 คอลัมน์ (label ซ้าย / value ขวา) ──
   const mainRows = [
     ['วันที่แจ้ง', j.date || '-'],
@@ -4819,6 +4837,41 @@ function exportJobDetailPDF(id) {
     `;
   };
 
+  // ── ประวัติการอัปเดตทุกรอบ (จาก RepairUpdateLog) — แสดงเป็นไทม์ไลน์ท้ายเอกสาร ──
+  const statusLabelMapPdf = {
+    'กำลังซ่อม':'กำลังดำเนินการซ่อม','รออะไหล่':'รอจัดหาอะไหล่','ขอหยุดเครื่อง':'ขอหยุดเครื่อง',
+    'Workaround':'Workaround','ส่งซ่อมภายนอก':'ส่งซ่อมภายนอก',
+    'ซ่อมเสร็จแล้ว':'ซ่อมเสร็จสิ้น','ซ่อมเสร็จ':'ซ่อมเสร็จสิ้น',
+  };
+  const parseHistoryImgs = (raw) => {
+    try { const arr = JSON.parse(raw || '[]'); return Array.isArray(arr) ? arr : []; }
+    catch (e) { return (raw && raw.length > 10) ? [raw] : []; }
+  };
+  const historyRowsHtml = (history || []).map((h, i) => {
+    const imgs = parseHistoryImgs(h.imgAfter);
+    const imgsHtml = imgs.length
+      ? `<div class="pf-hist-imggrid">${imgs.map(src => `<img src="${src}" onerror="this.style.display='none'">`).join('')}</div>`
+      : '';
+    return `
+      <div class="pf-hist-item">
+        <div class="pf-hist-dot"></div>
+        <div class="pf-hist-content">
+          <div class="pf-hist-meta">รอบที่ ${i + 1} • ${escapeHtml(h.timestamp || '-')}${h.updatedBy ? ' • ' + escapeHtml(h.updatedBy) : ''}</div>
+          <div class="pf-hist-status">${escapeHtml(statusLabelMapPdf[h.status] || h.status || '-')}</div>
+          ${h.note ? `<div class="pf-hist-note">${escapeHtml(h.note)}</div>` : ''}
+          ${imgsHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  const historySectionHtml = (history && history.length)
+    ? `
+    <div id="pf-history-section">
+      <div class="pf-section-title">ประวัติการอัปเดตงาน (${history.length} รอบ)</div>
+      <div class="pf-hist-list">${historyRowsHtml}</div>
+    </div>`
+    : '';
+
   const stamp = new Date().toLocaleString('th-TH', { dateStyle:'long', timeStyle:'short' });
 
   const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
@@ -4864,7 +4917,17 @@ function exportJobDetailPDF(id) {
   .pf-signlbl{ font-weight:600; color:#3f3f46; }
   .pf-signdate{ color:#9ca3af; font-size:9.5px; margin-top:2px; }
   .pf-footer{ margin-top:10px; padding-top:6px; border-top:1px solid #e4e4e7; font-size:9.5px; color:#a1a1aa; text-align:center; }
-  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } }
+  .pf-hist-list{ margin-bottom:8px; }
+  .pf-hist-item{ position:relative; padding:0 0 10px 18px; border-left:2px solid #e4e4e7; }
+  .pf-hist-item:last-child{ border-left-color:transparent; padding-bottom:0; }
+  .pf-hist-dot{ position:absolute; left:-5px; top:2px; width:8px; height:8px; border-radius:50%; background:#0d9488; }
+  .pf-hist-meta{ font-size:9.5px; color:#9ca3af; font-family:'Courier New',monospace; }
+  .pf-hist-status{ font-size:11.5px; font-weight:700; color:#111827; margin-top:1px; }
+  .pf-hist-note{ font-size:10.5px; color:#3f3f46; margin-top:2px; line-height:1.4; }
+  .pf-hist-imggrid{ display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
+  .pf-hist-imggrid img{ width:52px; height:52px; object-fit:cover; border-radius:4px; border:1px solid #d4d4d8; background:#f4f4f5; }
+  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-hist-item{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } #pf-history-section.pf-hide{ display:none; } }
+  #pf-history-section.pf-hide{ display:none; }
 </style></head>
 <body>
   <div class="pf-toolbar">
@@ -4884,6 +4947,7 @@ function exportJobDetailPDF(id) {
         <option value="1.6">ใหญ่มาก</option>
       </select>
     </label>
+    ${(history && history.length) ? `<label><input type="checkbox" id="pf-include-history" checked onchange="pfToggleHistory(this.checked)"> รวมประวัติการอัปเดต</label>` : ''}
     <button type="button" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
   </div>
   <div class="pf-page">
@@ -4914,6 +4978,8 @@ function exportJobDetailPDF(id) {
   ${imgBlock('รูปภาพที่แจ้ง (ก่อนซ่อม)', imgsBefore)}
   ${imgBlock('รูปหลังซ่อม', imgsAfter)}
 
+  ${historySectionHtml}
+
   <div class="pf-signblock">
     <div class="pf-signrow">
       <div class="pf-signbox">
@@ -4942,6 +5008,10 @@ function exportJobDetailPDF(id) {
     }
     function pfSetImageSize(scale) {
       document.documentElement.style.setProperty('--pf-img-scale', scale);
+    }
+    function pfToggleHistory(include) {
+      const el = document.getElementById('pf-history-section');
+      if (el) el.classList.toggle('pf-hide', !include);
     }
   </script>
 </body></html>`;
