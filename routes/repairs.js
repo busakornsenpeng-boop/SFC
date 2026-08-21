@@ -394,8 +394,26 @@ router.post('/:id/update', requireRole('technician', 'admin'), async (req, res) 
       { range: `Repairs!J${sheetRow}`, values: [[status || '']] },
       { range: `Repairs!N${sheetRow}`, values: [[note   || '']] },
     ];
-    if (status === 'รอตรวจรับ' || status === 'ซ่อมเสร็จแล้ว')
-      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })]] });
+    if (status === 'รอตรวจรับ' || status === 'ซ่อมเสร็จแล้ว') {
+      const doneDate = new Date();
+      const doneStr  = doneDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      updateData.push({ range: `Repairs!L${sheetRow}`, values: [[doneStr]] });
+
+      // ── เขียน Downtime (นาที) ลงคอลัมน์ X = เวลาซ่อมเสร็จ (L) - วันที่แจ้งซ่อม (R) ──
+      // เดิม: route นี้ (ที่ช่างใช้อัปเดตสถานะเอง) ไม่มี logic คำนวณ Downtime เลย มีแต่ route
+      // /:id/status (เฉพาะแอดมิน) เท่านั้นที่คำนวณ — พอช่างกดปิดงานเองผ่านทางนี้ Downtime เลย
+      // ว่างเปล่าตลอด ทั้งที่งานสถานะ "ซ่อมเสร็จแล้ว" จริงๆ — เพิ่ม logic เดียวกันมาให้ตรงนี้ด้วย
+      // นับเฉพาะงาน "ซ่อมฉุกเฉิน (Break Down)" เท่านั้น (คอลัมน์ F = opType)
+      const reportDateStr    = rows[rowIndex][17] || ''; // R
+      const opType            = rows[rowIndex][5]  || ''; // F
+      const downtimeMinutes  = calcDowntimeMinutes(reportDateStr, doneDate, opType);
+      console.log(`[DOWNTIME-DEBUG][update] id=${id} opType="${opType}" reportDateStr="${reportDateStr}" doneStr="${doneStr}" downtimeMinutes=${downtimeMinutes}`);
+      if (downtimeMinutes !== '') {
+        updateData.push({ range: `Repairs!X${sheetRow}`, values: [[downtimeMinutes]] });
+      } else {
+        console.warn(`[DOWNTIME-DEBUG][update] id=${id} ไม่ได้เขียน Downtime — ไม่ใช่งานฉุกเฉิน หรือ reportDateStr/doneDate parse ไม่ผ่าน หรือ diff ติดลบ`);
+      }
+    }
     if (updatedBy)
       updateData.push({ range: `Repairs!U${sheetRow}`, values: [[updatedBy]] });
 
