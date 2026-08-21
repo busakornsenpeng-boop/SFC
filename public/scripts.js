@@ -4923,8 +4923,8 @@ function renderJobDetailPDF(j, history) {
   .pf-hist-meta{ font-size:9.5px; color:#9ca3af; font-family:'Courier New',monospace; }
   .pf-hist-status{ font-size:11.5px; font-weight:700; color:#111827; margin-top:1px; }
   .pf-hist-note{ font-size:10.5px; color:#3f3f46; margin-top:2px; line-height:1.4; }
-  .pf-hist-imggrid{ display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
-  .pf-hist-imggrid img{ width:52px; height:52px; object-fit:cover; border-radius:4px; border:1px solid #d4d4d8; background:#f4f4f5; }
+  .pf-hist-imggrid{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .pf-hist-imggrid img{ height:calc(110px * var(--pf-img-scale, 1)); width:auto; max-width:100%; object-fit:contain; border-radius:5px; border:1px solid #d4d4d8; background:#f4f4f5; }
   @media print{ .pf-imgflex img{ break-inside:avoid; } .pf-hist-item{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } #pf-history-section.pf-hide{ display:none; } }
   #pf-history-section.pf-hide{ display:none; }
 </style></head>
