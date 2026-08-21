@@ -4820,20 +4820,19 @@ function renderJobDetailPDF(j, history) {
     </tr>`;
   }
 
-  // ปรับขนาดรูปตามจำนวนที่แนบมา — เดิม fix 3 คอลัมน์เสมอ ทำให้แนบรูปเดียวก็โดนบีบเหลือ 1/3 หน้า
-  // ดูเล็กเกินไป ตอนนี้ 1 รูป = เต็มแถวและใหญ่พอให้ช่างอ่านรายละเอียดออก (เช่นตัวเลขบนหน้าปัด),
-  // 2 รูป = ครึ่งแถวคนละครึ่ง, 3 รูปขึ้นไปค่อยเรียง 3 คอลัมน์เหมือนเดิม
-  // รูปเดี่ยว/คู่ใช้ contain แทน cover ด้วย กันไม่ให้ขอบรูปถูกครอบตัดจนรายละเอียดสำคัญหลุดเฟรม
+  // ปรับขนาดรูปตามจำนวนที่แนบมา — เดิมบังคับกริดเต็มแถวเสมอ (แม้แนบรูปเดียว) ทำให้รูปที่ไม่ได้
+  // มีสัดส่วนพอดีกับกล่อง (เช่นรูปแนวตั้ง/รูปเล็ก) โดน object-fit:contain "ล้อมกรอบ" ด้วยพื้นที่ว่าง
+  // สีเทาข้างๆ จนดูไม่สมดุลกับฝั่งที่มีหลายรูป — ตอนนี้เปลี่ยนเป็น flex gallery แทน: กำหนดแค่ความสูง
+  // (auto ความกว้างตามสัดส่วนจริงของรูป) แล้ว wrap ให้อยู่กึ่งกลางแถว รูปเดี่ยว/คู่/หลายรูปจึงดูเป็น
+  // มาตรฐานเดียวกัน ไม่มีกล่องว่างเทาๆ ล้อมรูปให้ดูเบี้ยว
   // ความสูงคูณด้วย CSS var(--pf-img-scale) แทนที่จะ hardcode ตรงๆ — ให้ dropdown "ขนาดรูปภาพ"
   // ใน toolbar ปรับขนาดสดๆ ได้เลยโดยไม่ต้องสร้าง HTML ใหม่ (ดู pfSetImageSize ท้ายไฟล์)
   const imgBlock = (title, arr) => {
     if (!arr.length) return '';
-    const cols   = arr.length === 1 ? 1 : arr.length === 2 ? 2 : 3;
-    const height = arr.length === 1 ? 380 : arr.length === 2 ? 280 : 170;
-    const fit    = arr.length <= 2 ? 'contain' : 'cover';
+    const height = arr.length === 1 ? 340 : arr.length === 2 ? 260 : 170;
     return `
       <div class="pf-imgtitle">${title}</div>
-      <div class="pf-imggrid" style="grid-template-columns:repeat(${cols},1fr)">${arr.map(src => `<img src="${src}" style="height:calc(${height}px * var(--pf-img-scale, 1));object-fit:${fit}" onerror="this.style.display='none'">`).join('')}</div>
+      <div class="pf-imgflex">${arr.map(src => `<img src="${src}" style="height:calc(${height}px * var(--pf-img-scale, 1))" onerror="this.style.display='none'">`).join('')}</div>
     `;
   };
 
@@ -4908,8 +4907,8 @@ function renderJobDetailPDF(j, history) {
   .pf-detailbox{ border:1px solid #d4d4d8; border-left:4px solid #0d9488; background:#f9fafb; border-radius:4px; padding:6px 10px; margin-bottom:8px; font-size:11px; line-height:1.4; }
   .pf-detailbox .pf-detaillbl{ font-weight:700; color:#0d9488; font-size:10.5px; margin-bottom:2px; }
   .pf-imgtitle{ font-weight:700; font-size:11px; margin:4px 0 4px; color:#3f3f46; }
-  .pf-imggrid{ display:grid; gap:8px; margin-bottom:8px; }
-  .pf-imggrid img{ width:100%; object-fit:cover; background:#f4f4f5; border-radius:6px; border:1px solid #d4d4d8; }
+  .pf-imgflex{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:8px; }
+  .pf-imgflex img{ width:auto; max-width:100%; object-fit:contain; background:#f4f4f5; border-radius:6px; border:1px solid #d4d4d8; }
   .pf-signblock{ margin-top:14px; }
   .pf-signrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
   .pf-signbox{ text-align:center; font-size:11px; }
@@ -4926,7 +4925,7 @@ function renderJobDetailPDF(j, history) {
   .pf-hist-note{ font-size:10.5px; color:#3f3f46; margin-top:2px; line-height:1.4; }
   .pf-hist-imggrid{ display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
   .pf-hist-imggrid img{ width:52px; height:52px; object-fit:cover; border-radius:4px; border:1px solid #d4d4d8; background:#f4f4f5; }
-  @media print{ .pf-imggrid img{ break-inside:avoid; } .pf-hist-item{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } #pf-history-section.pf-hide{ display:none; } }
+  @media print{ .pf-imgflex img{ break-inside:avoid; } .pf-hist-item{ break-inside:avoid; } .pf-signblock{ break-inside:avoid; } .pf-toolbar{ display:none; } .pf-page{ padding:0; max-width:none; margin:0; } #pf-history-section.pf-hide{ display:none; } }
   #pf-history-section.pf-hide{ display:none; }
 </style></head>
 <body>
