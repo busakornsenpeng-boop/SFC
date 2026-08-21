@@ -3,7 +3,7 @@
      ================================================ */
 
   #tech-panel-page{display:none;position:relative;z-index:1;padding:20px 0 40px}
-  .tp-wrap{background:var(--bg2);color:var(--text);font-family:var(--font-system);font-size:14px;width:100%;max-width:860px;margin:0 auto;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
+  .tp-wrap{background:var(--bg2);color:var(--text);font-family:var(--font-system);font-size:14px;width:100%;max-width:860px;margin:0 auto;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
   .tp-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
   .tp-tb-left{display:flex;align-items:center;gap:10px}
   .tp-tb-icon{width:34px;height:34px;border-radius:var(--r-sm);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
