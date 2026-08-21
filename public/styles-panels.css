@@ -18,6 +18,7 @@
   .tp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:14px}
   .tp-stats-6{grid-template-columns:repeat(6,1fr);gap:14px}
   .tp-stats-5{grid-template-columns:repeat(5,1fr);gap:14px}
+  .tp-stats-6{grid-template-columns:repeat(6,1fr);gap:14px}
 
   .tp-sbox{
     background:var(--surface);
@@ -46,6 +47,7 @@
   .tp-sbox.g::before{background:linear-gradient(90deg,var(--green),#34d399)}
   .tp-sbox.t::before{background:linear-gradient(90deg,var(--teal),#5eead4)}
   .tp-sbox.p::before{background:linear-gradient(90deg,var(--purple),#a78bfa)}
+  .tp-sbox.r::before{background:linear-gradient(90deg,var(--red),#f87171)}
 
   .tp-sbox.b{--sb-glow:rgba(46,92,230,.14)}
   .tp-sbox.y{--sb-glow:rgba(217,119,6,.14)}
@@ -53,6 +55,7 @@
   .tp-sbox.g{--sb-glow:rgba(5,150,105,.14)}
   .tp-sbox.t{--sb-glow:rgba(20,184,166,.14)}
   .tp-sbox.p{--sb-glow:rgba(124,58,237,.14)}
+  .tp-sbox.r{--sb-glow:rgba(220,38,38,.14)}
 
   .tp-sbox.active{border-color:currentColor;box-shadow:0 0 0 1.5px currentColor,0 10px 24px -8px rgba(16,24,40,.16)}
   .tp-sbox.b.active{color:var(--accent)}
@@ -61,6 +64,7 @@
   .tp-sbox.g.active{color:var(--green)}
   .tp-sbox.t.active{color:var(--teal)}
   .tp-sbox.p.active{color:var(--purple)}
+  .tp-sbox.r.active{color:var(--red)}
 
   .tp-sbox-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:0;flex-shrink:0;position:relative;z-index:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
   .tp-sbox-icon.y{background:linear-gradient(155deg,rgba(217,119,6,.16),rgba(217,119,6,.06));color:var(--yellow)}
@@ -69,6 +73,7 @@
   .tp-sbox-icon.o{background:linear-gradient(155deg,rgba(234,88,12,.16),rgba(234,88,12,.06));color:var(--orange)}
   .tp-sbox-icon.t{background:linear-gradient(155deg,rgba(20,184,166,.16),rgba(20,184,166,.06));color:var(--teal)}
   .tp-sbox-icon.p{background:linear-gradient(155deg,rgba(124,58,237,.16),rgba(124,58,237,.06));color:var(--purple)}
+  .tp-sbox-icon.r{background:linear-gradient(155deg,rgba(220,38,38,.16),rgba(220,38,38,.06));color:var(--red)}
 
   .tp-sbox-body{flex:1;min-width:0;position:relative;z-index:1}
 

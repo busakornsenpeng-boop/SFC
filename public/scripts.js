@@ -3646,14 +3646,17 @@ function openTechIdentifySelf() {
 // ── นิยามฟิลเตอร์ของ 5 การ์ดสถิติบนแดชบอร์ดช่าง ──
 // key ตรงกับ data-stat ของแต่ละการ์ดใน index.html
 const TE_JOB_FILTERS = {
-  // "แจ้งซ่อม" = ยอดรวมงานทั้งหมด ยกเว้นงานที่ถูกตีกลับ (ตีกลับไม่มีการ์ดของตัวเอง จึงไม่รวม)
-  reported:  { label: 'แจ้งซ่อม',       match: j => !['ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status) },
+  // "แจ้งซ่อม" = ยอดรวมงานทั้งหมด รวมงานที่ถูกตีกลับด้วย ให้ตรงกับนิยาม total ฝั่งแอดมิน
+  // (calculateAdminStats() นับ total = jobs.length รวมตีกลับ — ตีกลับก็ยังถือเป็นใบแจ้งซ่อมที่เข้ามาจริง)
+  reported:  { label: 'แจ้งซ่อม',       match: j => true },
   waiting:   { label: 'รอช่างรับงาน',   match: j => j.status === 'รอซ่อม' },
   progress:  { label: 'กำลังดำเนินการ', match: j => ['กำลังซ่อม','รออะไหล่','ขอหยุดเครื่อง','Workaround','ส่งซ่อมภายนอก'].includes(j.status) },
   // เดิมแยกเป็น "ซ่อมแล้ว" กับ "รอตรวจรับ" สองช่อง แต่ทั้งสามค่าสถานะนี้หมายถึงเรื่องเดียวกัน
   // (ซ่อมเสร็จแล้ว รอทีมตรวจรับงาน) เลยรวมเป็นช่องเดียว กันสับสนว่านับซ้ำ/ต่างกันยังไง
   pendqc:    { label: 'รอตรวจรับ(ซ่อมเสร็จแล้ว)', match: j => ['ซ่อมเสร็จ','ซ่อมเสร็จแล้ว','รอตรวจรับ'].includes(j.status) },
   closed:    { label: 'ปิดงาน',        match: j => j.status === 'ปิดงาน' },
+  // การ์ด "ตีกลับ" แยกต่างหาก ให้ตรงกับฝั่งแอดมิน (ดู isBouncedStatus / stats.bounced ใน calculateAdminStats)
+  bounced:   { label: 'ตีกลับ',        match: j => isBouncedStatus(j.status) },
 };
 let teJobsFilterKey = 'waiting'; // ค่าเริ่มต้น = คิวงานรอช่างรับ (เหมือนพฤติกรรมเดิม)
 // ── ตัวกรอง "เฉพาะซ่อมฉุกเฉิน (Break Down)" — ทีมงานแจ้งว่าอยากให้ช่าง/แอดมินกรองงานฉุกเฉิน
@@ -3693,6 +3696,7 @@ function teUpdateStats() {
   if(sv('te-stat-progress'))  sv('te-stat-progress').textContent  = counts.progress;
   if(sv('te-stat-pendqc'))    sv('te-stat-pendqc').textContent    = counts.pendqc;
   if(sv('te-stat-closed'))    sv('te-stat-closed').textContent    = counts.closed;
+  if(sv('te-stat-bounced'))   sv('te-stat-bounced').textContent   = counts.bounced;
   if(sv('te-badge-queue'))    sv('te-badge-queue').textContent    = counts.waiting;
   if(sv('te-badge-jobs'))     sv('te-badge-jobs').textContent     = counts.waiting;
   if(sv('te-badge-mine'))     sv('te-badge-mine').textContent     = mine;
