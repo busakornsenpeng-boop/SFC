@@ -149,7 +149,11 @@
                 <input type="text" id="rep-side-other" class="input-ctrl d-none" placeholder="โปรดระบุด้านปัญหา..." style="margin-top:8px">
               </div>
               <div class="form-field">
-                <label>ประเภทงานซ่อม<span class="req">*</span></label>
+                <label>ประเภทงานซ่อม<span class="req">*</span>
+                  <button type="button" class="rep-type-help-btn" onclick="openModal('repair-type-guide-modal')" title="ดูวิธีเลือกประเภทงานซ่อมให้ถูก">
+                    <i class="ion-ios-help-circle-outline"></i>
+                  </button>
+                </label>
                 <select id="rep-type" class="select-ctrl" required>
                   <option value="">เลือกประเภท</option>
                   <option>ซ่อมฉุกเฉิน (Break Down)</option>
@@ -1110,6 +1114,19 @@
     </div>
   </div>
 
+  <!-- Repair Type Guide Modal — โปสเตอร์แนะนำวิธีเลือกประเภทงานซ่อมให้ถูก เปิดจากปุ่ม ⓘ ข้างช่อง "ประเภทงานซ่อม" -->
+  <div class="modal" id="repair-type-guide-modal">
+    <div class="modal-content" style="max-width:640px">
+      <div class="modal-header">
+        <span class="modal-title">เลือกประเภทงานซ่อมให้ถูก ก่อนกดแจ้ง</span>
+        <button class="modal-close" onclick="closeModal('repair-type-guide-modal')"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <img src="/repair-type-guide.png" alt="วิธีเลือกประเภทงานซ่อม" style="width:100%;display:block;border-radius:0 0 12px 12px">
+      </div>
+    </div>
+  </div>
+
   <!-- Admin Undo Reject Modal — ยกเลิกการตีกลับของช่าง ส่งกลับเข้าคิวซ่อม -->
   <div class="modal" id="admin-cancel-modal">
     <div class="modal-content">
@@ -1160,7 +1177,11 @@
             <input type="text" id="rs-side-other" class="input-ctrl d-none" placeholder="โปรดระบุด้านปัญหา..." style="margin-top:8px">
           </div>
           <div class="form-field">
-            <label>ประเภทงานซ่อม</label>
+            <label>ประเภทงานซ่อม
+              <button type="button" class="rep-type-help-btn" onclick="openModal('repair-type-guide-modal')" title="ดูวิธีเลือกประเภทงานซ่อมให้ถูก">
+                <i class="ion-ios-help-circle-outline"></i>
+              </button>
+            </label>
             <select id="rs-type" class="select-ctrl">
               <option value="">เลือกประเภท</option>
               <option>ซ่อมฉุกเฉิน (Break Down)</option>

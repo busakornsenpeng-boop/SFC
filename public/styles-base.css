@@ -121,6 +121,8 @@
   .form-field{display:flex;flex-direction:column;gap:6px}
   .form-field label{font-size:12px;font-weight:600;color:var(--text2)}
   .form-field label .req{color:var(--red);margin-left:2px}
+  .rep-type-help-btn{background:none;border:none;padding:0;margin-left:5px;cursor:pointer;color:var(--accent);font-size:15px;line-height:1;vertical-align:-2px;display:inline-flex;align-items:center;opacity:.75;transition:opacity .15s}
+  .rep-type-help-btn:hover{opacity:1}
   .input-ctrl,.select-ctrl,.textarea-ctrl{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:13.5px;font-family:inherit;color:var(--text);outline:none;width:100%;transition:all 0.2s}
   .input-ctrl:focus,.select-ctrl:focus,.textarea-ctrl:focus{border-color:var(--accent);box-shadow:var(--glow);background:var(--surface)}
   .select-ctrl{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2398a2b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-color:var(--bg2);padding-right:32px;cursor:pointer}
