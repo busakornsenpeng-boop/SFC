@@ -16,7 +16,6 @@
   .tp-pname{font-size:13px;font-weight:600}
   .tp-prole{font-size:10px;color:var(--purple);letter-spacing:.5px;font-weight:600}
   .tp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:14px}
-  .tp-stats-6{grid-template-columns:repeat(6,1fr);gap:14px}
   .tp-stats-5{grid-template-columns:repeat(5,1fr);gap:14px}
   .tp-stats-6{grid-template-columns:repeat(6,1fr);gap:14px}
 
@@ -80,7 +79,14 @@
   .tp-snum{font-size:27px;font-weight:800;font-family:var(--font-mono);transition:.3s;line-height:1;letter-spacing:-.6px;font-variant-numeric:tabular-nums;margin-bottom:4px}
   .tp-snum.y{color:var(--yellow)}.tp-snum.b{color:var(--accent)}.tp-snum.g{color:var(--green)}
   .tp-snum.o{color:var(--orange)}.tp-snum.t{color:var(--teal)}.tp-snum.p{color:var(--purple)}
+  .tp-snum.r{color:var(--red)}
   .tp-slbl{font-size:11.5px;color:var(--text2);margin-top:0;font-weight:600;letter-spacing:.2px;white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip}
+
+  /* เวอร์ชัน 6 การ์ด (มีการ์ด "ตีกลับ" เพิ่ม) — ย่อ padding/ไอคอน/ตัวเลขลงเล็กน้อย กันดูอัดแน่นเกินไปตอนเรียง 6 ใบในแถวเดียว */
+  .tp-stats-6 .tp-sbox{padding:14px 12px 13px;gap:10px}
+  .tp-stats-6 .tp-sbox-icon{width:36px;height:36px;font-size:15px;border-radius:10px}
+  .tp-stats-6 .tp-snum{font-size:21px;margin-bottom:3px}
+  .tp-stats-6 .tp-slbl{font-size:10.5px;line-height:1.25}
   @media(max-width:900px){.tp-stats-6,.tp-stats-5{grid-template-columns:repeat(3,1fr)}}
   @media(max-width:480px){.tp-stats-6,.tp-stats-5{grid-template-columns:repeat(2,1fr)}}
   .tp-tabs{display:flex;gap:8px;padding:0 14px 10px;overflow-x:auto}
