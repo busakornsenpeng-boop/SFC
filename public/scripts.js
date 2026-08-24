@@ -1255,7 +1255,7 @@ function tpOpenJobModal(id){
     <div class="tp-mrow"><div class="tp-mrow-lbl">แผนก</div><div class="tp-mrow-val desc">${raw&&raw.dept?raw.dept:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">สถานที่ปฏิบัติงาน</div><div class="tp-mrow-val desc">${raw&&raw.productionLine?raw.productionLine:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">เครื่องจักร</div><div class="tp-mrow-val desc">${raw&&raw.machine?raw.machine:'-'}</div></div>
-    <div class="tp-mrow"><div class="tp-mrow-lbl">วันที่แจ้ง</div><div class="tp-mrow-val">${j.date}</div></div>
+    <div class="tp-mrow"><div class="tp-mrow-lbl">วันที่และเวลาที่แจ้ง</div><div class="tp-mrow-val">${raw&&raw.date?raw.date:j.date}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">ด้านปัญหา</div><div class="tp-mrow-val desc">${raw&&raw.side?raw.side:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">ประเภทงาน</div><div class="tp-mrow-val desc">${raw&&raw.opType?raw.opType:'-'}</div></div>
     <div class="tp-mrow"><div class="tp-mrow-lbl">รายละเอียด</div><div class="tp-mrow-val desc">${j.desc}</div></div>
