@@ -1270,14 +1270,14 @@ function tpOpenJobModal(id){
   if (!imgs.length) return '';
   return `<div class="tp-mdivider"></div>
     <div class="tp-mrow-lbl" style="margin-bottom:8px"><i class="ion-ios-camera"></i> รูปภาพที่แจ้ง</div>
-    ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
+    ${renderImgGallery(imgs, 'width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px')}`;
 })()}
 ${(() => {
   let imgs = [];
   try { imgs = JSON.parse(raw.imgAfter || '[]'); } catch { imgs = raw.imgAfter ? [raw.imgAfter] : []; }
   if (!imgs.length) return '';
   return `<div class="tp-mrow-lbl" style="margin:10px 0 8px"><i class="ion-ios-checkmark-circle"></i> รูปหลังซ่อม</div>
-    ${imgs.map(src => `<img src="${src}" style="width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`).join('')}`;
+    ${renderImgGallery(imgs, 'width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px')}`;
 })()}`;
   let acts=`<button class="tp-mact-btn tp-mact-close" onclick="tpCloseModal()"><i class="ion-ios-close"></i> ปิด</button>
     <button class="tp-mact-btn" onclick="openUpdateHistoryModal('${j.id}')"><i class="ion-ios-time"></i> ประวัติอัปเดต</button>
@@ -4485,9 +4485,9 @@ function viewJobDetail(id) {
   let imgHtml = '';
   try {
     const imgs = JSON.parse(j.img || '[]');
-    imgs.forEach(src => { imgHtml += `<img src="${src}" style="width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`; });
+    imgHtml = renderImgGallery(imgs, 'width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in');
   } catch(e) {
-    if (j.img && j.img.length > 10) imgHtml = `<img src="${j.img}" style="width:100%;border-radius:8px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`;
+    if (j.img && j.img.length > 10) imgHtml = renderImgGallery([j.img], 'width:100%;border-radius:8px;cursor:zoom-in');
   }
   document.getElementById('jdm-image-body').innerHTML = imgHtml || '<div style="color:var(--text3);font-size:12px">ไม่มีรูปภาพที่แจ้ง</div>';
 
@@ -4495,9 +4495,9 @@ function viewJobDetail(id) {
   let imgAfterHtml = '';
   try {
     const imgsAfter = JSON.parse(j.imgAfter || '[]');
-    imgsAfter.forEach(src => { imgAfterHtml += `<img src="${src}" style="width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`; });
+    imgAfterHtml = renderImgGallery(imgsAfter, 'width:100%;border-radius:8px;margin-bottom:8px;object-fit:cover;max-height:220px;cursor:zoom-in');
   } catch(e) {
-    if (j.imgAfter && j.imgAfter.length > 10) imgAfterHtml = `<img src="${j.imgAfter}" style="width:100%;border-radius:8px;cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`;
+    if (j.imgAfter && j.imgAfter.length > 10) imgAfterHtml = renderImgGallery([j.imgAfter], 'width:100%;border-radius:8px;cursor:zoom-in');
   }
   const afterWrap = document.getElementById('jdm-image-after-wrap');
   if (imgAfterHtml) {
@@ -4576,9 +4576,7 @@ function openUpdateHistoryModal(id) {
       let imgs = [];
       try { imgs = JSON.parse(h.imgAfter || '[]'); } catch { imgs = h.imgAfter ? [h.imgAfter] : []; }
       const imgsHtml = imgs.length
-        ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${imgs.map(src =>
-            `<img src="${src}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);cursor:zoom-in" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`
-          ).join('')}</div>`
+        ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${renderImgGallery(imgs, 'width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);cursor:zoom-in')}</div>`
         : '';
       const isLast = i === rounds.length - 1;
       return `
@@ -5284,11 +5282,99 @@ function renderPMHistoryTable() {
     </tr>`).join('');
 }
 
+// ── Gallery registry: เก็บรายการรูปของแต่ละกลุ่ม (เช่น "รูปที่แจ้ง" หรือ "รูปหลังซ่อม")
+// ไว้ให้ imgFullscreen() หยิบไปใช้เลื่อนดูรูปถัดไป/ก่อนหน้าได้โดยไม่ต้องปิดแล้วกดรูปใหม่ ──
+window.__imgGalleries = window.__imgGalleries || {};
+let __galleryCounter = 0;
+
+// สร้าง HTML ของรูปภาพเป็นกลุ่ม (gallery) — ใช้แทนการ map <img> ตรงๆ ทุกจุดที่ต้องโชว์รูปหลายรูป
+function renderImgGallery(imgs, imgStyle) {
+  if (!imgs || !imgs.length) return '';
+  const gid = 'gal' + (++__galleryCounter);
+  window.__imgGalleries[gid] = imgs;
+  return imgs.map((src, i) =>
+    `<img src="${src}" style="${imgStyle}" data-gallery="${gid}" data-idx="${i}" onclick="imgFullscreen(this)" onerror="this.style.display='none'">`
+  ).join('');
+}
+
 function imgFullscreen(img) {
+  const gid  = img.dataset ? img.dataset.gallery : null;
+  const imgs = (gid && window.__imgGalleries[gid] && window.__imgGalleries[gid].length) ? window.__imgGalleries[gid] : [img.src];
+  let idx    = gid ? (parseInt(img.dataset.idx, 10) || 0) : 0;
+
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
-  overlay.innerHTML = `<img src="${img.src}" style="max-width:95vw;max-height:95vh;border-radius:8px;object-fit:contain">`;
-  overlay.onclick = () => overlay.remove();
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+  const stage = document.createElement('div');
+  stage.style.cssText = 'position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y;';
+
+  const imgTag = document.createElement('img');
+  imgTag.style.cssText = 'max-width:92vw;max-height:85vh;border-radius:8px;object-fit:contain;user-select:none;-webkit-user-drag:none;';
+  imgTag.draggable = false;
+  stage.appendChild(imgTag);
+  overlay.appendChild(stage);
+
+  const counter = document.createElement('div');
+  counter.style.cssText = 'color:#fff;font-size:13px;padding:10px 0 4px;opacity:.85;font-family:var(--font-mono,monospace);';
+  overlay.appendChild(counter);
+
+  const closeBtn = document.createElement('div');
+  closeBtn.innerHTML = '&times;';
+  closeBtn.setAttribute('aria-label', 'ปิด');
+  closeBtn.style.cssText = 'position:fixed;top:14px;right:18px;color:#fff;font-size:32px;line-height:1;cursor:pointer;z-index:100001;';
+  overlay.appendChild(closeBtn);
+
+  let prevBtn = null, nextBtn = null;
+  if (imgs.length > 1) {
+    prevBtn = document.createElement('div');
+    prevBtn.innerHTML = '&#8249;';
+    prevBtn.setAttribute('aria-label', 'รูปก่อนหน้า');
+    prevBtn.style.cssText = 'position:fixed;left:6px;top:50%;transform:translateY(-50%);color:#fff;font-size:46px;line-height:1;cursor:pointer;z-index:100001;padding:8px 14px;user-select:none;';
+    nextBtn = document.createElement('div');
+    nextBtn.innerHTML = '&#8250;';
+    nextBtn.setAttribute('aria-label', 'รูปถัดไป');
+    nextBtn.style.cssText = 'position:fixed;right:6px;top:50%;transform:translateY(-50%);color:#fff;font-size:46px;line-height:1;cursor:pointer;z-index:100001;padding:8px 14px;user-select:none;';
+    overlay.appendChild(prevBtn);
+    overlay.appendChild(nextBtn);
+  }
+
+  function render() {
+    imgTag.src = imgs[idx];
+    counter.textContent = imgs.length > 1 ? `${idx + 1} / ${imgs.length} — เลื่อนหรือกดลูกศรเพื่อดูรูปถัดไป` : '';
+  }
+  function go(delta) {
+    idx = (idx + delta + imgs.length) % imgs.length;
+    render();
+  }
+  render();
+
+  if (prevBtn) prevBtn.onclick = e => { e.stopPropagation(); go(-1); };
+  if (nextBtn) nextBtn.onclick = e => { e.stopPropagation(); go(1); };
+  closeBtn.onclick = e => { e.stopPropagation(); close(); };
+  overlay.onclick = e => { if (e.target === overlay || e.target === stage) close(); };
+
+  // ปัดนิ้วซ้าย/ขวาบนมือถือเพื่อเลื่อนดูรูปถัดไป/ก่อนหน้า
+  let touchStartX = null;
+  stage.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (touchStartX === null || imgs.length < 2) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+    touchStartX = null;
+  }, { passive: true });
+
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') go(-1);
+    else if (e.key === 'ArrowRight') go(1);
+  }
+  document.addEventListener('keydown', onKey);
+
+  function close() {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+  }
+
   document.body.appendChild(overlay);
 }
 
