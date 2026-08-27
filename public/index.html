@@ -1108,6 +1108,10 @@
             </div>
           </div>
           <div class="form-field" style="margin-bottom:16px;margin-top:12px"><label>หมายเหตุ</label><input type="text" id="adm-job-note" class="input-ctrl" placeholder="ใส่บันทึกผู้ดูแล..."></div>
+          <div id="admin-action-reject" class="d-none" style="margin-bottom:16px;padding:12px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);border-radius:10px">
+            <div style="font-size:12px;color:var(--red);font-weight:600;margin-bottom:8px"><i class="ion-ios-warning"></i> หากข้อมูลที่แจ้งมาไม่ครบ/ไม่ชัดเจน สามารถตีกลับให้ผู้แจ้งแก้ไขได้โดยตรง</div>
+            <button class="btn" style="width:100%;background:var(--red);color:#fff;border-color:var(--red)" onclick="adminOpenRejectModal()"><i class="ion-ios-close-circle"></i> ตีกลับใบแจ้งซ่อม</button>
+          </div>
           <div id="admin-action-cancel" class="d-none" style="margin-bottom:16px;padding:12px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.06);border-radius:10px">
             <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px"><i class="ion-ios-warning"></i> งานนี้ถูกช่างตีกลับ — ถ้าเห็นว่าไม่สมควรตีกลับ สามารถยกเลิกการตีกลับและส่งกลับเข้าคิวซ่อมได้ทันที</div>
             <button class="btn btn-accent" style="width:100%" onclick="adminOpenUndoRejectModal()"><i class="ion-ios-undo"></i> ยกเลิกการตีกลับ (ส่งกลับเข้าคิว)</button>
@@ -1152,6 +1156,29 @@
         <div style="display:flex;justify-content:flex-end;gap:10px">
           <button class="btn btn-sec" onclick="closeModal('admin-cancel-modal')">ยกเลิก</button>
           <button class="btn btn-accent" onclick="adminSubmitCancelJob()"><i class="ion-ios-undo"></i> ยืนยันส่งกลับเข้าคิว</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Reject Modal — แอดมินตีกลับใบแจ้งซ่อมโดยตรง ขอข้อมูลเพิ่มเติมจากผู้แจ้ง -->
+  <div class="modal" id="admin-reject-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">ตีกลับใบแจ้งซ่อม</span>
+        <button class="modal-close" onclick="closeModal('admin-reject-modal')"><i class="ion-ios-close"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--red)">
+          <i class="ion-ios-information-circle"></i> งานจะเปลี่ยนเป็นสถานะ "ตีกลับ" ผู้แจ้งต้องแก้ไขข้อมูลและส่งใหม่ก่อนช่างจะรับงานต่อได้ — ระบบจะแจ้งผู้แจ้งผ่าน LINE ด้วย
+        </div>
+        <div class="form-field" style="margin-bottom:16px">
+          <label>เหตุผลที่ตีกลับ *</label>
+          <textarea id="adm-reject-reason" class="textarea-ctrl" placeholder="เช่น รายละเอียดอาการไม่ชัดเจน กรุณาระบุเพิ่มเติม..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-sec" onclick="closeModal('admin-reject-modal')">ยกเลิก</button>
+          <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="adminSubmitReject()"><i class="ion-ios-close-circle"></i> ยืนยันตีกลับ</button>
         </div>
       </div>
     </div>

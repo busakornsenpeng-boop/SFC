@@ -4507,7 +4507,7 @@ function viewJobDetail(id) {
     afterWrap.style.display = 'none';
   }
 
-  ['tech-action-accept','tech-action-update','eng-action-qc','admin-action-edit']
+  ['tech-action-accept','tech-action-update','eng-action-qc','admin-action-edit','admin-action-reject']
     .forEach(sid => document.getElementById(sid)?.classList.add('d-none'));
 
   const role = currentUser?.role;
@@ -4537,6 +4537,8 @@ function viewJobDetail(id) {
     const n = document.getElementById('adm-job-note');   if(n && j.note) n.value = j.note;
     // ปุ่ม "ยกเลิกการตีกลับ" โชว์เฉพาะตอนงานถูกช่างตีกลับอยู่ (ให้แอดมิน override ส่งกลับเข้าคิวได้ถ้าเห็นว่าไม่สมควรตีกลับ)
     document.getElementById('admin-action-cancel')?.classList.toggle('d-none', !(j.status === 'ตีกลับ' || j.status === 'แก้ไข (ตีกลับ)'));
+    // ปุ่ม "ตีกลับใบแจ้งซ่อม" โชว์เฉพาะงานที่ยังไม่ปิดและยังไม่ถูกตีกลับอยู่แล้ว
+    document.getElementById('admin-action-reject')?.classList.toggle('d-none', ['ปิดงาน','ตีกลับ','แก้ไข (ตีกลับ)'].includes(j.status));
   }
   openModal('job-detail-modal');
 }
@@ -5087,6 +5089,56 @@ function adminSubmitCancelJob() {
   closeModal('job-detail-modal');
   showToast(`↩ ยกเลิกการตีกลับ ${j.machine} — ส่งกลับเข้าคิวแล้ว`, 'success');
   renderAdminRepairsTable(); renderRepairsTable();
+}
+
+// ============================================================
+// ADMIN — ตีกลับใบแจ้งซ่อมโดยตรง (ขอข้อมูลเพิ่มเติมจากผู้แจ้ง)
+// ใช้ endpoint /reject เดิม (ตัวเดียวกับที่ช่างใช้) — คนละทิศทางกับ admin-undo-reject
+// ============================================================
+function adminOpenRejectModal() {
+  if (!selectedJobForAction) return;
+  const ta = document.getElementById('adm-reject-reason');
+  if (ta) ta.value = '';
+  openModal('admin-reject-modal');
+}
+
+function adminSubmitReject() {
+  if (!selectedJobForAction) return;
+  const reason = document.getElementById('adm-reject-reason')?.value.trim() || '';
+  if (!reason) { showToast('กรุณาระบุเหตุผลที่ตีกลับ', 'error'); return; }
+  const j = getRepairJobsData().find(x => x.id === selectedJobForAction);
+  if (!j) return;
+
+  if (!isLocalMode) {
+    showLoading('กำลังตีกลับ...');
+    authFetch(`${API_URL}/repairs/${encodeURIComponent(selectedJobForAction)}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, rejectedBy: currentUser?.name || currentUser?.username || 'admin' })
+    })
+    .then(r => r.json())
+    .then(res => {
+      hideLoading();
+      if (res.success) {
+        closeModal('admin-reject-modal');
+        closeModal('job-detail-modal');
+        showToast(`⚠️ ตีกลับ ${j.machine} แล้ว — รอผู้แจ้งแก้ไขและส่งใหม่`, 'success');
+        loadAllData().then(() => { renderAdminRepairsTable(); renderRepairsTable(); });
+      } else {
+        showToast('เกิดข้อผิดพลาด: ' + (res.message || ''), 'error');
+      }
+    })
+    .catch(() => { hideLoading(); showToast('เชื่อมต่อ server ไม่ได้', 'error'); });
+    return;
+  }
+
+  // Local Mode
+  j.status = 'ตีกลับ';
+  j.note = `[ตีกลับ] ${reason}`;
+  closeModal('admin-reject-modal');
+  closeModal('job-detail-modal');
+  showToast('ตีกลับสำเร็จ (โหมดทดสอบ)', 'success');
+  renderAdminRepairsTable();
 }
 
 // ============================================================
