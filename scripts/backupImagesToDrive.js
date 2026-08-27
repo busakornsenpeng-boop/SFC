@@ -15,8 +15,10 @@ const { google }  = require('googleapis');
 const { Readable } = require('stream');
 const path = require('path');
 
-const SPREADSHEET_ID  = process.env.SPREADSHEET_ID || '1VYCqhFgHaOXn_mZa4RLQ0AwQVza_BpwmJwxDeBU50Ac';
-const DRIVE_FOLDER_ID = process.env.DRIVE_BACKUP_FOLDER_ID;
+// .trim() กันปัญหา env var/secret มีช่องว่างหรือ newline แฝงมาตอน copy-paste
+// (เจอเคสจริง: ค่าใน GitHub Secret มีช่องว่างนำหน้า ทำให้ Drive API หา folder ไม่เจอ)
+const SPREADSHEET_ID  = (process.env.SPREADSHEET_ID || '1VYCqhFgHaOXn_mZa4RLQ0AwQVza_BpwmJwxDeBU50Ac').trim();
+const DRIVE_FOLDER_ID = (process.env.DRIVE_BACKUP_FOLDER_ID || '').trim();
 
 if (!DRIVE_FOLDER_ID) {
   console.error('[backup] ขาด DRIVE_BACKUP_FOLDER_ID — ตั้งค่า env var/secret ก่อนรัน (ID โฟลเดอร์ Drive ที่ share ให้ service account แล้ว)');
