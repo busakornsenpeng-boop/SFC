@@ -1266,7 +1266,7 @@ function tpOpenJobModal(id){
   ${j.overdue?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 12px;color:#ef4444;font-size:12px"><i class="ion-ios-warning"></i> เกินกำหนด ${j.overdueHrs} ชั่วโมง</div>`:''}
   ${(() => {
   let imgs = [];
-  try { imgs = JSON.parse(raw.img || '[]'); } catch { imgs = raw.img ? [raw.img] : []; }
+  try { imgs = JSON.parse(raw.img || '[]'); } catch { imgs = (raw.img && raw.img.length > 10) ? [raw.img] : []; }
   if (!imgs.length) return '';
   return `<div class="tp-mdivider"></div>
     <div class="tp-mrow-lbl" style="margin-bottom:8px"><i class="ion-ios-camera"></i> รูปภาพที่แจ้ง</div>
@@ -1274,7 +1274,7 @@ function tpOpenJobModal(id){
 })()}
 ${(() => {
   let imgs = [];
-  try { imgs = JSON.parse(raw.imgAfter || '[]'); } catch { imgs = raw.imgAfter ? [raw.imgAfter] : []; }
+  try { imgs = JSON.parse(raw.imgAfter || '[]'); } catch { imgs = (raw.imgAfter && raw.imgAfter.length > 10) ? [raw.imgAfter] : []; }
   if (!imgs.length) return '';
   return `<div class="tp-mrow-lbl" style="margin:10px 0 8px"><i class="ion-ios-checkmark-circle"></i> รูปหลังซ่อม</div>
     ${renderImgGallery(imgs, 'width:100%;border-radius:8px;border:1px solid var(--border);object-fit:cover;max-height:200px;cursor:zoom-in;margin-bottom:6px')}`;
@@ -4576,7 +4576,7 @@ function openUpdateHistoryModal(id) {
   const renderList = rounds => {
     const html = rounds.map((h, i) => {
       let imgs = [];
-      try { imgs = JSON.parse(h.imgAfter || '[]'); } catch { imgs = h.imgAfter ? [h.imgAfter] : []; }
+      try { imgs = JSON.parse(h.imgAfter || '[]'); } catch { imgs = (h.imgAfter && h.imgAfter.length > 10) ? [h.imgAfter] : []; }
       const imgsHtml = imgs.length
         ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${renderImgGallery(imgs, 'width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);cursor:zoom-in')}</div>`
         : '';

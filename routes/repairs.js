@@ -4,6 +4,7 @@ const cloudinary = require('cloudinary').v2;
 const { sheets, SPREADSHEET_ID } = require('../db/connection');
 const { sendLineMessage, getLineUserIdByName, broadcastToTechGroup, sendFlexMessage } = require('./notify');
 const { requireAuth, requireRole } = require('../middleware/adminAuth');
+const { cleanupOldClosedJobImages } = require('./repairImageCleanup');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -883,6 +884,20 @@ router.post('/:id/status', requireRole('admin'), async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/repairs/cleanup-old-images (เฉพาะแอดมิน)
+// ลบรูป (img/imgAfter) บน Cloudinary ของงานที่ "ปิดงาน" แล้วเกิน 2 เดือน ด้วยมือ
+// (ปกติมี cron รันให้อัตโนมัติทุก 2 เดือนอยู่แล้ว — ดู routes/repairImageCleanup.js
+// ปุ่มนี้ไว้กดรันนอกรอบ เช่น อยากเคลียร์ทันทีหรือทดสอบว่าทำงานถูกต้อง)
+router.post('/cleanup-old-images', requireRole('admin'), async (req, res) => {
+  try {
+    const result = await cleanupOldClosedJobImages();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[Repairs] cleanup-old-images error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
