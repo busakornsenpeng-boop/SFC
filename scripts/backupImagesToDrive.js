@@ -16,10 +16,7 @@ const { Readable } = require('stream');
 const path = require('path');
 
 // .trim() กันปัญหา env var/secret มีช่องว่างหรือ newline แฝงมาตอน copy-paste
-<<<<<<< HEAD
 // (เจอเคสจริง: ค่าใน GitHub Secret มีช่องว่างนำหน้า ทำให้ Drive API หา folder ไม่เจอ)
-=======
->>>>>>> bb59fe7 (fix: replace malformed routes filename with techprofiles.js)
 const SPREADSHEET_ID  = (process.env.SPREADSHEET_ID || '1VYCqhFgHaOXn_mZa4RLQ0AwQVza_BpwmJwxDeBU50Ac').trim();
 const DRIVE_FOLDER_ID = (process.env.DRIVE_BACKUP_FOLDER_ID || '').trim();
 
