@@ -16,7 +16,10 @@ const { Readable } = require('stream');
 const path = require('path');
 
 // .trim() กันปัญหา env var/secret มีช่องว่างหรือ newline แฝงมาตอน copy-paste
+<<<<<<< HEAD
 // (เจอเคสจริง: ค่าใน GitHub Secret มีช่องว่างนำหน้า ทำให้ Drive API หา folder ไม่เจอ)
+=======
+>>>>>>> bb59fe7 (fix: replace malformed routes filename with techprofiles.js)
 const SPREADSHEET_ID  = (process.env.SPREADSHEET_ID || '1VYCqhFgHaOXn_mZa4RLQ0AwQVza_BpwmJwxDeBU50Ac').trim();
 const DRIVE_FOLDER_ID = (process.env.DRIVE_BACKUP_FOLDER_ID || '').trim();
 
@@ -49,10 +52,6 @@ function extFromUrl(url) {
   return m ? m[1].toLowerCase() : 'jpg';
 }
 
-// ดึงชื่อไฟล์จริงจาก Cloudinary URL มาใช้ตรงๆ (public_id ที่ backend ตั้งไว้ตอนอัปโหลดฝัง JobID
-// + before/after + index + timestamp อยู่แล้ว — ดู uploadBase64Image/processImages ใน repairs.js)
-// ได้ชื่อไฟล์ตรงกัน 1:1 ระหว่าง Cloudinary กับ Drive เทียบ/ค้นหาข้ามระบบได้ทันที
-// เผื่อ URL แปลกที่ parse ไม่ได้ (เช่น URL ภายนอกที่ไม่ใช่ Cloudinary) ค่อย fallback เป็นชื่อที่ประกอบเอง
 function filenameFromUrl(url, fallbackPrefix, index) {
   try {
     const clean = decodeURIComponent(url.split('?')[0]);
@@ -62,8 +61,6 @@ function filenameFromUrl(url, fallbackPrefix, index) {
   return `${fallbackPrefix}_${index + 1}.${extFromUrl(url)}`;
 }
 
-// คอลัมน์ img(H)/imgAfter(I) เก็บเป็น JSON string array ของ URL (ดู repairs.js getAllRepairs)
-// เผื่อกรณีเก่าที่อาจเป็น URL เดี่ยวไม่ใช่ JSON array ด้วย
 function parseImgField(raw) {
   if (!raw) return [];
   try {
@@ -105,10 +102,12 @@ async function main() {
   console.log('[backup] เริ่มสำรองรูปภาพ → Google Drive');
   console.log(`[backup] SPREADSHEET_ID: ${SPREADSHEET_ID}`);
   console.log(`[backup] DRIVE_BACKUP_FOLDER_ID: ${DRIVE_FOLDER_ID}`);
+  console.log(`[backup] DRIVE_FOLDER_ID length: ${DRIVE_FOLDER_ID.length} (ควรเป็น 33)`);
+  console.log(`[backup] DRIVE_FOLDER_ID JSON: ${JSON.stringify(DRIVE_FOLDER_ID)}`);
 
   const getRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'Repairs!A2:I5000', // A=id ... H=img, I=imgAfter (ดู mapping ใน repairs.js getAllRepairs)
+    range: 'Repairs!A2:I5000',
   });
   const rows = getRes.data.values || [];
 
@@ -119,7 +118,7 @@ async function main() {
 
   for (const row of rows) {
     const jobId = row[0];
-    if (!jobId) continue; // แถวที่ถูก soft-delete (เคลียร์ค่าทั้งแถวออกหมด)
+    if (!jobId) continue;
 
     const beforeImgs = parseImgField(row[7]);
     const afterImgs  = parseImgField(row[8]);
@@ -144,7 +143,7 @@ async function main() {
   }
 
   console.log(`[backup] เสร็จสิ้น — อัปโหลดใหม่ ${uploaded} | ข้าม (มีอยู่แล้ว) ${skipped} | ล้มเหลว ${failed}`);
-  if (failed > 0) process.exitCode = 1; // ให้ GitHub Actions ขึ้นแดงเตือนถ้ามีไฟล์อัปโหลดไม่สำเร็จ
+  if (failed > 0) process.exitCode = 1;
 }
 
 main().catch(err => {
